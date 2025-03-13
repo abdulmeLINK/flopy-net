@@ -1,0 +1,49 @@
+{
+  "policy_id": "fl_client_002",
+  "name": "Resource-aware Client Selection",
+  "description": "Select clients for FL training based on trust scores and resource availability",
+  "conditions": [
+    {
+      "field": "round",
+      "operator": ">",
+      "value": 0
+    },
+    {
+      "field": "available_clients",
+      "operator": ">",
+      "value": 10
+    }
+  ],
+  "actions": [
+    {
+      "type": "fl",
+      "target": "client_selection",
+      "parameters": {
+        "min_trust_score": 0.7,
+        "min_battery_level": 50,
+        "min_cpu_available": 2,
+        "min_ram_gb": 4,
+        "max_clients": 20,
+        "selection_strategy": "weighted_random",
+        "weights": {
+          "trust_score": 0.5,
+          "resource_availability": 0.3,
+          "data_quality": 0.2
+        }
+      }
+    },
+    {
+      "type": "fl",
+      "target": "fit_config",
+      "parameters": {
+        "epochs": 5,
+        "batch_size": 32,
+        "learning_rate": 0.01,
+        "adaptive_epochs": true
+      }
+    }
+  ],
+  "priority": 25,
+  "enabled": true,
+  "tags": ["fl", "client_selection", "resource_aware"]
+} 

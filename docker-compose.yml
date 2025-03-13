@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # Policy Engine Service
+  policy-engine:
+    build:
+      context: .
+      dockerfile: docker/policy-engine.Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - STORAGE_TYPE=sqlite
+      - DB_PATH=/data/policies.db
+    volumes:
+      - policy-data:/data
+    networks:
+      - fl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # FL Server Service
+  fl-server:
+    build:
+      context: .
+      dockerfile: docker/fl-server.Dockerfile
+    ports:
+      - "8088:8080"
+    environment:
+      - POLICY_ENGINE_URL=http://policy-engine:8000
+      - SDN_CONTROLLER_URL=http://sdn-controller:8181
+    depends_on:
+      - policy-engine
+    networks:
+      - fl-network
+    volumes:
+      - fl-data:/data
+
+  # SDN Controller Service (ONOS)
+  sdn-controller:
+    image: onosproject/onos:2.7.0
+    ports:
+      - "8181:8181" # REST API
+      - "8101:8101" # CLI
+      - "6653:6653" # OpenFlow
+    environment:
+      - ONOS_APPS=drivers,openflow,fwd,proxyarp,mobility
+    volumes:
+      - onos-data:/root/onos/data
+    networks:
+      - fl-network
+
+  # Dashboard Service
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/dashboard.Dockerfile
+    ports:
+      - "8050:8050" # Dash Web UI
+      - "8051:8051" # API
+    environment:
+      - POLICY_ENGINE_URL=http://policy-engine:8000
+      - SDN_CONTROLLER_URL=http://sdn-controller:8181/onos/v1
+      - FL_SERVER_URL=http://fl-server:8080
+      - USE_MOCK_DATA=true # Set to false when connecting to real services
+    depends_on:
+      - policy-engine
+      - sdn-controller
+      - fl-server
+    networks:
+      - fl-network
+
+networks:
+  fl-network:
+    driver: bridge
+
+volumes:
+  policy-data:
+  fl-data:
+  onos-data: 

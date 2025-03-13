@@ -1,0 +1,38 @@
+# Federated Learning
+flwr==1.5.0
+torch==2.0.1
+torchvision==0.15.2
+
+# Policy Engine
+fastapi==0.103.1
+uvicorn==0.23.2
+pydantic==2.3.0
+sqlalchemy==2.0.20
+
+# SDN Integration - Advanced
+requests==2.31.0
+networkx==3.1            # Network topology analysis
+netaddr==0.8.0           # Network address manipulation
+
+# ONOS is optional in Docker setup
+# onos-api-python==0.2.0  
+
+# Security
+cryptography==41.0.3
+PyJWT>=2.0.0             # JSON Web Tokens
+
+# Visualization & Dashboard
+dash==2.13.0             # Interactive web dashboards
+dash-bootstrap-components==1.5.0  # Bootstrap components for Dash
+plotly==5.17.0           # Interactive plots
+pandas==2.1.0            # Data manipulation
+prometheus-client==0.17.1
+websockets==11.0.3       # WebSocket support for real-time updates
+
+# Testing
+pytest==7.4.0
+pytest-cov==4.1.0
+
+# Documentation
+mkdocs==1.5.2
+mkdocs-material==9.2.8 
