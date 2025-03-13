@@ -83,13 +83,13 @@ For development, you can set up a Python virtual environment:
 
 ```bash
 # Create a virtual environment
-python -m venv flsdn
+python -m venv micro_fl_sdn
 
 # Activate the virtual environment (Linux/macOS)
-source flsdn/bin/activate
+source micro_fl_sdn/bin/activate
 
 # Activate the virtual environment (Windows)
-.\flsdn\Scripts\activate
+.\micro_fl_sdn\Scripts\activate
 
 # Install dependencies
 pip install -r requirements-docker.txt

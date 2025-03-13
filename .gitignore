@@ -22,7 +22,7 @@ wheels/
 MANIFEST
 
 # Virtual Environment
-flsdn/
+micro_fl_sdn/
 venv/
 ENV/
 env/
