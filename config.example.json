@@ -1,0 +1,86 @@
+{
+  "server": {
+    "model_repository_path": "./models",
+    "default_model": "initial_model",
+    "aggregation": {
+      "algorithm": "fedavg",
+      "parameters": {
+        "min_clients": 2,
+        "min_available_clients": 2,
+        "min_client_data_size": 10
+      }
+    },
+    "client_selection": {
+      "strategy": "random",
+      "default_count": 10
+    },
+    "rounds": {
+      "max_rounds": 100,
+      "min_participation": 0.7,
+      "timeout_seconds": 300
+    }
+  },
+  "client": {
+    "data_path": "./data",
+    "cache_dir": "./cache",
+    "training": {
+      "batch_size": 32,
+      "epochs": 5,
+      "learning_rate": 0.01,
+      "optimizer": "sgd"
+    },
+    "evaluation": {
+      "metrics": ["accuracy", "loss", "precision", "recall"]
+    }
+  },
+  "policy": {
+    "enabled": true,
+    "strategies_path": "./strategies",
+    "default_strategy": "default",
+    "rules": {
+      "privacy": {
+        "max_client_selections": 20,
+        "min_clients_per_round": 3,
+        "differential_privacy_enabled": false,
+        "dp_epsilon": 0.1,
+        "dp_delta": 1e-5
+      },
+      "security": {
+        "verify_model_updates": true,
+        "check_client_trustworthiness": true,
+        "secure_aggregation_enabled": false
+      },
+      "fairness": {
+        "enforce_data_balance": true,
+        "client_selection_bias_correction": true
+      }
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "file_path": "./logs/fl_system.log",
+    "rotation": {
+      "max_bytes": 10485760,
+      "backup_count": 3
+    }
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "cors_origins": ["*"],
+    "rate_limiting": {
+      "enabled": false,
+      "limit": 100,
+      "period_seconds": 60
+    }
+  },
+  "security": {
+    "api_key_required": false,
+    "allowed_ips": [],
+    "ssl": {
+      "enabled": false,
+      "cert_path": "./certs/server.crt",
+      "key_path": "./certs/server.key"
+    }
+  }
+} 

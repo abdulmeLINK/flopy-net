@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # Policy Engine Service
+  policy-engine:
+    build:
+      context: .
+      dockerfile: docker/policy-engine.Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - STORAGE_TYPE=sqlite
+      - DB_PATH=/data/policies.db
+    volumes:
+      - policy-data:/data
+    networks:
+      - fl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # FL Server Service
+  fl-server:
+    build:
+      context: ..
+      dockerfile: docker/fl-server.Dockerfile
+    container_name: fl-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../models:/app/models
+      - ../strategies:/app/strategies
+    environment:
+      - LOG_LEVEL=INFO
+    networks:
+      - fl-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/server/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # SDN Controller Service (ONOS)
+  sdn-controller:
+    image: onosproject/onos:2.7.0
+    ports:
+      - "8181:8181" # REST API
+      - "8101:8101" # CLI
+      - "6653:6653" # OpenFlow
+    environment:
+      - ONOS_APPS=drivers,openflow,fwd,proxyarp,mobility
+    volumes:
+      - onos-data:/root/onos/data
+    networks:
+      - fl-network
+
+  # Dashboard Service
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/dashboard.Dockerfile
+    ports:
+      - "8050:8050" # Dash Web UI
+      - "8051:8051" # API
+    environment:
+      - POLICY_ENGINE_URL=http://policy-engine:8000
+      - SDN_CONTROLLER_URL=http://sdn-controller:8181/onos/v1
+      - FL_SERVER_URL=http://fl-server:8080
+      - USE_MOCK_DATA=true # Set to false when connecting to real services
+    depends_on:
+      - policy-engine
+      - sdn-controller
+      - fl-server
+    networks:
+      - fl-network
+
+  fl-client:
+    build:
+      context: ..
+      dockerfile: docker/fl-server.Dockerfile
+    container_name: fl-client
+    ports:
+      - "5001:5001"
+    volumes:
+      - ../data:/app/data
+      - ../strategies:/app/strategies
+      - ../models:/app/models
+    environment:
+      - LOG_LEVEL=INFO
+    command: python -m src.main --mode client --host 0.0.0.0 --port 5001
+    networks:
+      - fl-network
+    depends_on:
+      - fl-server
+    restart: unless-stopped
+
+networks:
+  fl-network:
+    driver: bridge
+
+volumes:
+  policy-data:
+  fl-data:
+  onos-data: 

@@ -1,0 +1,16 @@
+{
+  "architecture": "simple_nn",
+  "input_shape": [
+    10
+  ],
+  "output_shape": [
+    10
+  ],
+  "layers": 3,
+  "parameters": 300,
+  "aggregation_round": 3,
+  "participating_clients": 7,
+  "total_samples": 15814,
+  "round": 3,
+  "timestamp": "2025-03-19T10:56:17.041040"
+}

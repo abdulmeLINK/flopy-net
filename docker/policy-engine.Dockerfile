@@ -2,18 +2,16 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements-docker.txt .
-RUN pip install --no-cache-dir -r requirements-docker.txt
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy only the necessary files
-COPY policy_engine/ policy_engine/
+COPY . /app/
 
-# Create data directory for SQLite
-RUN mkdir -p /data
+# Create strategies directory
+RUN mkdir -p /app/strategies
 
-# Expose the port
-EXPOSE 8000
+# Expose the API port
+EXPOSE 5000
 
-# Run the application
-CMD ["uvicorn", "policy_engine.app:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Run the policy engine (using main with policy mode)
+CMD ["python", "-m", "src.main", "--mode", "policy", "--host", "0.0.0.0", "--port", "5000"] 

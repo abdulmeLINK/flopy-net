@@ -1,108 +1,256 @@
-# Federated Learning with SDN Integration
+# Federated Learning Framework
 
-This project implements a federated learning system with software-defined networking (SDN) integration. It includes a policy engine for managing network policies, a federated learning server, an SDN controller, and a dashboard for monitoring and visualization.
+This framework provides a modular architecture for building federated learning systems with an emphasis on performance, security, and policy-based management.
 
-## Architecture
+## Features
 
-The system consists of the following components:
-
-1. **Policy Engine**: A FastAPI application that manages policies for the FL system and SDN integration.
-2. **FL Server**: A federated learning server that coordinates training across multiple clients.
-3. **SDN Controller**: An ONOS controller for managing the network.
-4. **Dashboard**: A Dash web application with a REST API for monitoring and visualization.
-
-## Git Setup
-
-The project is configured for Git version control. To set up the repository:
-
-### On Linux/macOS:
-```bash
-# Initialize the Git repository with our configuration
-./init-git.sh
-```
-
-### On Windows:
-```powershell
-# Initialize the Git repository with our configuration
-.\init-git.ps1
-```
-
-This will:
-- Initialize a Git repository
-- Configure proper line ending handling
-- Set up Git LFS (if installed)
-- Create a development branch
-- Make an initial commit with configuration files
-
-For more information on contributing to this project, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Docker Setup
-
-The project is containerized using Docker and Docker Compose. Each component runs in its own container, and they communicate with each other over a Docker network.
-
-### Prerequisites
-
-- Docker
-- Docker Compose
-
-### Running the System
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/federated-learning.git
-   cd federated-learning
-   ```
-
-2. Build and start the containers:
-   ```bash
-   docker-compose up -d
-   ```
-
-3. Access the services:
-   - Dashboard Web UI: http://localhost:8050/
-   - Dashboard API: http://localhost:8051/
-   - Policy Engine API: http://localhost:8000/
-   - FL Server API: http://localhost:8088/
-   - ONOS Web UI: http://localhost:8181/onos/ui/
-
-4. Stop the containers:
-   ```bash
-   docker-compose down
-   ```
-
-### Helper Scripts
-
-The repository includes helper scripts for running the Docker setup:
-
-- `docker-run.sh` (Linux/macOS): Builds and starts the containers, then checks if the services are running.
-- `docker-run.ps1` (Windows): PowerShell script that does the same as the shell script.
-
-## Development Environment
-
-For development, you can set up a Python virtual environment:
-
-```bash
-# Create a virtual environment
-python -m venv micro_fl_sdn
-
-# Activate the virtual environment (Linux/macOS)
-source micro_fl_sdn/bin/activate
-
-# Activate the virtual environment (Windows)
-.\micro_fl_sdn\Scripts\activate
-
-# Install dependencies
-pip install -r requirements-docker.txt
-```
+- **Federated Learning**: Train machine learning models across decentralized devices
+- **Policy-Based Management**: Define and enforce policies for client selection, resource allocation, and data privacy
+- **Software-Defined Networking**: Network optimizations for efficient model distribution and updates 
+- **Scalable Architecture**: Modular, extensible design to support various ML models and training strategies
+- **Realistic Simulation Scenarios**: Pre-defined realistic environments for testing federated learning strategies
 
 ## Project Structure
 
-- `fl/`: Federated learning server code
-- `policy_engine/`: Policy engine code
-- `dashboard/`: Dashboard web application and API
-- `docker/`: Dockerfiles for each component
-- `docker-compose.yml`: Docker Compose configuration
+```
+src/
+├── api/                   # API interface layer
+│   └── simulation_api.py  # Simulation API routes
+├── application/           # Application layer containing services and use cases
+│   ├── fl_strategies/     # Federated learning strategies (FedAvg, etc.)
+│   └── services/          # Application services
+├── domain/                # Domain layer with core business logic and interfaces
+│   ├── entities/          # Domain entities (Model, Client, etc.)
+│   ├── interfaces/        # Repository and service interfaces
+│   ├── policy/            # Policy-related components
+│   │   └── policy_engine.py  # Policy engine implementation
+│   └── scenarios/         # Simulation scenarios
+│       ├── scenario_registry.py  # Registry for all scenarios
+│       ├── urban_scenario.py     # Urban environment scenario
+│       ├── industrial_iot_scenario.py  # Industrial IoT scenario
+│       └── healthcare_scenario.py      # Healthcare scenario
+├── infrastructure/        # Infrastructure implementation layer
+│   ├── repositories/      # Data storage implementations
+│   └── sdn/               # Software-defined networking components
+├── service/               # Service layer
+│   └── simulation_runner.py  # Simulation execution service
+└── main.py                # Main application entry point
+```
+
+## Model Repository
+
+Models are stored using the `FileModelRepository` implementation with the following structure:
+
+```
+models/
+├── [model_name]/
+│   ├── [version]_metadata.json     # Model metadata
+│   ├── [version]_weights_0.npy     # Weight array 0
+│   ├── [version]_weights_1.npy     # Weight array 1
+│   └── ...
+```
+
+Key improvements:
+- NumPy arrays are properly serialized for storage
+- Efficient binary storage of model weights
+- Versioning support for tracking model evolution
+
+## Simulation Scenarios
+
+The framework includes predefined realistic scenarios for testing federated learning strategies:
+
+### Urban Scenario
+
+A city environment simulation with the following characteristics:
+- Mobile and stationary clients (smartphones, laptops, IoT devices)
+- Urban network infrastructure with varying signal quality
+- Rush hour congestion patterns
+- WiFi/cellular handovers
+- High device heterogeneity
+
+### Industrial IoT Scenario
+
+A factory floor environment with:
+- Smart manufacturing equipment and industrial sensors
+- Challenging RF conditions (metal interference, machinery noise)
+- Time-sensitive applications with high reliability requirements
+- Legacy and modern equipment coexistence
+- Shift patterns affecting network load
+
+### Healthcare Scenario
+
+A hospital and clinic environment featuring:
+- Medical imaging devices (MRI, CT, X-ray)
+- Strict privacy and security requirements
+- High reliability needs for patient-critical systems
+- Heterogeneous data distributions across facilities
+- Priority-based network traffic for medical applications
+
+## Simulation Policy Engine
+
+The framework includes a powerful policy engine that enforces rules across the federated learning system. The policy engine is integrated with simulations to provide realistic policy-based behavior:
+
+### Policy Domains
+
+Policies are organized by domains to match different simulation scenarios:
+
+- **Healthcare**: Policies for healthcare environments with strict privacy and security requirements
+- **Industrial IoT**: Policies for industrial environments with high reliability requirements
+- **Urban**: Policies for urban environments with mobile devices and varying connectivity
+- **General**: Default policies applicable to all scenarios
+
+### Policy Types
+
+The policy engine supports several types of policies:
+
+- **Server Configuration**: Control server behavior including minimum client requirements and privacy mechanisms
+- **Client Selection**: Define which clients can participate in training based on battery levels, charging status, etc.
+- **Network**: Manage traffic priorities, encryption requirements, and latency constraints
+- **Data Privacy**: Enforce anonymization requirements and compliance with regulations (e.g., HIPAA)
+
+### Using Custom Policies
+
+When running simulations, you can provide custom policy configurations:
+
+```json
+{
+  "server_config": [
+    {
+      "min_clients": 10,
+      "privacy_mechanism": "secure_aggregation"
+    }
+  ],
+  "network": [
+    {
+      "traffic_priority": {
+        "fl_training": 2,
+        "model_distribution": 1
+      },
+      "encryption": "required"
+    }
+  ]
+}
+```
+
+This can be passed when starting a simulation:
+
+```bash
+curl -X POST "http://localhost:8000/api/simulations" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scenario_name": "Healthcare", 
+    "policy_config": {
+      "server_config": [{"min_clients": 10, "privacy_mechanism": "secure_aggregation"}],
+      "network": [{"encryption": "required", "encryption_level": "AES-256"}]
+    }
+  }'
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.8+
+- NumPy
+- PyTorch (or other ML frameworks)
+- FastAPI (for API access)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/federated-learning.git
+cd federated-learning
+
+# Setup virtual environment
+python -m venv fl_venv
+source fl_venv/bin/activate  # On Windows: fl_venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Running the Simulation
+
+#### Simulation Mode
+
+Run the application in simulation mode:
+
+```bash
+python -m src.main --mode simulation --port 8000
+```
+
+This launches a dedicated FastAPI server with the simulation API endpoints.
+
+#### Using the Simulation API
+
+The simulation API provides endpoints for running and managing federated learning simulations with different scenarios:
+
+```bash
+# List available scenarios
+curl -X GET "http://localhost:8000/api/simulations/scenarios" -H "accept: application/json"
+
+# Get details about a specific scenario
+curl -X GET "http://localhost:8000/api/simulations/scenarios/Healthcare" -H "accept: application/json"
+
+# Start a simulation with a specific scenario
+curl -X POST "http://localhost:8000/api/simulations" \
+  -H "Content-Type: application/json" \
+  -d '{"scenario_name": "Healthcare", "policy_config": {"server_config": [{"min_clients": 8}]}}'
+
+# List all running simulations
+curl -X GET "http://localhost:8000/api/simulations" -H "accept: application/json"
+
+# Get details about a specific simulation
+curl -X GET "http://localhost:8000/api/simulations/{simulation_id}" -H "accept: application/json"
+
+# Get metrics for a specific simulation
+curl -X GET "http://localhost:8000/api/simulations/{simulation_id}/metrics" -H "accept: application/json"
+
+# Stop a running simulation
+curl -X POST "http://localhost:8000/api/simulations/{simulation_id}/stop" -H "accept: application/json"
+```
+
+#### Using Python script
+
+```python
+import requests
+
+# Base URL for the simulation API
+base_url = "http://localhost:8000/api/simulations"
+
+# List available scenarios
+response = requests.get(f"{base_url}/scenarios")
+scenarios = response.json()
+print(f"Available scenarios: {[s['name'] for s in scenarios]}")
+
+# Run a simulation
+response = requests.post(
+    base_url,
+    json={
+        "scenario_name": "Healthcare",
+        "config_overrides": {
+            "server": {
+                "min_clients": 8
+            }
+        }
+    }
+)
+simulation = response.json()
+simulation_id = simulation["simulation_id"]
+print(f"Started simulation with ID: {simulation_id}")
+
+# Monitor simulation status
+response = requests.get(f"{base_url}/{simulation_id}")
+status = response.json()["status"]
+print(f"Simulation status: {status}")
+
+# Get simulation metrics
+response = requests.get(f"{base_url}/{simulation_id}/metrics")
+metrics = response.json()["metrics"]
+print(f"Simulation metrics: {metrics}")
+```
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+[MIT License](LICENSE)

@@ -1,0 +1,11 @@
+{
+  "architecture": "simple_nn",
+  "input_shape": [
+    10
+  ],
+  "output_shape": [
+    10
+  ],
+  "layers": 3,
+  "parameters": 300
+}

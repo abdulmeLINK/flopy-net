@@ -27,6 +27,14 @@ venv/
 ENV/
 env/
 .env
+.venv
+env.bak/
+venv.bak/
+Scripts/
+Include/
+Lib/
+pyvenv.cfg
+flsdn/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -46,6 +54,7 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+fl_system.log*
 
 # Model files - consider Git LFS for these if needed
 *.h5
@@ -86,8 +95,15 @@ jspm_packages/
 htmlcov/
 .pytest_cache/
 .tox/
+.nox/
+.coverage.*
+.cache
+nosetests.xml
 coverage.xml
 *.cover
+*.py,cover
+.hypothesis/
+cover/
 
 # FL-specific
 **/wandb/

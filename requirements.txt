@@ -1,63 +1,71 @@
+# Main Project Requirements
+# For a complete list, see requirements/requirements.txt
+
+# Core dependencies
+flask>=2.0.0
+flask-cors>=3.0.10
+pyyaml>=6.0
+numpy>=1.19.0
+pandas>=1.3.0
+joblib>=1.0.0
+requests>=2.25.0
+python-dateutil>=2.8.2
+scikit-learn>=1.0.0
+matplotlib>=3.5.0
+tqdm>=4.64.0
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
 # Federated Learning
-flwr==1.5.0
-torch==2.0.1
-torchvision==0.15.2
+flwr>=1.5.0
+torch>=2.0.1
+torchvision>=0.15.2
 
 # Policy Engine
-fastapi==0.103.1
-uvicorn==0.23.2
-pydantic==2.3.0
-sqlalchemy==2.0.20
+fastapi>=0.103.1
+uvicorn>=0.23.2
+pydantic>=2.3.0
+sqlalchemy>=2.0.20
 
-# SDN Integration - Advanced
-requests==2.31.0
-ryu==4.34                # SDN Controller framework
-mininet-rest==0.1.0      # REST API for Mininet
-networkx==3.1            # Network topology analysis
-netaddr==0.8.0           # Network address manipulation
-
-# ONOS Integration
-onos-api-python==0.2.0   # ONOS Controller API client
+# SDN Integration
+networkx>=3.1         # Network topology analysis
+netaddr>=0.8.0        # Network address manipulation
 
 # Security
-cryptography==41.0.3
-jwt==1.3.1               # JSON Web Tokens
+cryptography>=41.0.3
+PyJWT>=2.0.0          # JSON Web Tokens
 
 # Visualization & Dashboard
-dash==2.13.0             # Interactive web dashboards
-dash-bootstrap-components==1.5.0  # Bootstrap components for Dash
-plotly==5.17.0           # Interactive plots
-pandas==2.1.0            # Data manipulation
-prometheus-client==0.17.1
-websockets==11.0.3       # WebSocket support for real-time updates
-
-# Testing
-pytest==7.4.0
-pytest-cov==4.1.0
+dash>=2.13.0          # Interactive web dashboards
+dash-bootstrap-components>=1.5.0  # Bootstrap components for Dash
+plotly>=5.17.0        # Interactive plots
+prometheus-client>=0.17.1
+websockets>=11.0.3    # WebSocket support for real-time updates
 
 # Documentation
-mkdocs==1.5.2
-mkdocs-material==9.2.8
-
-# Core framework
-flask>=2.0.0
-dash>=2.9.0
-dash-bootstrap-components>=1.4.0
-plotly>=5.10.0
-fastapi>=0.95.0
-uvicorn>=0.20.0
-
-# Data processing
-pandas>=1.5.0
-numpy>=1.23.0
-networkx>=2.8.0
+mkdocs>=1.5.2
+mkdocs-material>=9.2.8
+mkdocstrings>=0.22.0
+mkdocstrings-python>=1.5.2
+markdown-include>=0.8.1
+pymdown-extensions>=10.3
+pillow>=10.0.1
+cairosvg>=2.7.1
+diagrams>=0.23.3
 
 # Utilities
-requests>=2.28.0
-python-dotenv>=1.0.0
-pydantic>=1.10.0
+python-dotenv>=0.19.0
 
-# Development
-pytest>=7.0.0
-black>=23.0.0
-isort>=5.12.0 
+# Network simulation
+mininet>=2.3.0; sys_platform == "linux"
+colorama>=0.4.4
+tqdm>=4.62.0
+python-multipart==0.0.6
+python-jose==3.3.0
+psutil>=5.9.0
+dash>=2.0.0
+dash-bootstrap-components>=1.0.0
+plotly>=5.0.0
+Werkzeug>=2.0.0
+jsonschema>=4.0.0
+pytest>=6.0.0 
