@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  landing-page:
+    image: abdulmelink/flopynet-landing-page:latest
+    container_name: flopynet-landing-page
+    ports:
+      - "8089:80"
+    restart: unless-stopped
+    networks:
+      - flopynet-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+
+networks:
+  flopynet-network:
+    driver: bridge

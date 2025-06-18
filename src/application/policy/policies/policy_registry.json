@@ -1,9 +1,0 @@
-{
-    "message_routing": "src.application.policy.policies.message_routing_policy.MessageRoutingPolicy",
-    "message_delivery": "src.application.policy.policies.message_delivery_policy.MessageDeliveryPolicy",
-    "client_selection": "src.application.policy.policies.client_selection_policy.ClientSelectionPolicy",
-    "sdn": "src.application.policy.policies.sdn_policy.SDNPolicy",
-    "privacy": "src.application.policy.policies.privacy_policy.PrivacyPolicy",
-    "security": "src.application.policy.policies.security_policy.SecurityPolicy",
-    "resource": "src.application.policy.policies.resource_policy.ResourcePolicy"
-} 

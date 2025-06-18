@@ -1,0 +1,24 @@
+{
+  "id": "api/policy-engine-api",
+  "title": "Policy Engine API Reference",
+  "description": "The Policy Engine API provides policy management capabilities for federated learning governance, network control, and system compliance monitoring.",
+  "source": "@site/docs/api/policy-engine-api.md",
+  "sourceDirName": "api",
+  "slug": "/api/policy-engine-api",
+  "permalink": "/flopy-net/docs/api/policy-engine-api",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/api/policy-engine-api.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "FL Framework API",
+    "permalink": "/flopy-net/docs/api/fl-framework"
+  },
+  "next": {
+    "title": "Collector API Reference",
+    "permalink": "/flopy-net/docs/api/collector-api"
+  }
+}

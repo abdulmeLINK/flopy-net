@@ -1,0 +1,19 @@
+fastapi>=0.95.0,<0.100.0
+uvicorn>=0.20.0,<0.24.0
+httpx>=0.23.0,<0.25.0
+aiohttp>=3.8.0,<4.0.0
+python-dotenv>=0.21.0,<2.0.0
+pydantic>=1.7.4,<1.11.0
+websockets>=10.0,<12.0
+# Added for GNS3 connectivity
+gns3fy>=0.8.0
+requests>=2.25.0,<3.0.0
+# Added for SSH connections and scenarios
+paramiko>=2.7.2
+# Added for data visualization and processing
+numpy>=1.21
+pandas>=1.5.0
+# For policy engine integration
+PyYAML>=6.0
+# Added for Caching
+fastapi-cache2[redis]

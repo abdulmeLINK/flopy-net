@@ -1,0 +1,66 @@
+version: '3.8'
+
+# FLOPY-NET: Federated Learning and SDN Observatory Platform  
+# Dashboard Services - System Version: v1.0.0-alpha.8
+# Build Date: 2025-06-10
+
+services:
+  dashboard-backend:
+    image: abdulmelink/flopynet-dashboard-backend:v1.0.0-alpha.8
+    container_name: dashboard-backend
+    ports:
+      - "8001:8001"    
+    environment:
+      - GNS3_URL=${GNS3_URL:-http://192.168.1.109:8001}
+      - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.1.109:8003}
+      - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.1.109:8002}
+      - GNS3_API_VERSION=v2
+      - LOG_LEVEL=DEBUG
+      - SCENARIOS_DIR=/app/src/scenarios
+      - APP_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-10
+      - GIT_COMMIT=latest
+      - ENVIRONMENT=development
+      - CONNECTION_TIMEOUT=10
+      - CONNECTION_RETRIES=3
+      - RETRY_DELAY=2
+      - HEALTH_CHECK_INTERVAL=30
+      - STARTUP_TIMEOUT=60
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    restart: unless-stopped
+    networks:
+      - dashboard-network
+  dashboard-frontend:
+    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.8
+    container_name: dashboard-frontend
+    ports:
+      - "8085:80"
+    depends_on:
+      dashboard-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - dashboard-network
+    environment:
+      - NGINX_PORT=80
+
+networks:
+  dashboard-network:
+    driver: bridge
+    name: dashboard-network
+
+volumes:
+  client_error_logs:
+    name: client_error_logs

@@ -1,0 +1,381 @@
+version: '3.8'
+
+# FLOPY-NET: Federated Learning and SDN Observatory Platform
+# System Version: v1.0.0-alpha.8
+# Build Date: 2025-06-10
+# Registry: abdulmelink (Docker Hub)
+
+# Static IP Configuration:
+# - Policy Engine: 192.168.100.20-29 range
+# - FL Server: 192.168.100.10-19 range
+# - FL Clients: 192.168.100.100-255 range
+# - Collector/Others: 192.168.100.40+ range
+# - SDN Controller: 192.168.100.41
+# - OpenVSwitch: 192.168.100.60-99 range
+# - Northbound Interfaces: 192.168.100.50-59 range
+
+services:
+  policy-engine:
+    build:
+      context: .
+      dockerfile: docker/flopynet_policy_engine.Dockerfile
+    image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8
+    container_name: policy-engine
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - SERVICE_TYPE=policy-engine
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-10
+      - HOST=0.0.0.0
+      - POLICY_PORT=5000
+      - LOG_LEVEL=INFO
+      - NETWORK_MODE=docker
+      - DOCKER_COMPOSE_ENV=true
+      - USE_STATIC_IP=true
+      - SUBNET_PREFIX=192.168.100
+      - CLIENT_IP_RANGE=100-255
+      - SERVER_IP_RANGE=10-19
+      - POLICY_IP_RANGE=20-29
+      - CONTROLLER_IP_RANGE=30-49
+      - OVS_IP_RANGE=60-99
+      - NORTHBOUND_IP_RANGE=50-59
+      - COLLECTOR_IP=40
+      - NODE_IP_FL_SERVER=192.168.100.10
+      - NODE_IP_POLICY_ENGINE=192.168.100.20
+      - NODE_IP_SDN_CONTROLLER=192.168.100.41
+      - NODE_IP_COLLECTOR=192.168.100.40
+      - NODE_IP_OPENVSWITCH=192.168.100.60
+      - POLICY_CONFIG=/app/config/policies/policy_config.json
+      - POLICY_FUNCTIONS_DIR=/app/config/policy_functions
+      - FL_SERVER_PORT=8080
+      - COLLECTOR_PORT=8081
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.20
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5000:5000"
+  fl-server:
+    build:
+      context: .
+      dockerfile: docker/flopynet_fl_server.Dockerfile
+    image: abdulmelink/flopynet-server:v1.0.0-alpha.8
+    container_name: fl-server
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      policy-engine:
+        condition: service_healthy
+    environment:
+      - SERVICE_TYPE=fl-server
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-10
+      - HOST=0.0.0.0
+      - FL_SERVER_PORT=8080
+      - METRICS_PORT=9091
+      - POLICY_ENGINE_HOST=policy-engine
+      - POLICY_ENGINE_PORT=5000
+      - MIN_CLIENTS=1
+      - MIN_AVAILABLE_CLIENTS=1
+      - LOG_LEVEL=INFO
+      - NETWORK_MODE=docker
+      - DOCKER_COMPOSE_ENV=true
+      - USE_STATIC_IP=true
+      - SUBNET_PREFIX=192.168.100
+      - CLIENT_IP_RANGE=100-255
+      - SERVER_IP_RANGE=10-19
+      - POLICY_IP_RANGE=20-29
+      - CONTROLLER_IP_RANGE=30-49
+      - OVS_IP_RANGE=60-99
+      - NORTHBOUND_IP_RANGE=50-59
+      - COLLECTOR_IP=40
+      - NODE_IP_FL_SERVER=192.168.100.10
+      - NODE_IP_POLICY_ENGINE=192.168.100.20
+      - NODE_IP_SDN_CONTROLLER=192.168.100.41
+      - NODE_IP_COLLECTOR=192.168.100.40
+      - NODE_IP_OPENVSWITCH=192.168.100.60
+      - NODE_IP_FL_CLIENT_1=192.168.100.101
+      - NODE_IP_FL_CLIENT_2=192.168.100.102
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.10
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+ 
+
+
+  fl-client-1:
+    build:
+      context: .
+      dockerfile: docker/flopynet_fl_client.Dockerfile
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+    container_name: fl-client-1
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      fl-server:
+        condition: service_healthy
+      policy-engine:
+        condition: service_healthy
+    environment:
+      - SERVICE_TYPE=fl-client
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-10
+      - SERVICE_ID=1
+      - CLIENT_ID=client-1
+      - SERVER_HOST=fl-server
+      - POLICY_ENGINE_HOST=policy-engine
+      - LOG_LEVEL=INFO
+      - NETWORK_MODE=docker
+      - DOCKER_COMPOSE_ENV=true
+      - USE_STATIC_IP=true
+      - SUBNET_PREFIX=192.168.100
+      - CLIENT_IP_RANGE=100-255
+      - SERVER_IP_RANGE=10-19
+      - POLICY_IP_RANGE=20-29
+      - CONTROLLER_IP_RANGE=30-49
+      - OVS_IP_RANGE=60-99
+      - NORTHBOUND_IP_RANGE=50-59
+      - COLLECTOR_IP=40
+      - NODE_IP_FL_SERVER=192.168.100.10
+      - NODE_IP_POLICY_ENGINE=192.168.100.20
+      - NODE_IP_SDN_CONTROLLER=192.168.100.41
+      - NODE_IP_COLLECTOR=192.168.100.40
+      - NODE_IP_OPENVSWITCH=192.168.100.60
+      - NODE_IP_FL_CLIENT_1=192.168.100.101
+      - NODE_IP_FL_CLIENT_2=192.168.100.102
+      - MAX_RECONNECT_ATTEMPTS=-1
+      - RETRY_INTERVAL=5
+      - MAX_RETRIES=30
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.101
+
+
+  fl-client-2:
+    build:
+      context: .
+      dockerfile: docker/flopynet_fl_client.Dockerfile
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+    container_name: fl-client-2
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      fl-server:
+        condition: service_healthy
+      policy-engine:
+        condition: service_healthy
+    environment:
+      - SERVICE_TYPE=fl-client
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-10
+      - SERVICE_ID=2
+      - CLIENT_ID=client-2
+      - SERVER_HOST=fl-server
+      - POLICY_ENGINE_HOST=policy-engine
+      - LOG_LEVEL=INFO
+      - NETWORK_MODE=docker
+      - DOCKER_COMPOSE_ENV=true
+      - USE_STATIC_IP=true
+      - SUBNET_PREFIX=192.168.100
+      - CLIENT_IP_RANGE=100-255
+      - SERVER_IP_RANGE=10-19
+      - POLICY_IP_RANGE=20-29
+      - CONTROLLER_IP_RANGE=30-49
+      - OVS_IP_RANGE=60-99
+      - NORTHBOUND_IP_RANGE=50-59
+      - COLLECTOR_IP=40
+      - NODE_IP_FL_SERVER=192.168.100.10
+      - NODE_IP_POLICY_ENGINE=192.168.100.20
+      - NODE_IP_SDN_CONTROLLER=192.168.100.41
+      - NODE_IP_COLLECTOR=192.168.100.40
+      - NODE_IP_OPENVSWITCH=192.168.100.60
+      - NODE_IP_FL_CLIENT_1=192.168.100.101
+      - NODE_IP_FL_CLIENT_2=192.168.100.102
+      - MAX_RECONNECT_ATTEMPTS=-1
+      - RETRY_INTERVAL=5
+      - MAX_RETRIES=30
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.102
+
+
+  collector:
+    build:
+      context: .
+      dockerfile: docker/flopynet_collector.Dockerfile
+    image: abdulmelink/flopynet-collector:v1.0.0-alpha.8
+    container_name: collector
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      fl-server:
+        condition: service_healthy
+      policy-engine:
+        condition: service_healthy
+    ports:
+      - "8083:8000"  # Expose collector API port to host
+    environment:
+      - SERVICE_TYPE=collector
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-10
+      - NETWORK_MONITOR_ENABLED=true
+      - FL_SERVER_HOST=fl-server
+      - FL_SERVER_PORT=8081
+      - POLICY_ENGINE_HOST=policy-engine
+      - POLICY_ENGINE_URL=http://policy-engine:5000
+      - SDN_CONTROLLER_URL=http://sdn-controller:8181
+      - LOG_LEVEL=INFO
+      - NETWORK_MODE=docker
+      - DOCKER_COMPOSE_ENV=true
+      - USE_STATIC_IP=true
+      - SUBNET_PREFIX=192.168.100
+      - CLIENT_IP_RANGE=100-255
+      - SERVER_IP_RANGE=10-19
+      - POLICY_IP_RANGE=20-29
+      - CONTROLLER_IP_RANGE=30-49
+      - OVS_IP_RANGE=60-99
+      - NORTHBOUND_IP_RANGE=50-59
+      - COLLECTOR_IP=40
+      - NODE_IP_FL_SERVER=192.168.100.10
+      - NODE_IP_POLICY_ENGINE=192.168.100.20
+      - NODE_IP_SDN_CONTROLLER=192.168.100.41
+      - NODE_IP_COLLECTOR=192.168.100.40
+      - NODE_IP_OPENVSWITCH=192.168.100.60
+      - NODE_IP_FL_CLIENT_1=192.168.100.101
+      - NODE_IP_FL_CLIENT_2=192.168.100.102
+      - POLICY_INTERVAL_SEC=5
+      - FL_INTERVAL_SEC=5
+      - NETWORK_INTERVAL_SEC=5
+      - EVENT_INTERVAL_SEC=5
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.40
+
+
+  # SDN Controller (e.g., Ryu-based OpenFlow Controller)
+  # The specific SDN application logic (e.g., Ryu application scripts) is expected to be
+  # packaged within the Docker image built by `docker/flopynet_controller.Dockerfile`.
+  # For dynamic network control decisions based on broader system policies (e.g., FL state,
+  # security alerts), the SDN controller application should ideally:
+  # 1. Expose an API for external commands/configurations.
+  # 2. OR, itself query the Policy Engine (`policy-engine` service) for guidance if it needs
+  #    to make decisions that go beyond static OpenFlow rules.
+  # The Policy Engine is the central point for such cross-component policies.
+  sdn-controller:
+    build:
+      context: .
+      dockerfile: docker/flopynet_controller.Dockerfile
+    image: abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.8
+    container_name: sdn-controller
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      policy-engine:
+        condition: service_healthy
+    environment:
+      - SERVICE_TYPE=sdn-controller
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-10
+      - CONTROLLER_HOST=0.0.0.0
+      - CONTROLLER_PORT=6633
+      - REST_PORT=8181
+      - POLICY_ENGINE_HOST=policy-engine
+      - LOG_LEVEL=INFO
+      - NETWORK_MODE=docker
+      - DOCKER_COMPOSE_ENV=true
+      - USE_STATIC_IP=true
+      - SUBNET_PREFIX=192.168.100
+      - CLIENT_IP_RANGE=100-255
+      - SERVER_IP_RANGE=10-19
+      - POLICY_IP_RANGE=20-29
+      - CONTROLLER_IP_RANGE=30-49
+      - OVS_IP_RANGE=60-99
+      - NORTHBOUND_IP_RANGE=50-59
+      - COLLECTOR_IP=40
+      - NODE_IP_FL_SERVER=192.168.100.10
+      - NODE_IP_POLICY_ENGINE=192.168.100.20
+      - NODE_IP_SDN_CONTROLLER=192.168.100.41
+      - NODE_IP_COLLECTOR=192.168.100.40
+      - NODE_IP_OPENVSWITCH=192.168.100.60
+      - NODE_IP_FL_CLIENT_1=192.168.100.101
+      - NODE_IP_FL_CLIENT_2=192.168.100.102
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.41
+    ports:
+      - "8181:8181"
+  openvswitch:
+    build:
+      context: .
+      dockerfile: docker/flopynet_openvswitch.Dockerfile
+    image: abdulmelink/openvswitch:v1.0.0-alpha.8
+    container_name: openvswitch
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      sdn-controller:
+        condition: service_started
+    environment:
+      - SERVICE_TYPE=openvswitch
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-10
+      - OVS_NUM_PORTS=16
+      - OVS_USER_MODE=yes
+      - OVS_DATAPATH_TYPE=netdev
+      - OVS_BRIDGE_NAME=br0
+      - SDN_CONTROLLER_HOST=sdn-controller
+      - SDN_CONTROLLER_PORT=6633
+      - OVS_PROTOCOL=OpenFlow13
+      - OVS_FAIL_MODE=standalone
+      - LOG_LEVEL=INFO
+      - NETWORK_MODE=docker
+      - DOCKER_COMPOSE_ENV=true
+      - USE_STATIC_IP=true
+      - WAIT_FOR_SERVICES_TIMEOUT=30
+      - WAIT_FOR_SERVICES_REQUIRED=false
+      - SUBNET_PREFIX=192.168.100
+      - CLIENT_IP_RANGE=100-255
+      - SERVER_IP_RANGE=10-19
+      - POLICY_IP_RANGE=20-29
+      - CONTROLLER_IP_RANGE=30-49
+      - OVS_IP_RANGE=60-99
+      - NORTHBOUND_IP_RANGE=50-59
+      - COLLECTOR_IP=40
+      - NODE_IP_FL_SERVER=192.168.100.10
+      - NODE_IP_POLICY_ENGINE=192.168.100.20
+      - NODE_IP_SDN_CONTROLLER=192.168.100.41
+      - NODE_IP_COLLECTOR=192.168.100.40
+      - NODE_IP_OPENVSWITCH=192.168.100.60
+      - NODE_IP_FL_CLIENT_1=192.168.100.101
+      - NODE_IP_FL_CLIENT_2=192.168.100.102
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.60
+
+  # We're now using NODE_IP_* environment variables for service discovery
+  # Each service has the IP addresses of all other services directly set in its environment
+  # This replaces the previous GNS3_IP_MAP approach and allows direct IP-based communication
+
+networks:
+  flopynet_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+          gateway: 192.168.100.1

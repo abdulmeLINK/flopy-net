@@ -1,0 +1,332 @@
+\documentclass[12pt,twoside,a4paper]{article}
+
+% Increase TeX capacity - use standard parameters
+\usepackage{etex}
+% Remove \reserveinserts as it's undefined
+
+% Core packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{textcomp}
+\usepackage{float}
+\usepackage{pmboxdraw} % For box drawing characters in listings
+\usepackage{tikz} % For TikZ diagrams
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+\usepackage{pgfplots} % For plots within TikZ
+\pgfplotsset{compat=1.16} % Use a more conservative version
+% \usepackage{algorithm}
+% \usepackage{algorithmic} % or \usepackage{algpseudocode} if using that syntax
+% \usepackage{pifont} % For checkmark and cross symbols - commented out to avoid issues
+\usepackage{microtype} % For better typography and spacing
+
+% Graphics path (assuming images are in a 'figures' subdirectory)
+\graphicspath{{figures/}}
+
+% Formatting improvements to handle overfull/underfull boxes
+\tolerance=1000
+\hbadness=10000
+\vbadness=10000
+\hfuzz=2pt
+\vfuzz=2pt
+\emergencystretch=3em
+\raggedbottom
+\sloppy
+
+% Color scheme - Define colors first
+\definecolor{primary}{RGB}{31,111,235}
+\definecolor{secondary}{RGB}{139,92,246}
+\definecolor{dark}{RGB}{55,65,81}
+\definecolor{light}{RGB}{249,250,251}
+\definecolor{codebackground}{RGB}{248,249,250}
+\definecolor{codeborder}{RGB}{229,231,235}
+\definecolor{success}{RGB}{40,167,69} % Define 'success' color (green)
+\definecolor{accent}{RGB}{255,159,64} % Example accent color (orange)
+\definecolor{warning}{RGB}{255,193,7}  % Example warning color (yellow)
+\definecolor{danger}{RGB}{220,53,69}   % Example danger color (red)
+\definecolor{info}{RGB}{23,162,184}    % Define 'info' color (blue)
+\definecolor{neutral}{RGB}{108,117,125} % Define 'neutral' color (gray)
+
+% TikZ style definitions - After colors are defined
+\tikzset{
+    box/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1cm, text centered, draw, thick, align=center},
+    flow/.style={->, thick, >=stealth},
+    process/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, fill=blue!20},
+    data/.style={ellipse, minimum width=2cm, minimum height=1cm, text centered, draw, thick, fill=green!20},
+    decision/.style={diamond, minimum width=2cm, minimum height=1cm, text centered, draw, thick, fill=orange!20},
+    component/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, fill=gray!20},
+    server/.style={rectangle, draw, fill=red!30, minimum size=1cm},
+    client/.style={circle, draw, fill=blue!30, minimum size=1cm},
+    switch/.style={diamond, draw, fill=green!30, minimum size=1cm},
+    controller/.style={rectangle, draw, fill=yellow!30, minimum size=1cm},
+    layer/.style={rectangle, draw, fill=blue!20, text width=8cm, text centered, minimum height=1.2cm},
+    subsystem/.style={rectangle, rounded corners, minimum width=4cm, minimum height=2cm, text centered, draw, thick, fill=cyan!10},
+    api/.style={rectangle, rounded corners, minimum width=3cm, minimum height=0.8cm, text centered, draw, thick, fill=purple!20},
+    interface/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=0.8cm, text centered, draw, thick, fill=pink!20},
+    optimization/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, fill=cyan!20},
+    actor/.style={rectangle, minimum width=2cm, minimum height=0.8cm, text centered, draw, thick},
+    message/.style={->, thick, >=stealth},
+    return/.style={<-, thick, >=stealth, dashed},
+    stage/.style={rectangle, rounded corners, minimum width=2.8cm, minimum height=1.2cm, text centered, draw, thick, align=center},
+    container/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1.2cm, text centered, draw, thick, fill=accent!20, align=center},
+    network/.style={ellipse, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, fill=info!20, align=center},
+    registry/.style={ellipse, minimum width=2.5cm, minimum height=1.5cm, text centered, draw, thick, fill=warning!20, align=center},
+    gns3box/.style={rectangle, rounded corners, minimum width=12cm, minimum height=8cm, text centered, draw, very thick, fill=primary!5, align=center},
+    arrow/.style={->, thick, >=stealth}
+}
+
+% Define checkmark and cross symbols (use simple alternatives)
+\newcommand{\mycheck}{\checkmark}
+\newcommand{\mycross}{\texttimes}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary,
+    citecolor=secondary,
+    bookmarks=true,
+    bookmarksopen=true,
+    pdftitle={FLOPY-NET: A Modular Policy-Driven Architecture and a platform for Network-Aware Federated Learning},
+    pdfauthor={Abdulmelik Saylan},
+    hidelinks
+}
+
+% Page style
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[LO]{\rightmark}
+\fancyhead[RE]{\leftmark}
+\fancyfoot[C]{\textit{FLOPY-NET Technical Report}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\setlength{\headheight}{14.5pt} % Adjust headheight for fancyhdr
+
+% Section styling
+\titleformat{\section}{\Large\bfseries\color{black}}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries\color{black}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{black}}{\thesubsubsection}{1em}{}
+
+% Code listings setup
+\lstdefinestyle{customcode}{%
+    backgroundcolor=\color{codebackground},
+    commentstyle=\color{blue!70!black},
+    keywordstyle=\color{primary!90!black}\bfseries,
+    numberstyle=\tiny\color{dark},
+    stringstyle=\color{red!80!black},
+    basicstyle=\footnotesize\ttfamily\linespread{0.9}, % Added \linespread{0.9}
+    frame=single,
+    rulecolor=\color{codeborder},
+    breaklines=true,
+    breakatwhitespace=true, % Added this line
+    breakautoindent=true, % Added this line
+    breakindent=2em, % Added this line
+    postbreak=\mbox{\textcolor{red}{$\hookleftarrow$}\space}, % Added this line for visual break indication
+    captionpos=b,
+    numbers=left,
+    numbersep=5pt,
+    showstringspaces=false,
+    tabsize=2,
+    literate= % Handle UTF-8 characters
+        {á}{{\\'a}}1 {é}{{\\'e}}1 {í}{{\\'i}}1 {ó}{{\\'o}}1 {ú}{{\\'u}}1
+        {Á}{{\\'A}}1 {É}{{\\'E}}1 {Í}{{\\'I}}1 {Ó}{{\\'O}}1 {Ú}{{\\'U}}1
+        {à}{{\\`a}}1 {è}{{\\`e}}1 {ì}{{\\`i}}1 {ò}{{\\`o}}1 {ù}{{\\`u}}1
+        {À}{{\\`A}}1 {È}{{\\`E}}1 {Ì}{{\\`I}}1 {Ò}{{\\`O}}1 {Ù}{{\\`U}}1
+        {ä}{{\\"a}}1 {ë}{{\\"e}}1 {ï}{{\\"i}}1 {ö}{{\\"o}}1 {ü}{{\\"u}}1
+        {Ä}{{\\"A}}1 {Ë}{{\\"E}}1 {Ï}{{\\"I}}1 {Ö}{{\\"O}}1 {Ü}{{\\"U}}1
+        {â}{{\\^a}}1 {ê}{{\\^e}}1 {î}{{\\^i}}1 {ô}{{\\^o}}1 {û}{{\\^u}}1
+        {Â}{{\\^A}}1 {Ê}{{\\^E}}1 {Î}{{\\^I}}1 {Ô}{{\\^O}}1 {Û}{{\\^U}}1
+        {œ}{{\\oe}}1 {Œ}{{\\OE}}1 {æ}{{\\ae}}1 {Æ}{{\\AE}}1 {ß}{{\\ss}}1
+        {ç}{{\\c c}}1 {Ç}{{\\c C}}1 {ñ}{{\\~n}}1 {Ñ}{{\\~N}}1
+        {€}{{\\texteuro}}1 {£}{{\\pounds}}1
+        {α}{{$\\alpha$}}1 {β}{{$\\beta$}}1 {γ}{{$\\gamma$}}1 {δ}{{$\\delta$}}1
+        {ε}{{$\\epsilon$}}1 {Ε}{{$\\mathrm{E}$}}1 {η}{{$\\eta$}}1 {θ}{{$\\theta$}}1
+        {λ}{{$\\lambda$}}1 {μ}{{$\\mu$}}1 {π}{{$\\pi$}}1 {ρ}{{$\\rho$}}1
+        {σ}{{$\\sigma$}}1 {τ}{{$\\tau$}}1 {ω}{{$\\omega$}}1 {ψ}{{$\\psi$}}1
+        {Ω}{{$\\Omega$}}1 {Δ}{{$\\Delta$}}1 {Σ}{{$\\Sigma$}}1
+        {├──}{{\\textSFii}}1
+        {│}{{\\textSFx}}1
+        {└──}{{\\textSFiii}}1
+        {─}{{\\textSFxi}}1
+        {┬}{{\\textSFvi}}1
+        {┴}{{\\textSFvii}}1
+        {┼}{{\\textSFviii}}1
+        {═}{{\\textSFix}}1
+        {║}{{\\textSFx}}1 % Using the same for double vertical as single for now
+        {╔}{{\\textSFv}}1
+        {╗}{{\\textSFiv}}1
+        {╚}{{\\textSFiii}}1 % Re-use for bottom-left
+        {╝}{{\\textSFii}}1 % Re-use for bottom-right
+}
+\lstset{style=customcode}
+
+% Custom listings languages and styles
+\lstdefinestyle{pythoncode}{
+    style=customcode,
+    language=Python,
+    morekeywords={self, True, False, None, import, from, class, def, return, if, elif, else, for, while, try, except, finally, with, as, global, nonlocal, assert, break, continue, del, exec, in, is, lambda, pass, print, raise, yield}
+}
+\lstdefinestyle{dockercode}{
+    style=customcode,
+    language=[GNU]Make, % Dockerfiles are somewhat like Makefiles
+    morekeywords={FROM, RUN, CMD, LABEL, EXPOSE, ENV, ADD, COPY, ENTRYPOINT, VOLUME, USER, WORKDIR, ARG, ONBUILD, STOPSIGNAL, HEALTHCHECK, SHELL}
+}
+\lstdefinestyle{jsoncode}{
+    style=customcode,
+    language=HTML, % JSON is not directly supported, HTML is a close enough lexer for basic highlighting
+    morekeywords={},
+    stringstyle=\color{blue!70!black}, % Different string color for JSON
+    basicstyle=\footnotesize\ttfamily\color{black},
+    literate=
+        *{0}{{{\color{dark}0}}}{1}
+         {1}{{{\color{dark}1}}}{1}
+         {2}{{{\color{dark}2}}}{1}
+         {3}{{{\color{dark}3}}}{1}
+         {4}{{{\color{dark}4}}}{1}
+         {5}{{{\color{dark}5}}}{1}
+         {6}{{{\color{dark}6}}}{1}
+         {7}{{{\color{dark}7}}}{1}
+         {8}{{{\color{dark}8}}}{1}
+         {9}{{{\color{dark}9}}}{1}
+         {\{}{{{\color{red!80!black}{\{}}}}{1} % Braces
+         {\}}{{{\color{red!80!black}{\}}}}}{1}
+         {:}{{{\color{black}{:}}}}{1} % Colon
+         {,}{{{\color{black}{,}}}}{1} % Comma
+         {[}{{{\color{red!80!black}{[}}}}{1} % Brackets
+         {]}{{{\color{red!80!black}{]}}}}{1},
+    breaklines=true,
+    columns=flexible
+}
+\lstdefinelanguage{yaml}{
+    keywords={true,false,null,y,n},
+    keywordstyle=\color{primary!90!black}\bfseries,
+    sensitive=false,
+    comment=[l]{\#},
+    commentstyle=\color{blue!70!black},
+    stringstyle=\color{red!80!black},
+    morestring=[b]',
+    morestring=[b]",
+    basicstyle=\footnotesize\ttfamily,
+    breaklines=true,
+    frame=single,
+    rulecolor=\color{codeborder},
+    backgroundcolor=\color{codebackground},
+    numbers=left,
+    numbersep=5pt,
+    showstringspaces=false,
+    tabsize=2
+}
+\lstdefinestyle{bashcode}{
+    style=customcode,
+    language=bash,
+    morekeywords={sudo, apt, yum, docker, docker-compose, systemctl, service, ps, grep, awk, sed, tar, wget, curl, chmod, chown, mkdir, cd, ls, cp, mv, rm, echo, cat, tail, head, find, which, whereis}
+}
+
+
+%============================================================================
+\begin{document}
+%============================================================================
+
+%================= TITLE PAGE =================%
+\begin{titlepage}
+\begin{center}
+\vspace*{1cm}
+
+{\Huge\bfseries\color{black} FLOPY-NET}
+
+\vspace{1.5cm}
+
+{\LARGE\bfseries A Modular Policy-Driven Architecture and\\ Platform for Network-Aware Federated\\[0.3cm] Learning Analysis}
+
+\vspace{1.5cm}
+
+{\large\textit{Technical Report}}
+
+\vspace{2cm}
+
+% \includegraphics[width=0.8\textwidth]{architecture_diagram.png} % Commented out for now
+% \captionof{figure}{High-Level Architecture of the FLOPY-NET Platform.} % Caption is in the main document
+% \label{fig:title_architecture}
+
+\vspace{2cm}
+
+{\large\textbf{Abdulmelik Saylan}}\\
+{\normalsize Project Lead}
+
+\vspace{1cm}
+
+{\large\textbf{Dr. Cihat Çetinkaya}}\\
+{\normalsize Capstone Project Consultant}
+
+\vspace{1cm}
+
+{\large\textbf{System Version:} v1.0.0-alpha.8}\\
+{\normalsize\textit{Software Build Date: 2025-06-18}}\\
+
+\end{center}
+\end{titlepage}
+
+%================= ABSTRACT =================%
+\begin{abstract}
+\noindent FLOPY-NET is a research platform designed to investigate the critical intersection of Federated Learning (FL) and network infrastructure. It provides a controllable and observable environment for conducting realistic FL experiments under diverse and dynamic network conditions. By integrating the Flower FL framework with the GNS3 network emulator and a Software-Defined Networking (SDN) controller, FLOPY-NET enables researchers to systematically study the impact of network properties---such as latency, packet loss, and bandwidth constraints---on the performance, convergence, and security of FL algorithms.
+
+The architecture is composed of several key, containerized services: a \textbf{Policy Engine} for governance, a \textbf{Collector} for metrics aggregation, an \textbf{FL Server and Clients} based on Flower, and a \textbf{GNS3 Manager} for programmatic network control. This modular design allows for flexible scenario definition and execution, where network behavior and system policies can be scripted and automated. The platform's primary contribution is not to be a production-ready FL system, but rather a highly specialized observatory for reproducible research into network-aware federated learning.
+\end{abstract}
+\newpage
+\tableofcontents
+\newpage
+
+%================= MAIN CONTENT =================%
+% All sections are included from external files
+
+%================= MAIN CONTENT =================%
+% All content is included from section files
+
+% Include all sections
+\input{sections/01-introduction.tex}
+\input{sections/02-system-architecture.tex}
+\input{sections/03-policy-engine.tex}
+\input{sections/04-dashboard-component.tex}
+\input{sections/05-fl-framework.tex}
+\input{sections/06-collector-service.tex}
+\input{sections/07-networking-layer.tex}
+\input{sections/08-implementation-details-simple.tex}
+\input{sections/09-deployment-orchestration.tex}
+\input{sections/10-monitoring-analytics.tex}
+\input{sections/11-security-compliance.tex}
+\input{sections/12-performance-evaluation.tex}
+\input{sections/13-use-cases-scenarios.tex}
+\input{sections/14-future-work.tex}
+\input{sections/15-conclusion.tex}
+\newpage
+% Include all appendices
+\appendix
+% Temporarily commented out to isolate emergency stop issue
+%\input{appendices/A-api-reference.tex}
+\input{appendices/B-configuration-templates.tex}
+%\input{appendices/C-installation-guide.tex}
+%\input{appendices/D-troubleshooting.tex}
+%\input{appendices/E-code-examples.tex}
+\newpage
+%================= REFERENCES =================%
+\bibliographystyle{plain}
+\bibliography{references/references}
+
+%============================================================================
+\end{document}
+%============================================================================

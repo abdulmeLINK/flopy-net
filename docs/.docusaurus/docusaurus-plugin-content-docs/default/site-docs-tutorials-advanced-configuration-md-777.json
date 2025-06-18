@@ -1,0 +1,27 @@
+{
+  "id": "tutorials/advanced-configuration",
+  "title": "Advanced Configuration",
+  "description": "Master advanced FLOPY-NET configuration techniques for complex federated learning experiments, including custom algorithms, advanced networking, and sophisticated policy management.",
+  "source": "@site/docs/tutorials/advanced-configuration.md",
+  "sourceDirName": "tutorials",
+  "slug": "/tutorials/advanced-configuration",
+  "permalink": "/flopy-net/docs/tutorials/advanced-configuration",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/tutorials/advanced-configuration.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "sidebar_position": 3
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Custom Scenarios",
+    "permalink": "/flopy-net/docs/tutorials/custom-scenarios"
+  },
+  "next": {
+    "title": "Development Setup",
+    "permalink": "/flopy-net/docs/development/setup"
+  }
+}

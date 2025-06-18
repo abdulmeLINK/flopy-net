@@ -1,0 +1,463 @@
+%============================================================================
+% SECTION 4: DASHBOARD COMPONENT
+%============================================================================
+\section{Dashboard Component}
+\label{sec:dashboard-component}
+
+The Dashboard component serves as the central web-based interface for monitoring and controlling the FLOPY-NET system. It provides real-time visualization of federated learning training progress, network topology, system metrics, and policy compliance through a modern React-based frontend \cite{react} with a FastAPI backend \cite{fastapi} architecture.
+
+\subsection{Architecture Overview}
+
+The Dashboard follows a three-tier architecture designed for scalability, maintainability, and real-time responsiveness:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2.5cm,    tier/.style={rectangle, rounded corners, minimum width=10cm, minimum height=2cm, text centered, draw, thick, align=center},
+    component/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm, text centered, draw, align=center},
+    flow/.style={->, thick, >=stealth}
+]
+    % Frontend Tier
+    \node[tier, fill=primary!20] (frontend) at (0,6) {%
+        \textbf{Frontend Layer (Port 8085)}%
+    };
+    \node[component, fill=primary!30] (react) at (-3,5.2) {React 18\\ TypeScript};
+    \node[component, fill=primary!30] (ui) at (0,5.2) {Material-UI\\ Components};
+    \node[component, fill=primary!30] (viz) at (3,5.2) {Recharts\\ ReactFlow};
+    
+    % Backend Tier
+    \node[tier, fill=secondary!20] (backend) at (0,3) {%
+        \textbf{Backend Layer (Port 8001)}%
+    };
+    \node[component, fill=secondary!30] (fastapi) at (-3,2.2) {FastAPI\\ Python};
+    \node[component, fill=secondary!30] (aggregation) at (0,2.2) {Data\\ Aggregation};
+    \node[component, fill=secondary!30] (cache) at (3,2.2) {In-Memory\\ Cache};
+    
+    % Data Sources Tier
+    \node[tier, fill=success!20] (datasources) at (0,0) {%
+        \textbf{Data Sources Layer}%
+    };
+    \node[component, fill=success!30] (collector) at (-4,-0.8) {Collector\\ 8002};
+    \node[component, fill=success!30] (gns3) at (-2,-0.8) {GNS3\\ 3080};
+    \node[component, fill=success!30] (policy) at (0,-0.8) {Policy\\ 5000};
+    \node[component, fill=success!30] (fl) at (2,-0.8) {FL Server\\ 8080};
+    \node[component, fill=success!30] (sdn) at (4,-0.8) {SDN\\ 8181};
+    
+    % Connections
+    \draw[flow, color=primary] (frontend) -- (backend);
+    \draw[flow, color=secondary] (backend) -- (datasources);
+    
+    % Internal connections
+    \draw[flow, color=dark, dotted] (react) -- (ui);
+    \draw[flow, color=dark, dotted] (ui) -- (viz);
+    \draw[flow, color=dark, dotted] (fastapi) -- (aggregation);
+    \draw[flow, color=dark, dotted] (aggregation) -- (cache);
+\end{tikzpicture}
+\caption{Dashboard Three-Tier Architecture}
+\label{fig:dashboard-architecture}
+\end{figure}
+
+\subsection{Frontend Architecture}
+
+\subsubsection{Technology Stack}
+
+The frontend leverages modern web technologies for optimal user experience:
+
+\begin{table}[H]
+\centering
+\caption{Frontend Technology Stack}
+\label{tab:frontend-stack}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Technology} & \textbf{Version} & \textbf{Purpose} \\
+\midrule
+React & 18.2.0 & Core UI framework with hooks and context \\
+TypeScript & 5.0+ & Type-safe JavaScript development \\
+Material-UI & 5.14.18 & Consistent UI component library \\
+Vite & 4.4+ & Fast build tool and development server \\
+ReactFlow & 11.10.1 & Interactive network topology visualization \\
+Recharts & 2.10.1 & Responsive chart library \\
+Socket.IO & 4.8.1 & Real-time bidirectional communication \\
+Axios & 1.6.2 & HTTP client for API communication \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Component Architecture}
+
+The frontend is organized into modular, reusable components:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2.5cm,    component/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, align=center},
+    container/.style={rectangle, rounded corners, minimum width=8cm, minimum height=1.5cm, text centered, draw, thick, dashed, align=center}
+]
+    % Main App Container
+    \node[container, fill=primary!10] (app) at (0,8) {App Container};
+    
+    % Layout Components
+    \node[component, fill=primary!20] (header) at (-3,6) {Header\\ Navigation};
+    \node[component, fill=primary!20] (sidebar) at (0,6) {Sidebar\\ Menu};
+    \node[component, fill=primary!20] (content) at (3,6) {Content\\ Area};
+    
+    % Feature Components
+    \node[component, fill=secondary!20] (fl_monitor) at (-4,4) {FL Training\\ Monitor};
+    \node[component, fill=secondary!20] (network_viz) at (-1,4) {Network\\ Topology};
+    \node[component, fill=secondary!20] (metrics) at (2,4) {System\\ Metrics};
+    \node[component, fill=secondary!20] (policies) at (5,4) {Policy\\ Dashboard};
+    
+    % Shared Components
+    \node[component, fill=accent!20] (charts) at (-3,2) {Chart\\ Components};
+    \node[component, fill=accent!20] (tables) at (-1,2) {Data\\ Tables};
+    \node[component, fill=accent!20] (forms) at (1,2) {Forms\\ Controls};
+    \node[component, fill=accent!20] (dialogs) at (3,2) {Modal\\ Dialogs};
+    
+    % Connections
+    \draw[->, thick] (app) -- (header);
+    \draw[->, thick] (app) -- (sidebar);
+    \draw[->, thick] (app) -- (content);
+    \draw[->, thick] (content) -- (fl_monitor);
+    \draw[->, thick] (content) -- (network_viz);
+    \draw[->, thick] (content) -- (metrics);
+    \draw[->, thick] (content) -- (policies);
+    \draw[->, thick, dotted] (fl_monitor) -- (charts);
+    \draw[->, thick, dotted] (network_viz) -- (tables);
+    \draw[->, thick, dotted] (metrics) -- (forms);
+    \draw[->, thick, dotted] (policies) -- (dialogs);
+\end{tikzpicture}
+\caption{Frontend Component Architecture}
+\label{fig:frontend-components}
+\end{figure}
+
+\subsection{Backend Architecture}
+
+\subsubsection{FastAPI Service Design}
+
+The backend is implemented as a FastAPI service that aggregates data from multiple sources:
+
+\begin{lstlisting}[style=pythoncode, caption=Dashboard Backend Structure]
+from fastapi import FastAPI, WebSocket, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import asyncio
+import aiohttp
+from typing import Dict, List, Any, Optional
+from datetime import datetime
+
+app = FastAPI(
+    title="FLOPY-NET Dashboard API",
+    description="Real-time monitoring and control API",
+    version="2.0.0"
+)
+
+# Global connection status tracking
+connection_status = {
+    "policy_engine": {"connected": False, "last_check": None, "error": None},
+    "gns3": {"connected": False, "last_check": None, "error": None},
+    "collector": {"connected": False, "last_check": None, "error": None}
+}
+
+async def test_connection_with_retry(url: str, service_name: str, timeout: int = 5, max_retries: Optional[int] = None) -> bool:
+    """Test connection to a service with retry logic"""
+    if max_retries is None:
+        if service_name == "gns3":
+            max_retries = 1  # Only try once for GNS3
+        else:
+            max_retries = 3
+    
+    connection_status[service_name]["connected"] = False
+    connection_status[service_name]["last_check"] = datetime.now()
+    
+    for attempt in range(max_retries):
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+                test_url = url
+                if service_name == "policy_engine":
+                    test_url = f"{url}/health"
+                elif service_name == "collector":
+                    test_url = f"{url}/api/metrics/latest"
+                elif service_name == "gns3":
+                    test_url = f"{url}/v2/version"
+                
+                async with session.get(test_url) as response:
+                    if response.status == 200:
+                        connection_status[service_name]["connected"] = True
+                        connection_status[service_name]["error"] = None
+                        return True
+        except Exception as e:
+            connection_status[service_name]["error"] = str(e)
+            
+    return False
+\end{lstlisting}
+
+\subsubsection{Real-Time Data Flow}
+
+The dashboard implements real-time data updates through WebSocket connections:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2.5cm,
+    service/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, align=center},
+    data/.style={->, thick, >=stealth, color=primary},
+    realtime/.style={<->, thick, >=stealth, color=success, dashed}
+]
+    % Services
+    \node[service, fill=primary!20] (frontend) at (0,6) {React\\ Frontend};
+    \node[service, fill=secondary!20] (backend) at (0,4) {FastAPI\\ Backend};
+    \node[service, fill=accent!20] (collector) at (-4,2) {Collector};
+    \node[service, fill=accent!20] (policy) at (-2,2) {Policy Engine};
+    \node[service, fill=accent!20] (fl) at (2,2) {FL Server};
+    \node[service, fill=accent!20] (sdn) at (4,2) {SDN Controller};
+    
+    % Data flows
+    \draw[realtime] (frontend) -- (backend) node[midway, right] {WebSocket};
+    \draw[data] (collector) -- (backend);
+    \draw[data] (policy) -- (backend);
+    \draw[data] (fl) -- (backend);
+    \draw[data] (sdn) -- (backend);
+    
+    % Polling cycles
+    \draw[data, dotted] (backend) -- ++(2,0) -- ++(0,-2) -- ++(-2,0) -- (backend);
+    \node at (1,3) {Polling Cycle};
+\end{tikzpicture}
+\caption{Real-Time Data Flow Architecture}
+\label{fig:realtime-data-flow}
+\end{figure}
+
+\subsection{Visualization Components}
+
+\subsubsection{Federated Learning Monitoring}
+
+Real-time visualization of FL training progress:
+
+\begin{itemize}
+    \item \textbf{Training Progress}: Line charts showing accuracy and loss evolution
+    \item \textbf{Client Participation}: Active clients and participation rates
+    \item \textbf{Round Statistics}: Training round duration and convergence metrics
+    \item \textbf{Model Performance}: Validation metrics and performance comparisons
+\end{itemize}
+
+\subsubsection{Network Topology Visualization}
+
+Interactive network topology using ReactFlow. The topology data processing is handled by the TopologyLoader class:
+
+\begin{lstlisting}[style=pythoncode, caption=Network Topology Data Processing]
+class TopologyLoader:
+    @staticmethod
+    def load_from_file(topology_file: str) -> Dict[str, Any]:
+        """Load topology configuration from file."""
+        if not os.path.exists(topology_file):
+            raise FileNotFoundError(f"Topology file not found: {topology_file}")
+        
+        TopologyManagerClass = _import_topology_manager()
+        tm = TopologyManagerClass(topology_file=topology_file)
+        if not tm.topology_config:
+            raise ValueError("Failed to load topology config")
+        return {
+            "nodes": tm.topology_config.get("nodes", []),
+            "links": tm.topology_config.get("links", [])
+        }
+
+    @staticmethod
+    async def aload_from_file(topology_file: str) -> Dict[str, Any]:
+        """Async version of load_from_file for compatibility."""
+        return TopologyLoader.load_from_file(topology_file)
+
+def _create_mock_topology_manager():
+    """Create a mock TopologyManager for when the real one is not available."""
+    class MockTopologyManager:
+        def __init__(self, topology_file=None):
+            self.topology_file = topology_file
+            self.topology_config = self._load_mock_config()
+        
+        def _load_mock_config(self):
+            """Return a mock topology configuration."""
+            return {
+                "nodes": [
+                    {
+                        "id": "fl-server",
+                        "name": "FL Server",
+                        "type": "fl-server",
+                        "ip": "192.168.100.100"
+                    },
+                    {
+                        "id": "fl-client-1",
+                        "name": "FL Client 1",
+                        "type": "fl-client",
+                        "ip": "192.168.100.101"
+                    },
+                    {
+                        "id": "fl-client-2",
+                        "name": "FL Client 2",
+                        "type": "fl-client",
+                        "ip": "192.168.100.102"
+                    }
+                ],
+                "links": [
+                    {
+                        "source": "fl-server",
+                        "target": "fl-client-1",
+                        "bandwidth": "100Mbps"
+                    },
+                    {
+                        "source": "fl-server",
+                        "target": "fl-client-2",
+                        "bandwidth": "100Mbps"
+                    }
+                ]
+            }
+    
+    return MockTopologyManager
+\end{lstlisting}
+
+\subsubsection{System Metrics Dashboard}
+
+Comprehensive system monitoring with various chart types:
+
+\begin{table}[H]
+\centering
+\caption{Dashboard Visualization Types}
+\label{tab:dashboard-visualizations}
+\begin{tabular}{@{}llp{5cm}@{}}
+\toprule
+\textbf{Chart Type} & \textbf{Use Case} & \textbf{Data Source} \\
+\midrule
+Line Charts & Training progress, time series metrics & FL Server, Collector \\
+Bar Charts & Client participation, resource usage & System metrics, FL metrics \\
+Scatter Plots & Performance correlation analysis & Aggregated metrics \\
+Heatmaps & Network latency, trust scores & Network monitor,\\Policy Engine \\
+Network Graphs & Topology visualization & GNS3, SDN Controller \\
+Gauge Charts & Resource utilization, health status & System health metrics \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{User Interface Features}
+
+\subsubsection{Dashboard Layout}
+
+The dashboard provides multiple layout options optimized for different use cases:
+
+\begin{itemize}
+    \item \textbf{Overview Dashboard}: High-level system status and key metrics
+    \item \textbf{FL Training View}: Detailed federated learning monitoring
+    \item \textbf{Network Operations}: Network topology and SDN control
+    \item \textbf{Policy Management}: Policy configuration and compliance monitoring
+    \item \textbf{System Administration}: Configuration and maintenance tools
+\end{itemize}
+
+\subsubsection{Responsive Design}
+
+The interface adapts to various screen sizes and devices:
+
+\begin{table}[H]
+\centering
+\caption{Responsive Design Breakpoints}
+\label{tab:responsive-breakpoints}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Device Type} & \textbf{Screen Width} & \textbf{Layout Adaptation} \\
+\midrule
+Mobile & < 768px & Stacked layout, collapsible sidebar \\
+Tablet & 768px - 1024px & Grid layout, condensed charts \\
+Desktop & 1024px - 1440px & Full layout, multiple columns \\
+Large Desktop & > 1440px & Extended layout, additional panels \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{API Integration}
+
+\subsubsection{Service Integration Patterns}
+
+Each service that I have implements proper architecture for the intended service that the source uses. Usually traditional client <-> server connection is established between the clients. Except the FL elements that may have a different communication method theoratically. The dashboard integrates with multiple backend services using consistent patterns:
+
+\begin{lstlisting}[style=pythoncode, caption=Service Integration Client]
+class CollectorApiClient:
+    """Client for interacting with the Collector API."""
+    
+    def __init__(self, base_url: Optional[str] = None):
+        """Initialize the client with the Collector API base URL."""
+        self.base_url = base_url or settings.COLLECTOR_URL
+        self.timeout = httpx.Timeout(
+            connect=settings.HTTP_CONNECT_TIMEOUT,
+            read=settings.HTTP_READ_TIMEOUT,
+            write=settings.HTTP_WRITE_TIMEOUT,
+            pool=settings.HTTP_POOL_TIMEOUT
+        )
+        self.limits = httpx.Limits(
+            max_keepalive_connections=settings.MAX_KEEPALIVE_CONNECTIONS,
+            max_connections=settings.MAX_CONNECTIONS,
+            keepalive_expiry=settings.KEEPALIVE_EXPIRY
+        )
+        
+        # Add basic authentication for collector API
+        auth = httpx.BasicAuth("admin", "securepassword")
+        
+        self._client = httpx.AsyncClient(
+            base_url=self.base_url, 
+            timeout=self.timeout,
+            limits=self.limits,
+            follow_redirects=True,
+            auth=auth
+        )
+          async def get_latest_metrics(self) -> Dict[str, Any]:
+        """Get the latest metrics from the collector."""
+        try:
+            response = await self._client.get("/api/metrics/latest")
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to fetch latest metrics: {e}")
+            raise
+            
+    async def get_health(self) -> Dict[str, Any]:
+        """Check the health of the Collector API."""
+        resp = await self._client.get("/health", timeout=10.0)
+        resp.raise_for_status()
+        logger.info(f"Successfully connected to collector health endpoint at {self.base_url}")
+        return resp.json()
+
+    async def test_connection(self) -> bool:
+        """Test the connection to the collector API."""
+        try:
+            health = await self.get_health()
+            return "error" not in health
+        except Exception:
+            return False
+\end{lstlisting}
+
+\subsubsection{Error Handling and Resilience}
+
+The dashboard implements comprehensive error handling. In the development phase the errors were loud and clear, but in production the errors are handled gracefully due to user experience. Further debug configurations for loggings needs to be implemented in future versions. The following patterns are used:
+
+\begin{itemize}
+    \item \textbf{Circuit Breaker Pattern}: Prevents cascading failures from downstream services
+    \item \textbf{Retry Logic}: Automatic retry with exponential backoff
+    \item \textbf{Graceful Degradation}: Partial functionality when services are unavailable
+    \item \textbf{User Feedback}: Clear error messages and status indicators
+\end{itemize}
+
+\subsection{Performance Optimization}
+Pagination and lazy loading, just like the CRUD applications, are covered in most of the metrics collection. Initially I preffered very simple storage logic with single JSON file for MVP phase but later the performance overhead became so intense that I had to consider SQLite implementation even if I didn't want to use because of the high complexity that may exceed the MVP requirements unnecessarily.
+
+\subsubsection{Frontend Optimization}
+
+\begin{itemize}
+    \item \textbf{Code Splitting}: Lazy loading of components and routes
+    \item \textbf{Memoization}: React.memo and useMemo for expensive computations
+    \item \textbf{Virtual Scrolling}: Efficient rendering of large data sets
+    \item \textbf{Bundle Optimization}: Tree shaking and compression
+\end{itemize}
+
+\subsubsection{Backend Optimization}
+
+\begin{itemize}
+    \item \textbf{Async Operations}: Non-blocking I/O for all external calls
+    \item \textbf{Connection Pooling}: Efficient HTTP client connection management
+    \item \textbf{Data Caching}: Redis-based caching for frequently accessed data
+    \item \textbf{Request Batching}: Combining multiple API calls where possible
+\end{itemize}
+
+The Dashboard component serves as the primary interface for researchers and administrators to monitor, control, and analyze the FLOPY-NET system, providing comprehensive visibility into all aspects of federated learning operations and network behavior.

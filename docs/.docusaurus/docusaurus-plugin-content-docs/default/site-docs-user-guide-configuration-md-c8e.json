@@ -1,0 +1,18 @@
+{
+  "id": "user-guide/configuration",
+  "title": "Configuration Guide",
+  "description": "FLOPY-NET uses a hierarchical configuration system that allows for flexible customization of all system components. This guide covers the configuration structure, files, and best practices.",
+  "source": "@site/docs/user-guide/configuration.md",
+  "sourceDirName": "user-guide",
+  "slug": "/user-guide/configuration",
+  "permalink": "/flopy-net/docs/user-guide/configuration",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/user-guide/configuration.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  }
+}

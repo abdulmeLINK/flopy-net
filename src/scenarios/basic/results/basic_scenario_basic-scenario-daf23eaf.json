@@ -1,0 +1,15 @@
+{
+    "scenario_id": "basic-scenario-daf23eaf",
+    "config_file": "config\\scenarios\\basic_main.json",
+    "topology_file": "config\\topology\\basic_topology.json",
+    "start_time": 1746312067.3136683,
+    "end_time": 1746312070.4730742,
+    "duration_seconds": 3.16,
+    "status": "failed",
+    "error": "Failed to deploy components",
+    "fl_results": null,
+    "topology_summary": {
+        "nodes": 9,
+        "links": 9
+    }
+}

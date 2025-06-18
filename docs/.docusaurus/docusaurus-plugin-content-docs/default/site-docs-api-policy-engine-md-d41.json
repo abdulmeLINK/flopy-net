@@ -1,0 +1,15 @@
+{
+  "id": "api/policy-engine",
+  "title": "Policy Engine API",
+  "description": "The Policy Engine provides REST APIs for managing security policies, compliance monitoring, and governance rules within the FLOPY-NET system.",
+  "source": "@site/docs/api/policy-engine.md",
+  "sourceDirName": "api",
+  "slug": "/api/policy-engine",
+  "permalink": "/flopy-net/docs/api/policy-engine",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/api/policy-engine.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

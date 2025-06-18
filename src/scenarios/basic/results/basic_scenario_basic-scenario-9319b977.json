@@ -1,0 +1,15 @@
+{
+    "scenario_id": "basic-scenario-9319b977",
+    "config_file": ".\\config\\scenarios\\basic_main.json",
+    "topology_file": ".\\config\\topology\\basic_topology.json",
+    "start_time": 1747037840.6434238,
+    "end_time": null,
+    "duration_seconds": null,
+    "status": "workload_complete",
+    "error": null,
+    "fl_results": {},
+    "topology_summary": {
+        "nodes": 9,
+        "links": 9
+    }
+}

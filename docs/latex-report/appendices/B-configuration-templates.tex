@@ -1,0 +1,336 @@
+\section{Configuration Templates}
+\label{appendix:configuration-templates}
+
+\subsection{Real Configuration Templates}
+
+This section provides comprehensive configuration templates based on the actual configuration files used in the FLOPY-NET framework. These templates represent real, tested configurations from the project.
+
+\subsubsection{Network Topology Configuration}
+
+The following template shows the complete structure of a basic federated learning topology as implemented in \texttt{config/topology/basic\_topology.json}:
+
+\begin{lstlisting}[style=jsoncode, caption=Basic Topology Configuration Template]
+{
+  "topology_name": "basic_fl_topology",
+  "description": "Network topology for basic federated learning scenario",
+  "version": "1.0",
+  "nodes": [
+    {
+      "name": "policy-engine",
+      "service_type": "policy-engine",
+      "ip_address": "192.168.141.20",
+      "ports": [5000],
+      "template_name": "flopynet-PolicyEngine",
+      "x": 200,
+      "y": 50,
+      "environment": {
+        "SERVICE_TYPE": "policy-engine",
+        "HOST": "0.0.0.0",
+        "POLICY_PORT": "5000",
+        "LOG_LEVEL": "INFO",
+        "NETWORK_MODE": "docker",
+        "GNS3_NETWORK": "true",
+        "USE_STATIC_IP": "true",
+        "POLICY_CONFIG": "/app/config/policy/policy_config.json",
+        "POLICY_FUNCTIONS_DIR": "/app/config/policy_functions",
+        "SUBNET_PREFIX": "192.168.141",
+        "CLIENT_IP_RANGE": "100-255",
+        "SERVER_IP_RANGE": "10-19",
+        "POLICY_IP_RANGE": "20-29",
+        "CONTROLLER_IP_RANGE": "30-49",
+        "OVS_IP_RANGE": "60-99",
+        "NORTHBOUND_IP_RANGE": "50-59",
+        "COLLECTOR_IP": "40"
+      }
+    },
+    {
+      "name": "fl-server",
+      "service_type": "fl-server",
+      "ip_address": "192.168.141.10",
+      "ports": [8080],
+      "template_name": "flopynet-FLServer",
+      "x": 0,
+      "y": 200,
+      "environment": {
+        "SERVICE_TYPE": "fl-server",
+        "HOST": "0.0.0.0",
+        "FL_PORT": "8080",
+        "LOG_LEVEL": "INFO",
+        "NETWORK_MODE": "docker",
+        "GNS3_NETWORK": "true",
+        "USE_STATIC_IP": "true",
+        "POLICY_ENGINE_HOST": "policy-engine",
+        "POLICY_ENGINE_PORT": "5000",
+        "COLLECTOR_HOST": "collector",
+        "COLLECTOR_PORT": "8000"
+      }
+    },
+    {
+      "name": "collector",
+      "service_type": "collector",
+      "ip_address": "192.168.141.40",
+      "ports": [8000],
+      "template_name": "flopynet-Collector",
+      "x": 500,
+      "y": 200,
+      "environment": {
+        "SERVICE_TYPE": "collector",
+        "HOST": "0.0.0.0",
+        "COLLECTOR_PORT": "8000",
+        "LOG_LEVEL": "INFO",
+        "NETWORK_MODE": "docker",
+        "GNS3_NETWORK": "true",
+        "USE_STATIC_IP": "true",
+        "DATABASE_PATH": "/app/data/metrics.db",
+        "POLICY_ENGINE_URL": "http://policy-engine:5000"
+      }
+    },
+    {
+      "name": "fl-client-1",
+      "service_type": "fl-client",
+      "ip_address": "192.168.141.101",
+      "ports": [8081],
+      "template_name": "flopynet-FLClient",
+      "x": 100,
+      "y": 380,
+      "environment": {
+        "SERVICE_TYPE": "fl-client",
+        "CLIENT_ID": "client-1",
+        "SERVER_HOST": "fl-server",
+        "SERVER_PORT": "8080",
+        "POLICY_ENGINE_HOST": "policy-engine",
+        "POLICY_ENGINE_PORT": "5000",
+        "DATASET_TYPE": "medical_imaging",
+        "DATA_PARTITION": "1"
+      }
+    }
+  ],
+  "links": [
+    {"source": "fl-server", "target": "openvswitch", "source_adapter": 0, "target_adapter": 1},
+    {"source": "policy-engine", "target": "switch1", "source_adapter": 0, "target_adapter": 1},
+    {"source": "collector", "target": "openvswitch", "source_adapter": 0, "target_adapter": 3},
+    {"source": "fl-client-1", "target": "openvswitch", "source_adapter": 0, "target_adapter": 4}
+  ],
+  "network": {
+    "subnet": "192.168.141.0/24",
+    "gateway": "192.168.141.1",
+    "dns_servers": ["8.8.8.8", "8.8.4.4"]
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Scenario Configuration Template}
+
+The following template shows the complete structure of a scenario configuration as implemented in \texttt{config/scenarios/basic\_main.json}:
+
+\begin{lstlisting}[style=jsoncode, caption=Scenario Configuration Template]
+{
+  "scenario_type": "basic",
+  "scenario_name": "Basic Federated Learning",
+  "description": "Basic federated learning setup with minimal configuration",
+  
+  "gns3": {
+    "server_url": "http://192.168.141.128:80",
+    "project_name": "basic_federated_learning",
+    "reset_project": true,
+    "cleanup_action": "stop"
+  },
+  
+  "network": {
+    "gns3": {
+        "host": "192.168.141.128", 
+        "port": 80 
+    },
+    "gns3_ssh": { 
+        "user": "gns3", 
+        "password": "gns3", 
+        "port": 22 
+    },
+    "topology_file": "config/topology/basic_topology.json",
+    "use_static_ip": true,
+    "host_mapping": true,
+    "subnet": "192.168.100.0/24",
+    "gns3_network": true,
+    "wait_for_network": true,
+    "network_timeout": 120,
+    "ip_map": {
+      "policy-engine": "192.168.100.20",
+      "fl-server": "192.168.100.10",
+      "collector": "192.168.100.40",
+      "sdn-controller": "192.168.100.41",
+      "openvswitch": "192.168.100.42",
+      "fl-client-1": "192.168.100.101",
+      "fl-client-2": "192.168.100.102",
+      "fl-client-3": "192.168.100.103"
+    }
+  },
+
+  "collector_forwarding": {
+    "node_name": "collector",
+    "internal_ip": "192.168.100.40", 
+    "internal_port": 8000, 
+    "external_port": 8001  
+  },
+  
+  "federation": {
+    "rounds": 5,
+    "min_clients": 2,
+    "client_fraction": 1.0,
+    "model": "simple_cnn",
+    "dataset": "medical_imaging",
+    "epochs_per_round": 1,
+    "batch_size": 32,
+    "learning_rate": 0.01
+  },
+  
+  "policy": {
+    "policy_file": "config/policies/default_policies.json",
+    "enforcement_mode": "strict",
+    "violation_action": "block"
+  },
+  
+  "monitoring": {
+    "metrics_collection_interval": 30,
+    "log_level": "INFO",
+    "enable_network_monitoring": true,
+    "enable_performance_monitoring": true
+  },
+  
+  "timeouts": {
+    "scenario_timeout": 1800,
+    "network_setup_timeout": 300,
+    "service_startup_timeout": 120,
+    "federation_round_timeout": 300
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Policy Configuration Template}
+
+The following template shows the structure of policy configurations as implemented in \texttt{config/policies/default\_policies.json}:
+
+\begin{lstlisting}[style=jsoncode, caption=Policy Configuration Template]
+{
+  "policies": [
+    {
+      "id": "default-net-sec-001",
+      "name": "base_network_security",
+      "type": "network_security",
+      "description": "Base network security policy allowing essential FL system communication",
+      "priority": 100,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow FL clients to connect to FL server",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client",
+            "dst_type": "fl-server",
+            "dst_port": 8080
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow FL server to respond to clients",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-server",
+            "dst_type": "fl-client"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow metrics reporting to collector",
+          "match": {
+            "protocol": "tcp",
+            "dst_type": "collector",
+            "dst_port": 8000
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow policy verification from all components",
+          "match": {
+            "protocol": "tcp",
+            "dst_type": "policy-engine",
+            "dst_port": 5000
+          }
+        }
+      ]
+    }
+  ],
+  "policy_engine_config": {
+    "enforcement_mode": "strict",
+    "default_action": "deny",
+    "logging_level": "INFO",
+    "audit_enabled": true,
+    "real_time_monitoring": true
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Docker Template Mapping}
+
+The system uses the following Docker templates that correspond to images in the \texttt{abdulmelik} Docker Hub registry:
+
+\begin{table}[H]
+\centering
+\caption{Docker Template to Image Mapping}
+\label{tab:docker-templates}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Template Name} & \textbf{Docker Image} & \textbf{Dockerfile} \\
+\midrule
+flopynet-PolicyEngine & abdulmelik/flopynet-policy-engine & flopynet\_policy\_engine.Dockerfile \\
+flopynet-FLServer & abdulmelik/flopynet-fl-server & flopynet\_fl\_server.Dockerfile \\
+flopynet-FLClient & abdulmelik/flopynet-fl-client & flopynet\_fl\_client.Dockerfile \\
+flopynet-Collector & abdulmelik/flopynet-collector & flopynet\_collector.Dockerfile \\
+flopynet-Controller & abdulmelik/flopynet-controller & flopynet\_controller.Dockerfile \\
+OpenVSwitch & abdulmelik/flopynet-openvswitch & flopynet\_openvswitch.Dockerfile \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Environment Variable Templates}
+
+Common environment variables used across different node types in the actual system:
+
+\begin{lstlisting}[style=bashcode, caption=Common Environment Variables]
+# Network Configuration
+SUBNET_PREFIX=192.168.141
+CLIENT_IP_RANGE=100-255
+SERVER_IP_RANGE=10-19
+POLICY_IP_RANGE=20-29
+CONTROLLER_IP_RANGE=30-49
+OVS_IP_RANGE=60-99
+
+# Service Configuration
+LOG_LEVEL=INFO
+NETWORK_MODE=docker
+GNS3_NETWORK=true
+USE_STATIC_IP=true
+
+# FL Server Configuration
+FL_PORT=8080
+POLICY_ENGINE_HOST=policy-engine
+POLICY_ENGINE_PORT=5000
+COLLECTOR_HOST=collector
+COLLECTOR_PORT=8000
+
+# FL Client Configuration
+CLIENT_ID=client-1
+SERVER_HOST=fl-server
+SERVER_PORT=8080
+DATASET_TYPE=medical_imaging
+DATA_PARTITION=1
+
+# Policy Engine Configuration
+POLICY_PORT=5000
+POLICY_CONFIG=/app/config/policy/policy_config.json
+POLICY_FUNCTIONS_DIR=/app/config/policy_functions
+
+# Collector Configuration
+COLLECTOR_PORT=8000
+DATABASE_PATH=/app/data/metrics.db
+POLICY_ENGINE_URL=http://policy-engine:5000
+\end{lstlisting}

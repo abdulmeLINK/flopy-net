@@ -1,0 +1,24 @@
+{
+  "id": "user-guide/troubleshooting",
+  "title": "Troubleshooting Guide",
+  "description": "This comprehensive troubleshooting guide helps you diagnose and resolve common issues in FLOPY-NET, covering system setup, experiment execution, network integration, and performance optimization.",
+  "source": "@site/docs/user-guide/troubleshooting.md",
+  "sourceDirName": "user-guide",
+  "slug": "/user-guide/troubleshooting",
+  "permalink": "/flopy-net/docs/user-guide/troubleshooting",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/user-guide/troubleshooting.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "GNS3 Integration",
+    "permalink": "/flopy-net/docs/user-guide/gns3-integration"
+  },
+  "next": {
+    "title": "API Reference Overview",
+    "permalink": "/flopy-net/docs/api/overview"
+  }
+}

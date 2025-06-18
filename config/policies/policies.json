@@ -1,0 +1,1579 @@
+{
+  "version": 2,
+  "policies": {
+    "default-net-sec-001": {
+      "id": "default-net-sec-001",
+      "name": "base_network_security",
+      "type": "network_security",
+      "description": "Base network security policy allowing essential FL system communication",
+      "priority": 100,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow FL clients to connect to FL server",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client",
+            "dst_type": "fl-server",
+            "dst_port": 8080
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow FL server to respond to clients",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-server",
+            "dst_type": "fl-client"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow metrics reporting to collector",
+          "match": {
+            "protocol": "tcp",
+            "dst_type": "collector",
+            "dst_port": 8000
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow policy verification from all components",
+          "match": {
+            "protocol": "tcp",
+            "dst_type": "policy-engine",
+            "dst_port": 5000
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow policy engine to respond to components",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "policy-engine"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow SDN controller to manage network flows",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "sdn-controller",
+            "dst_type": "openvswitch",
+            "dst_port": 6633
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow OpenVSwitch to communicate with controller",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "openvswitch",
+            "dst_type": "sdn-controller"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow server to collector communication",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-server",
+            "dst_type": "collector"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow collector to server communication",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "collector",
+            "dst_type": "fl-server"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow server to policy engine communication",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-server",
+            "dst_type": "policy-engine"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow client to policy engine communication",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client",
+            "dst_type": "policy-engine"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow client to collector communication",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client",
+            "dst_type": "collector"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow collector to client communication",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "collector",
+            "dst_type": "fl-client"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow sdn-controller to all components",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "sdn-controller"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow all components to sdn-controller",
+          "match": {
+            "protocol": "tcp",
+            "dst_type": "sdn-controller"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow ARP traffic within the subnet",
+          "match": {
+            "protocol": "arp"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow ICMP (ping) traffic within the subnet",
+          "match": {
+            "protocol": "icmp"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow UDP traffic within the subnet",
+          "match": {
+            "protocol": "udp"
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Block suspicious external connections",
+          "match": {
+            "protocol": "tcp",
+            "src_ip_range": "0.0.0.0-10.0.0.0",
+            "dst_type": "fl-server"
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Block non-standard ports for FL clients",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client",
+            "dst_port_range": "22-79,81-8079,8081-65535"
+          }
+        }
+      ]
+    },
+    "default-fl-sec-002": {
+      "id": "default-fl-sec-002",
+      "name": "fl_training_policy",
+      "type": "fl_security",
+      "description": "Security policies for federated learning training with conditional restrictions",
+      "priority": 90,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow model aggregation operations",
+          "match": {
+            "operation": "model_aggregation"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow model distribution to clients",
+          "match": {
+            "operation": "model_distribution"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow clients to submit updates",
+          "match": {
+            "operation": "submit_update"
+          }
+        },
+        {
+          "action": "verify",
+          "description": "Verify client updates for Byzantine attacks",
+          "match": {
+            "operation": "client_update_verification"
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Deny oversized model updates (potential attack)",
+          "match": {
+            "operation": "submit_update",
+            "condition": "model_size_mb >= max_model_size"
+          },
+          "parameters": {
+            "max_model_size": 100
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Deny updates from clients with poor reputation",
+          "match": {
+            "operation": "submit_update",
+            "condition": "client_reputation <= min_reputation"
+          },
+          "parameters": {
+            "min_reputation": 0.3
+          }
+        }
+      ]
+    },
+    "default-client-reg-003": {
+      "id": "default-client-reg-003",
+      "name": "fl_client_registration",
+      "type": "fl_client_start",
+      "description": "Client registration policies with conditional access",
+      "priority": 85,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow client-1 to register",
+          "match": {
+            "client_id": "1",
+            "client_ip": "192.168.100.101"
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow client-2 to register",
+          "match": {
+            "client_id": "2",
+            "client_ip": "192.168.100.102"
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Deny registration during maintenance window",
+          "match": {
+            "operation": "client_registration",
+            "condition": "current_hour >= maintenance_start AND current_hour <= maintenance_end"
+          },
+          "parameters": {
+            "maintenance_start": 2,
+            "maintenance_end": 4
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Deny registration if server is overloaded",
+          "match": {
+            "operation": "client_registration",
+            "condition": "active_clients >= max_clients"
+          },
+          "parameters": {
+            "max_clients": 10
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow registration with waiting queue when near capacity",
+          "match": {
+            "operation": "client_registration",
+            "condition": "active_clients >= soft_limit"
+          },
+          "parameters": {
+            "soft_limit": 8,
+            "queue_enabled": true,
+            "max_queue_size": 5
+          }
+        }
+      ]
+    },
+    "default-client-eval-004": {
+      "id": "default-client-eval-004",
+      "name": "fl_client_evaluation_policy",
+      "type": "fl_client_evaluation",
+      "description": "Policies for client model evaluation with performance controls",
+      "priority": 80,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow clients to evaluate models",
+          "match": {
+            "operation": "model_evaluation"
+          },
+          "parameters": {
+            "test_size": 0.2,
+            "metrics": [
+              "accuracy",
+              "loss"
+            ]
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Deny evaluation if client CPU usage is too high",
+          "match": {
+            "operation": "model_evaluation",
+            "condition": "cpu_usage >= max_cpu_threshold"
+          },
+          "parameters": {
+            "max_cpu_threshold": 90
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Reduce evaluation complexity for low-resource clients",
+          "match": {
+            "operation": "model_evaluation",
+            "condition": "available_memory <= low_memory_threshold"
+          },
+          "parameters": {
+            "low_memory_threshold": 512,
+            "reduced_test_size": 0.1,
+            "simplified_metrics": [
+              "accuracy"
+            ]
+          }
+        }
+      ]
+    },
+    "default-client-train-005": {
+      "id": "default-client-train-005",
+      "name": "fl_client_training_policy",
+      "type": "fl_client_training",
+      "description": "Policies for client model training with adaptive parameters",
+      "priority": 80,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow client training with parameters",
+          "match": {
+            "operation": "model_training"
+          },
+          "parameters": {
+            "batch_size": 32,
+            "learning_rate": 0.01,
+            "epochs": 100
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Deny training during peak network hours",
+          "match": {
+            "operation": "model_training",
+            "condition": "current_hour >= peak_start AND current_hour <= peak_end"
+          },
+          "parameters": {
+            "peak_start": 9,
+            "peak_end": 9
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Reduce training intensity for slow clients",
+          "match": {
+            "operation": "model_training",
+            "condition": "client_bandwidth <= slow_bandwidth_threshold"
+          },
+          "parameters": {
+            "slow_bandwidth_threshold": 10,
+            "reduced_batch_size": 16,
+            "reduced_epochs": 50
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Adaptive learning rate based on client performance",
+          "match": {
+            "operation": "model_training",
+            "condition": "client_performance_score >= high_performance_threshold"
+          },
+          "parameters": {
+            "high_performance_threshold": 0.8,
+            "boosted_learning_rate": 0.02,
+            "increased_epochs": 150
+          }
+        }
+      ],
+      "updated_at": 1749325627.8229544,
+      "version": 2
+    },
+    "default-server-control-006": {
+      "id": "default-server-control-006",
+      "name": "fl_server_control_policy",
+      "type": "fl_server_control",
+      "description": "Server control policies with intelligent stopping conditions",
+      "priority": 95,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow next round decision by default",
+          "match": {
+            "operation": "decide_next_round"
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Stop training after reaching maximum rounds",
+          "match": {
+            "operation": "decide_next_round",
+            "condition": "current_round > max_rounds"
+          },
+          "parameters": {
+            "max_rounds": 1000
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Stop training if convergence achieved (only after round 5)",
+          "match": {
+            "operation": "decide_next_round",
+            "condition": "current_round > 30 AND accuracy_improvement <= convergence_threshold"
+          },
+          "parameters": {
+            "convergence_threshold": 0.001
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Stop training if too few clients available",
+          "match": {
+            "operation": "decide_next_round",
+            "condition": "current_round > 1 AND available_clients < min_clients_threshold"
+          },
+          "parameters": {
+            "min_clients_threshold": 1
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow server to stay alive after training",
+          "match": {
+            "operation": "server_stay_alive"
+          },
+          "parameters": {
+            "keep_alive": true,
+            "check_interval_seconds": 60
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Extend training if accuracy is still improving significantly",
+          "match": {
+            "operation": "decide_next_round",
+            "condition": "current_round > 10 AND accuracy_improvement >= significant_improvement_threshold"
+          },
+          "parameters": {
+            "significant_improvement_threshold": 0.05,
+            "extended_max_rounds": 150
+          }
+        }
+      ]
+    },
+    "default-training-params-007": {
+      "id": "default-training-params-007",
+      "name": "fl_training_parameters_policy",
+      "type": "fl_training_parameters",
+      "description": "Training parameters with dynamic adjustment capabilities",
+      "priority": 75,
+      "rules": [
+        {
+          "action": "configure",
+          "description": "Configure training parameters for rounds",
+          "match": {
+            "operation": "training_configuration"
+          },
+          "parameters": {
+            "batch_size": 32,
+            "learning_rate": 0.01,
+            "momentum": 0.9,
+            "weight_decay": 0.0001,
+            "total_rounds": 1000
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Adjust parameters for early rounds (exploration phase)",
+          "match": {
+            "operation": "training_configuration",
+            "condition": "current_round <= exploration_rounds"
+          },
+          "parameters": {
+            "exploration_rounds": 10,
+            "higher_learning_rate": 0.05,
+            "larger_batch_size": 64
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Fine-tune parameters for later rounds (exploitation phase)",
+          "match": {
+            "operation": "training_configuration",
+            "condition": "current_round >= fine_tuning_start"
+          },
+          "parameters": {
+            "fine_tuning_start": 80,
+            "lower_learning_rate": 0.001,
+            "smaller_batch_size": 16
+          }
+        }
+      ]
+    },
+    "default-client-selection-008": {
+      "id": "default-client-selection-008",
+      "name": "fl_client_selection_policy",
+      "type": "fl_server_client_filter",
+      "description": "Intelligent client selection with quality controls",
+      "priority": 70,
+      "rules": [
+        {
+          "action": "filter",
+          "description": "Select clients based on capabilities",
+          "match": {
+            "operation": "client_selection"
+          },
+          "parameters": {
+            "min_bandwidth_mbps": 10,
+            "min_compute_score": 0.5,
+            "max_loss_rate": 2.0
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Exclude clients with recent failures",
+          "match": {
+            "operation": "client_selection",
+            "condition": "recent_failure_count >= max_failures"
+          },
+          "parameters": {
+            "max_failures": 3
+          }
+        },
+        {
+          "action": "prioritize",
+          "description": "Prioritize high-performing clients",
+          "match": {
+            "operation": "client_selection",
+            "condition": "client_performance_score >= high_performance_threshold"
+          },
+          "parameters": {
+            "high_performance_threshold": 0.8,
+            "priority_weight": 2.0
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Relax selection criteria if too few clients available",
+          "match": {
+            "operation": "client_selection",
+            "condition": "available_clients <= emergency_threshold"
+          },
+          "parameters": {
+            "emergency_threshold": 3,
+            "relaxed_min_bandwidth": 5,
+            "relaxed_min_compute": 0.3,
+            "relaxed_max_loss": 5.0
+          }
+        }
+      ]
+    },
+    "default-data-privacy-009": {
+      "id": "default-data-privacy-009",
+      "name": "data_privacy_policy",
+      "type": "data_privacy",
+      "description": "Enhanced data privacy controls with adaptive protection",
+      "priority": 80,
+      "rules": [
+        {
+          "action": "enforce",
+          "description": "Enforce differential privacy on model updates",
+          "match": {
+            "data_type": "model_updates",
+            "privacy_mechanism": "differential_privacy"
+          },
+          "parameters": {
+            "epsilon": 0.5,
+            "delta": 1e-05
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow secure aggregation protocols",
+          "match": {
+            "operation": "secure_aggregation"
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Prevent raw data transmission",
+          "match": {
+            "data_type": "raw_data"
+          }
+        },
+        {
+          "action": "enforce",
+          "description": "Stronger privacy for sensitive datasets",
+          "match": {
+            "data_type": "model_updates",
+            "dataset_sensitivity": "high"
+          },
+          "parameters": {
+            "strict_epsilon": 0.1,
+            "strict_delta": 1e-06,
+            "additional_noise": true
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Block updates that might leak private information",
+          "match": {
+            "operation": "submit_update",
+            "condition": "privacy_risk_score >= max_risk_threshold"
+          },
+          "parameters": {
+            "max_risk_threshold": 0.8
+          }
+        }
+      ]
+    },
+    "default-resource-010": {
+      "id": "default-resource-010",
+      "name": "resource_management_policy",
+      "type": "resource_control",
+      "description": "Dynamic resource allocation with fairness and efficiency",
+      "priority": 70,
+      "rules": [
+        {
+          "action": "limit",
+          "description": "Limit bandwidth usage per client",
+          "match": {
+            "resource_type": "bandwidth",
+            "src_type": "fl-client"
+          },
+          "parameters": {
+            "max_kbps": 5000
+          }
+        },
+        {
+          "action": "limit",
+          "description": "Limit computational resources for training",
+          "match": {
+            "resource_type": "computation",
+            "operation": "training"
+          },
+          "parameters": {
+            "max_time_seconds": 300
+          }
+        },
+        {
+          "action": "prioritize",
+          "description": "Prioritize server traffic over client traffic",
+          "match": {
+            "src_type": "fl-server"
+          },
+          "parameters": {
+            "priority_level": "high"
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Deny resource-intensive operations during peak hours",
+          "match": {
+            "resource_type": "computation",
+            "condition": "current_hour >= peak_start AND current_hour <= peak_end"
+          },
+          "parameters": {
+            "peak_start": 9,
+            "peak_end": 17
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Allocate more resources to high-priority clients",
+          "match": {
+            "resource_type": "bandwidth",
+            "condition": "client_priority >= high_priority_threshold"
+          },
+          "parameters": {
+            "high_priority_threshold": 0.8,
+            "boosted_bandwidth_kbps": 10000
+          }
+        },
+        {
+          "action": "limit",
+          "description": "Throttle clients with excessive resource usage",
+          "match": {
+            "resource_type": "bandwidth",
+            "condition": "usage_ratio >= throttle_threshold"
+          },
+          "parameters": {
+            "throttle_threshold": 2.0,
+            "throttled_bandwidth_kbps": 1000
+          }
+        }
+      ]
+    },
+    "default-fault-005": {
+      "id": "default-fault-005",
+      "name": "fault_tolerance_policy",
+      "type": "reliability",
+      "description": "Comprehensive fault tolerance with adaptive recovery",
+      "priority": 60,
+      "rules": [
+        {
+          "action": "retry",
+          "description": "Retry failed client connections",
+          "match": {
+            "event_type": "connection_failure",
+            "src_type": "fl-client"
+          },
+          "parameters": {
+            "max_retries": 5,
+            "backoff_seconds": 10
+          }
+        },
+        {
+          "action": "checkpoint",
+          "description": "Create model checkpoints during training",
+          "match": {
+            "operation": "model_training"
+          },
+          "parameters": {
+            "interval_rounds": 5
+          }
+        },
+        {
+          "action": "failover",
+          "description": "Enable component failover mechanisms",
+          "match": {
+            "event_type": "component_failure"
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Temporarily exclude repeatedly failing clients",
+          "match": {
+            "event_type": "client_participation",
+            "condition": "failure_count >= max_consecutive_failures"
+          },
+          "parameters": {
+            "max_consecutive_failures": 3,
+            "exclusion_duration_minutes": 30
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Increase checkpoint frequency during unstable periods",
+          "match": {
+            "operation": "model_training",
+            "condition": "system_stability_score <= unstable_threshold"
+          },
+          "parameters": {
+            "unstable_threshold": 0.7,
+            "frequent_checkpoint_interval": 2
+          }
+        }
+      ]
+    },
+    "default-demo-policy-001": {
+      "id": "default-demo-policy-001",
+      "name": "demonstration_policy",
+      "type": "demonstration",
+      "description": "Enhanced demonstration policies showing advanced capabilities",
+      "priority": 50,
+      "rules": [
+        {
+          "action": "log",
+          "description": "Log all model aggregation operations",
+          "match": {
+            "operation": "model_aggregation"
+          },
+          "parameters": {
+            "log_level": "INFO",
+            "include_metadata": true
+          }
+        },
+        {
+          "action": "simulate",
+          "description": "Simulate packet loss for network resilience testing",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client",
+            "dst_type": "fl-server"
+          },
+          "parameters": {
+            "loss_percentage": 5,
+            "jitter_ms": 20
+          }
+        },
+        {
+          "action": "monitor",
+          "description": "Monitor resource usage and performance metrics",
+          "match": {
+            "resource_type": "all"
+          },
+          "parameters": {
+            "interval_seconds": 30,
+            "metrics": [
+              "cpu",
+              "memory",
+              "network"
+            ]
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Simulate random denial for stress testing",
+          "match": {
+            "operation": "stress_test",
+            "condition": "random_value <= denial_probability"
+          },
+          "parameters": {
+            "denial_probability": 0.1
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Adaptive monitoring based on system load",
+          "match": {
+            "resource_type": "monitoring",
+            "condition": "system_load >= high_load_threshold"
+          },
+          "parameters": {
+            "high_load_threshold": 0.8,
+            "reduced_monitoring_interval": 60,
+            "essential_metrics_only": true
+          }
+        }
+      ]
+    },
+    "advanced-qos-011": {
+      "id": "advanced-qos-011",
+      "name": "advanced_qos_policy",
+      "type": "network_qos",
+      "description": "Advanced QoS with dynamic bandwidth allocation and traffic shaping",
+      "priority": 85,
+      "rules": [
+        {
+          "action": "rate_limit",
+          "description": "Limit client bandwidth during congestion",
+          "match": {
+            "src_type": "fl-client",
+            "condition": "network_congestion >= congestion_threshold"
+          },
+          "parameters": {
+            "congestion_threshold": 0.7,
+            "limited_bandwidth_mbps": 5,
+            "burst_allowance_kb": 256
+          }
+        },
+        {
+          "action": "prioritize",
+          "description": "Prioritize critical FL operations",
+          "match": {
+            "operation": "model_aggregation",
+            "src_type": "fl-server"
+          },
+          "parameters": {
+            "priority_level": "critical",
+            "dscp_marking": 46,
+            "guaranteed_bandwidth_mbps": 20
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Block non-essential traffic during critical operations",
+          "match": {
+            "operation": "non_essential",
+            "condition": "critical_operation_active == true"
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Dynamic bandwidth allocation based on client performance",
+          "match": {
+            "src_type": "fl-client",
+            "condition": "client_efficiency_score >= high_efficiency_threshold"
+          },
+          "parameters": {
+            "high_efficiency_threshold": 0.8,
+            "bonus_bandwidth_mbps": 5,
+            "priority_boost": true
+          }
+        }
+      ]
+    },
+    "security-enhanced-012": {
+      "id": "security-enhanced-012",
+      "name": "enhanced_security_policy",
+      "type": "security",
+      "description": "Enhanced security with threat detection and adaptive responses",
+      "priority": 95,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow authenticated and verified clients",
+          "match": {
+            "operation": "client_authentication",
+            "authentication_status": "verified"
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Block clients with suspicious behavior patterns",
+          "match": {
+            "operation": "any",
+            "condition": "threat_score >= high_threat_threshold"
+          },
+          "parameters": {
+            "high_threat_threshold": 0.8
+          }
+        },
+        {
+          "action": "quarantine",
+          "description": "Quarantine clients showing anomalous behavior",
+          "match": {
+            "operation": "any",
+            "condition": "anomaly_score >= anomaly_threshold"
+          },
+          "parameters": {
+            "anomaly_threshold": 0.6,
+            "quarantine_duration_minutes": 15
+          }
+        },
+        {
+          "action": "monitor",
+          "description": "Enhanced monitoring for medium-risk clients",
+          "match": {
+            "operation": "any",
+            "condition": "threat_score >= medium_threat_threshold AND threat_score < high_threat_threshold"
+          },
+          "parameters": {
+            "medium_threat_threshold": 0.4,
+            "enhanced_logging": true,
+            "frequent_checks": true
+          }
+        }
+      ]
+    },
+    "time-based-013": {
+      "id": "time-based-013",
+      "name": "time_based_access_policy",
+      "type": "temporal_control",
+      "description": "Time-based access controls with business hours and maintenance windows",
+      "priority": 75,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow normal operations during business hours",
+          "match": {
+            "operation": "any",
+            "condition": "current_hour >= business_start AND current_hour <= business_end"
+          },
+          "parameters": {
+            "business_start": 8,
+            "business_end": 18
+          }
+        },
+        {
+          "action": "deny",
+          "description": "Restrict new client registrations during maintenance",
+          "match": {
+            "operation": "client_registration",
+            "condition": "current_hour >= maintenance_start AND current_hour <= maintenance_end"
+          },
+          "parameters": {
+            "maintenance_start": 2,
+            "maintenance_end": 4
+          }
+        },
+        {
+          "action": "configure",
+          "description": "Reduced service levels during off-hours",
+          "match": {
+            "operation": "any",
+            "condition": "current_hour < business_start OR current_hour > business_end"
+          },
+          "parameters": {
+            "reduced_bandwidth": true,
+            "limited_concurrent_operations": 3,
+            "extended_timeouts": true
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Emergency override for critical operations",
+          "match": {
+            "operation": "emergency_override",
+            "priority_level": "critical"
+          }
+        }
+      ]
+    },
+    "enhanced-security-monitoring-014": {
+      "id": "enhanced-security-monitoring-014",
+      "name": "enhanced_security_monitoring_policy",
+      "type": "security_monitoring",
+      "description": "Enhanced security monitoring with adaptive threat response and detailed tracking",
+      "priority": 95,
+      "rules": [
+        {
+          "action": "monitor",
+          "description": "Continuous monitoring of all client activities",
+          "match": {
+            "src_type": "fl-client",
+            "operation": "any"
+          },
+          "parameters": {
+            "monitoring_level": "detailed",
+            "log_all_activities": true,
+            "real_time_analysis": true,
+            "threat_detection": true
+          }
+        },
+        {
+          "action": "quarantine",
+          "description": "Quarantine clients with suspicious behavior patterns",
+          "match": {
+            "operation": "any",
+            "condition": "failed_attempts >= critical_threshold AND time_window <= attack_window"
+          },
+          "parameters": {
+            "critical_threshold": 5,
+            "attack_window": 300,
+            "quarantine_duration_minutes": 30,
+            "alert_security_team": true
+          }
+        },
+        {
+          "action": "block",
+          "description": "Block known malicious IP addresses",
+          "match": {
+            "operation": "connection_attempt",
+            "condition": "source_ip_reputation <= malicious_threshold"
+          },
+          "parameters": {
+            "malicious_threshold": 0.2,
+            "block_duration_hours": 24,
+            "log_incident": true
+          }
+        },
+        {
+          "action": "audit",
+          "description": "Audit all administrative operations",
+          "match": {
+            "operation_type": "administrative",
+            "privilege_level": "admin"
+          },
+          "parameters": {
+            "audit_level": "comprehensive",
+            "include_context": true,
+            "retention_days": 90
+          }
+        }
+      ]
+    },
+    "adaptive-performance-015": {
+      "id": "adaptive-performance-015",
+      "name": "adaptive_performance_policy",
+      "type": "performance_optimization",
+      "description": "Adaptive performance optimization with dynamic resource allocation",
+      "priority": 80,
+      "rules": [
+        {
+          "action": "tune",
+          "description": "Optimize training parameters based on system performance",
+          "match": {
+            "operation": "model_training",
+            "condition": "system_load >= high_load_threshold"
+          },
+          "parameters": {
+            "high_load_threshold": 0.8,
+            "reduced_batch_size": 16,
+            "lower_learning_rate": 0.005,
+            "checkpoint_frequency": 2
+          }
+        },
+        {
+          "action": "throttle",
+          "description": "Throttle resource-intensive operations during peak usage",
+          "match": {
+            "operation": "data_processing",
+            "condition": "cpu_usage >= cpu_threshold AND memory_usage >= memory_threshold"
+          },
+          "parameters": {
+            "cpu_threshold": 85,
+            "memory_threshold": 80,
+            "throttle_percentage": 50,
+            "priority_operations_exempt": true
+          }
+        },
+        {
+          "action": "boost",
+          "description": "Boost performance for high-priority clients",
+          "match": {
+            "client_priority": "high",
+            "condition": "system_load <= optimal_threshold"
+          },
+          "parameters": {
+            "optimal_threshold": 0.6,
+            "cpu_boost_percentage": 25,
+            "memory_boost_percentage": 20,
+            "network_priority": "high"
+          }
+        },
+        {
+          "action": "adjust",
+          "description": "Dynamically adjust resource allocation",
+          "match": {
+            "operation": "resource_allocation",
+            "condition": "available_resources >= minimum_threshold"
+          },
+          "parameters": {
+            "minimum_threshold": 0.3,
+            "allocation_strategy": "adaptive",
+            "rebalance_interval_seconds": 30
+          }
+        }
+      ]
+    },
+    "intelligent-failover-016": {
+      "id": "intelligent-failover-016",
+      "name": "intelligent_failover_policy",
+      "type": "reliability_management",
+      "description": "Intelligent failover and recovery with predictive failure detection",
+      "priority": 90,
+      "rules": [
+        {
+          "action": "backup",
+          "description": "Create backups before critical operations",
+          "match": {
+            "operation": "model_update",
+            "criticality": "high"
+          },
+          "parameters": {
+            "backup_type": "incremental",
+            "retention_count": 5,
+            "verify_backup": true
+          }
+        },
+        {
+          "action": "redirect",
+          "description": "Redirect traffic from failing components",
+          "match": {
+            "component_status": "degraded",
+            "condition": "failure_probability >= failure_threshold"
+          },
+          "parameters": {
+            "failure_threshold": 0.7,
+            "redirect_target": "backup_instance",
+            "health_check_interval": 10
+          }
+        },
+        {
+          "action": "isolate",
+          "description": "Isolate components showing anomalous behavior",
+          "match": {
+            "operation": "any",
+            "condition": "anomaly_score >= isolation_threshold"
+          },
+          "parameters": {
+            "isolation_threshold": 0.8,
+            "isolation_duration_minutes": 15,
+            "diagnostic_mode": true
+          }
+        },
+        {
+          "action": "fallback",
+          "description": "Activate fallback mechanisms for critical failures",
+          "match": {
+            "event_type": "critical_failure",
+            "component_type": "essential"
+          },
+          "parameters": {
+            "fallback_mode": "safe_mode",
+            "reduced_functionality": true,
+            "alert_administrators": true
+          }
+        }
+      ]
+    },
+    "compliance-governance-017": {
+      "id": "compliance-governance-017",
+      "name": "compliance_governance_policy",
+      "type": "compliance_control",
+      "description": "Compliance and governance controls with automated reporting",
+      "priority": 85,
+      "rules": [
+        {
+          "action": "validate",
+          "description": "Validate data privacy compliance",
+          "match": {
+            "data_type": "personal_data",
+            "operation": "data_processing"
+          },
+          "parameters": {
+            "privacy_standard": "GDPR",
+            "anonymization_required": true,
+            "consent_verification": true
+          }
+        },
+        {
+          "action": "record",
+          "description": "Record all compliance-relevant activities",
+          "match": {
+            "operation_category": "compliance_relevant"
+          },
+          "parameters": {
+            "record_level": "detailed",
+            "include_metadata": true,
+            "retention_years": 7,
+            "encryption_required": true
+          }
+        },
+        {
+          "action": "inspect",
+          "description": "Inspect data transfers for compliance violations",
+          "match": {
+            "operation": "data_transfer",
+            "condition": "data_sensitivity >= sensitive_threshold"
+          },
+          "parameters": {
+            "sensitive_threshold": 0.7,
+            "inspection_depth": "deep",
+            "violation_detection": true
+          }
+        },
+        {
+          "action": "authorize",
+          "description": "Require authorization for sensitive operations",
+          "match": {
+            "operation_sensitivity": "high",
+            "requires_approval": true
+          },
+          "parameters": {
+            "authorization_level": "manager",
+            "approval_timeout_hours": 24,
+            "escalation_enabled": true
+          }
+        }
+      ]
+    },
+    "dynamic-load-balancing-018": {
+      "id": "dynamic-load-balancing-018",
+      "name": "dynamic_load_balancing_policy",
+      "type": "load_management",
+      "description": "Dynamic load balancing with intelligent traffic distribution",
+      "priority": 75,
+      "rules": [
+        {
+          "action": "distribute",
+          "description": "Distribute load based on server capacity",
+          "match": {
+            "operation": "request_routing",
+            "condition": "server_load >= distribution_threshold"
+          },
+          "parameters": {
+            "distribution_threshold": 0.7,
+            "algorithm": "weighted_round_robin",
+            "health_check_enabled": true
+          }
+        },
+        {
+          "action": "reroute",
+          "description": "Reroute traffic from overloaded servers",
+          "match": {
+            "server_status": "overloaded",
+            "condition": "response_time >= max_response_time"
+          },
+          "parameters": {
+            "max_response_time": 5000,
+            "reroute_percentage": 80,
+            "gradual_reroute": true
+          }
+        },
+        {
+          "action": "scale",
+          "description": "Auto-scale resources based on demand",
+          "match": {
+            "operation": "capacity_management",
+            "condition": "demand_forecast >= scale_threshold"
+          },
+          "parameters": {
+            "scale_threshold": 0.85,
+            "scale_factor": 1.5,
+            "max_instances": 10,
+            "scale_cooldown_minutes": 5
+          }
+        }
+      ]
+    }
+  },
+  "history": [
+    {
+      "action": "update",
+      "policy_id": "default-client-train-005",
+      "timestamp": 1749325501.276258,
+      "version": 1,
+      "old_data": {
+        "rules": [
+          {
+            "action": "allow",
+            "description": "Allow client training with parameters",
+            "match": {
+              "operation": "model_training"
+            },
+            "parameters": {
+              "batch_size": 32,
+              "learning_rate": 0.01,
+              "epochs": 100
+            }
+          },
+          {
+            "action": "deny",
+            "description": "Deny training during peak network hours",
+            "match": {
+              "operation": "model_training",
+              "condition": "current_hour >= peak_start AND current_hour <= peak_end"
+            },
+            "parameters": {
+              "peak_start": 9,
+              "peak_end": 10
+            }
+          },
+          {
+            "action": "configure",
+            "description": "Reduce training intensity for slow clients",
+            "match": {
+              "operation": "model_training",
+              "condition": "client_bandwidth <= slow_bandwidth_threshold"
+            },
+            "parameters": {
+              "slow_bandwidth_threshold": 10,
+              "reduced_batch_size": 16,
+              "reduced_epochs": 50
+            }
+          },
+          {
+            "action": "configure",
+            "description": "Adaptive learning rate based on client performance",
+            "match": {
+              "operation": "model_training",
+              "condition": "client_performance_score >= high_performance_threshold"
+            },
+            "parameters": {
+              "high_performance_threshold": 0.8,
+              "boosted_learning_rate": 0.02,
+              "increased_epochs": 150
+            }
+          }
+        ],
+        "description": "Policies for client model training with adaptive parameters",
+        "priority": 80,
+        "type": "fl_client_training",
+        "name": "fl_client_training_policy"
+      },
+      "new_data": {
+        "id": "default-client-train-005",
+        "name": "fl_client_training_policy",
+        "type": "fl_client_training",
+        "description": "Policies for client model training with adaptive parameters",
+        "priority": 80,
+        "rules": [
+          {
+            "action": "allow",
+            "description": "Allow client training with parameters",
+            "match": {
+              "operation": "model_training"
+            },
+            "parameters": {
+              "batch_size": 32,
+              "learning_rate": 0.01,
+              "epochs": 100
+            }
+          },
+          {
+            "action": "deny",
+            "description": "Deny training during peak network hours",
+            "match": {
+              "operation": "model_training",
+              "condition": "current_hour >= peak_start AND current_hour <= peak_end"
+            },
+            "parameters": {
+              "peak_start": 9,
+              "peak_end": 10
+            }
+          },
+          {
+            "action": "configure",
+            "description": "Reduce training intensity for slow clients",
+            "match": {
+              "operation": "model_training",
+              "condition": "client_bandwidth <= slow_bandwidth_threshold"
+            },
+            "parameters": {
+              "slow_bandwidth_threshold": 10,
+              "reduced_batch_size": 16,
+              "reduced_epochs": 50
+            }
+          },
+          {
+            "action": "configure",
+            "description": "Adaptive learning rate based on client performance",
+            "match": {
+              "operation": "model_training",
+              "condition": "client_performance_score >= high_performance_threshold"
+            },
+            "parameters": {
+              "high_performance_threshold": 0.8,
+              "boosted_learning_rate": 0.02,
+              "increased_epochs": 150
+            }
+          }
+        ],
+        "updated_at": 1749325501.276258
+      }
+    },
+    {
+      "action": "update",
+      "policy_id": "default-client-train-005",
+      "timestamp": 1749325627.8229544,
+      "version": 2,
+      "old_data": {
+        "rules": [
+          {
+            "action": "allow",
+            "description": "Allow client training with parameters",
+            "match": {
+              "operation": "model_training"
+            },
+            "parameters": {
+              "batch_size": 32,
+              "learning_rate": 0.01,
+              "epochs": 100
+            }
+          },
+          {
+            "action": "deny",
+            "description": "Deny training during peak network hours",
+            "match": {
+              "operation": "model_training",
+              "condition": "current_hour >= peak_start AND current_hour <= peak_end"
+            },
+            "parameters": {
+              "peak_start": 9,
+              "peak_end": 9
+            }
+          },
+          {
+            "action": "configure",
+            "description": "Reduce training intensity for slow clients",
+            "match": {
+              "operation": "model_training",
+              "condition": "client_bandwidth <= slow_bandwidth_threshold"
+            },
+            "parameters": {
+              "slow_bandwidth_threshold": 10,
+              "reduced_batch_size": 16,
+              "reduced_epochs": 50
+            }
+          },
+          {
+            "action": "configure",
+            "description": "Adaptive learning rate based on client performance",
+            "match": {
+              "operation": "model_training",
+              "condition": "client_performance_score >= high_performance_threshold"
+            },
+            "parameters": {
+              "high_performance_threshold": 0.8,
+              "boosted_learning_rate": 0.02,
+              "increased_epochs": 150
+            }
+          }
+        ],
+        "description": "Policies for client model training with adaptive parameters",
+        "priority": 80,
+        "type": "fl_client_training",
+        "name": "fl_client_training_policy"
+      },
+      "new_data": {
+        "id": "default-client-train-005",
+        "name": "fl_client_training_policy",
+        "type": "fl_client_training",
+        "description": "Policies for client model training with adaptive parameters",
+        "priority": 80,
+        "rules": [
+          {
+            "action": "allow",
+            "description": "Allow client training with parameters",
+            "match": {
+              "operation": "model_training"
+            },
+            "parameters": {
+              "batch_size": 32,
+              "learning_rate": 0.01,
+              "epochs": 100
+            }
+          },
+          {
+            "action": "deny",
+            "description": "Deny training during peak network hours",
+            "match": {
+              "operation": "model_training",
+              "condition": "current_hour >= peak_start AND current_hour <= peak_end"
+            },
+            "parameters": {
+              "peak_start": 9,
+              "peak_end": 9
+            }
+          },
+          {
+            "action": "configure",
+            "description": "Reduce training intensity for slow clients",
+            "match": {
+              "operation": "model_training",
+              "condition": "client_bandwidth <= slow_bandwidth_threshold"
+            },
+            "parameters": {
+              "slow_bandwidth_threshold": 10,
+              "reduced_batch_size": 16,
+              "reduced_epochs": 50
+            }
+          },
+          {
+            "action": "configure",
+            "description": "Adaptive learning rate based on client performance",
+            "match": {
+              "operation": "model_training",
+              "condition": "client_performance_score >= high_performance_threshold"
+            },
+            "parameters": {
+              "high_performance_threshold": 0.8,
+              "boosted_learning_rate": 0.02,
+              "increased_epochs": 150
+            }
+          }
+        ],
+        "updated_at": 1749325627.822954,
+        "version": 1
+      }
+    }
+  ],
+  "updated_at": 1749325627.8283763
+}

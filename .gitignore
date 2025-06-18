@@ -34,7 +34,7 @@ Scripts/
 Include/
 Lib/
 pyvenv.cfg
-flsdn/
+flopynet/
 
 # Jupyter Notebook
 .ipynb_checkpoints

@@ -1,0 +1,15 @@
+{
+  "id": "components/scenarios",
+  "title": "Scenarios and Experiments",
+  "description": "FLOPY-NET scenarios are comprehensive experiment definitions that combine federated learning configurations, network topologies, and dynamic conditions to create realistic and reproducible research environments. Scenarios enable systematic evaluation of FL algorithms under various network conditions and operational constraints.",
+  "source": "@site/docs/components/scenarios.md",
+  "sourceDirName": "components",
+  "slug": "/components/scenarios",
+  "permalink": "/flopy-net/docs/components/scenarios",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/components/scenarios.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

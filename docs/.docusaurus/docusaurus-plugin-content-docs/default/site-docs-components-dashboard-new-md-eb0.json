@@ -1,0 +1,18 @@
+{
+  "id": "components/dashboard_new",
+  "title": "Dashboard Component",
+  "description": "The Dashboard is the central web-based interface for monitoring and controlling the FLOPY-NET system. It provides real-time visualization of federated learning training progress, network topology, system metrics, and policy compliance through a modern React-based frontend with a FastAPI backend.",
+  "source": "@site/docs/components/dashboard_new.md",
+  "sourceDirName": "components",
+  "slug": "/components/dashboard_new",
+  "permalink": "/flopy-net/docs/components/dashboard_new",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/components/dashboard_new.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  }
+}

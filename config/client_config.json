@@ -1,0 +1,15 @@
+{
+  "service_type": "fl-client",
+  "server_host": "fl-server",
+  "server_port": 8080,
+  "client_id": "client_2",
+  "model": "cnn",
+  "dataset": "mnist",
+  "local_epochs": 1,
+  "policy_engine_url": "http://policy-engine:5000",
+  "retry_interval": 10,
+  "max_retries": 30,
+  "strict_policy_mode": false,
+  "use_ip_fallback": true,
+  "results_dir": "/app/results"
+}

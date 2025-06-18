@@ -1,0 +1,15 @@
+{
+    "scenario_id": "basic-scenario-b114fa37",
+    "config_file": "config\\scenarios\\basic_main.json",
+    "topology_file": "config\\topology\\basic_topology.json",
+    "start_time": 1746370977.4201415,
+    "end_time": 1746371122.0745106,
+    "duration_seconds": 144.65,
+    "status": "workload_failed",
+    "error": "Federated learning workload failed",
+    "fl_results": null,
+    "topology_summary": {
+        "nodes": 9,
+        "links": 9
+    }
+}

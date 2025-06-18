@@ -1,0 +1,12 @@
+# FL Client requirements with pinned versions for reproducibility
+flwr==1.0.0
+numpy==1.21.6
+torch==1.13.1
+torchvision==0.14.1
+requests==2.28.2
+psutil==5.9.4
+# Health check dependencies
+flask==2.2.3
+flask-cors==3.0.10
+werkzeug==2.2.3
+python-dotenv==1.0.0 

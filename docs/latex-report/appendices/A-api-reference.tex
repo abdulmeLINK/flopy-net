@@ -1,0 +1,431 @@
+%============================================================================
+% APPENDIX A: API REFERENCE
+%============================================================================
+\section{API Reference}
+\label{appendix:api-reference}
+
+This appendix provides comprehensive API documentation for all FLOPY-NET services, including endpoint specifications, request/response schemas, authentication requirements, and usage examples.
+
+\subsection{Policy Engine API}
+
+The Policy Engine exposes RESTful APIs for policy management, compliance checking, and event monitoring.
+
+\subsubsection{Base URL and Authentication}
+
+\begin{itemize}
+    \item \textbf{Base URL}: \texttt{http://policy-engine:5000}
+    \item \textbf{Authentication}: None (internal service)
+    \item \textbf{Content Type}: \texttt{application/json}
+\end{itemize}
+
+\subsubsection{Health Check Endpoint}
+
+\begin{table}[H]
+\centering
+\caption{Policy Engine Health Check API}
+\label{tab:policy-health-api}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Method} & GET \\
+\textbf{Endpoint} & \texttt{/health} \\
+\textbf{Description} & Check service health and status \\
+\textbf{Parameters} & None \\
+\textbf{Response} & JSON object with health status \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=jsoncode, caption=Policy Engine Health Check Response]
+{
+  "status": "healthy",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "version": "2.0.0",
+  "uptime": 86400,
+  "policies_loaded": 15,
+  "events_processed": 1543,
+  "memory_usage": "245MB",
+  "storage_backend": "sqlite"
+}
+\end{lstlisting}
+
+\subsubsection{Policy Management Endpoints}
+
+\begin{table}[H]
+\centering
+\caption{Policy Management API Endpoints}
+\label{tab:policy-management-api}
+\begin{tabularx}{\textwidth}{@{}llX@{}}
+\toprule
+\textbf{Method} & \textbf{Endpoint} & \textbf{Description} \\
+\midrule
+GET & \texttt{/policies} & Retrieve all active policies \\
+POST & \texttt{/policies} & Create a new policy \\
+GET & \texttt{/policies/\{id\}} & Retrieve specific policy by ID \\
+PUT & \texttt{/policies/\{id\}} & Update existing policy \\
+DELETE & \texttt{/policies/\{id\}} & Delete policy by ID \\
+POST & \texttt{/policies/reload} & Reload policies from configuration file \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Create Policy Example}
+
+\begin{lstlisting}[style=jsoncode, caption=Create Policy Request]
+POST /policies
+Content-Type: application/json
+
+{
+  "id": "fl_client_validation",
+  "category": "fl_performance",
+  "priority": 100,
+  "name": "FL Client Validation Policy",
+  "description": "Validate FL client participation requirements",
+  "conditions": {
+    "client_type": "fl_client",
+    "min_data_size": 1000,
+    "max_staleness": 5
+  },
+  "actions": {
+    "primary": "ALLOW",
+    "on_violation": "REJECT",
+    "notification": true
+  },
+  "metadata": {
+    "created_by": "admin",
+    "environment": "production"
+  }
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=jsoncode, caption=Create Policy Response]
+{
+  "status": "created",
+  "policy_id": "fl_client_validation",
+  "message": "Policy created successfully",
+  "validation": {
+    "syntax_valid": true,
+    "conflicts": [],
+    "warnings": []
+  },
+  "timestamp": "2025-01-15T10:35:00Z"
+}
+\end{lstlisting}
+
+\subsubsection{Policy Compliance Check}
+
+\begin{table}[H]
+\centering
+\caption{Policy Compliance Check API}
+\label{tab:policy-check-api}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Method} & POST \\
+\textbf{Endpoint} & \texttt{/check} \\
+\textbf{Description} & Perform policy compliance check \\
+\textbf{Request Body} & JSON object with check parameters \\
+\textbf{Response} & Policy decision and details \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=jsoncode, caption=Policy Check Request]
+POST /check
+Content-Type: application/json
+
+{
+  "type": "client_participation",
+  "client_id": "client_001",
+  "client_ip": "192.168.100.101",
+  "data_size": 5000,
+  "last_update": "2025-01-15T10:30:00Z",
+  "context": {
+    "training_round": 5,
+    "total_clients": 10,
+    "active_clients": 8
+  }
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=jsoncode, caption=Policy Check Response]
+{
+  "decision": "ALLOW",
+  "reason": "Client meets all participation requirements",
+  "matched_policies": [
+    {
+      "policy_id": "fl_client_validation",
+      "priority": 100,
+      "decision": "ALLOW"
+    }
+  ],
+  "violations": [],
+  "recommendations": [],
+  "timestamp": "2025-01-15T10:35:00Z",
+  "processing_time_ms": 5
+}
+\end{lstlisting}
+
+\subsection{Collector Service API}
+
+The Collector Service provides APIs for metrics ingestion, querying, and system monitoring.
+
+\subsubsection{Base Configuration}
+
+\begin{itemize}
+    \item \textbf{Base URL}: \texttt{http://collector:8000}
+    \item \textbf{Authentication}: API Key (X-API-Key header)
+    \item \textbf{Rate Limits}: 1000 requests/minute per API key
+\end{itemize}
+
+\subsubsection{Metrics Ingestion}
+
+\begin{table}[H]
+\centering
+\caption{Metrics Ingestion API}
+\label{tab:metrics-ingestion-api}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Method} & POST \\
+\textbf{Endpoint} & \texttt{/metrics} \\
+\textbf{Description} & Submit metrics data for storage \\
+\textbf{Headers} & \texttt{X-API-Key: <api\_key>} \\
+\textbf{Request Body} & Array of metric objects \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=jsoncode, caption=Metrics Ingestion Request]
+POST /metrics
+X-API-Key: flopynet-api-key-001
+Content-Type: application/json
+
+[
+  {
+    "source": "fl_server",
+    "metric_name": "training_accuracy",
+    "value": 0.85,
+    "timestamp": 1642234567.123,
+    "labels": {
+      "round": "5",
+      "model_type": "cnn",
+      "dataset": "cifar10"
+    },
+    "metadata": {
+      "client_count": 8,
+      "aggregation_method": "fedavg"
+    }
+  },
+  {
+    "source": "fl_client_001",
+    "metric_name": "local_training_time",
+    "value": 45.2,
+    "timestamp": 1642234567.123,
+    "labels": {
+      "client_id": "001",
+      "round": "5"
+    }
+  }
+]
+\end{lstlisting}
+
+\subsubsection{Metrics Query}
+
+\begin{table}[H]
+\centering
+\caption{Metrics Query API}
+\label{tab:metrics-query-api}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Method} & GET \\
+\textbf{Endpoint} & \texttt{/metrics} \\
+\textbf{Description} & Query historical metrics data \\
+\textbf{Query Parameters} & Various filters and options \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Query Parameters}
+
+\begin{table}[H]
+\centering
+\caption{Metrics Query Parameters}
+\label{tab:metrics-query-params}
+\begin{tabularx}{\textwidth}{@{}llX@{}}
+\toprule
+\textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\texttt{source} & string & Filter by metric source \\
+\texttt{metric\_name} & string & Filter by metric name \\
+\texttt{start\_time} & timestamp & Start of time range \\
+\texttt{end\_time} & timestamp & End of time range \\
+\texttt{limit} & integer & Maximum number of results (default: 1000) \\
+\texttt{labels} & string & Label-based filtering (key=value format) \\
+\texttt{aggregation} & string & Aggregation type (avg, sum, min, max) \\
+\texttt{window} & string & Time window for aggregation (1m, 5m, 1h, 1d) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=pythoncode, caption=Metrics Query Examples]
+# Query FL server accuracy metrics for last hour
+GET /metrics?source=fl_server&metric_name=training_accuracy&start_time=1642231000&end_time=1642234600
+
+# Query aggregated client training times
+GET /metrics?source=fl_client_*&metric_name=local_training_time&aggregation=avg&window=5m
+
+# Query metrics with label filtering
+GET /metrics?labels=round=5,model_type=cnn&limit=500
+\end{lstlisting}
+
+\subsection{Dashboard API}
+
+The Dashboard backend provides APIs for the web interface and external integrations.
+
+\subsubsection{System Overview}
+
+\begin{table}[H]
+\centering
+\caption{Dashboard System Overview API}
+\label{tab:dashboard-overview-api}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Method} & GET \\
+\textbf{Endpoint} & \texttt{/api/v1/overview} \\
+\textbf{Description} & Get comprehensive system overview \\
+\textbf{Response} & JSON object with system status \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=jsoncode, caption=System Overview Response]
+{
+  "system_status": {
+    "overall_health": "healthy",
+    "active_services": 6,
+    "total_services": 6,
+    "uptime": 86400
+  },
+  "fl_training": {
+    "active_rounds": 1,
+    "total_rounds": 15,
+    "active_clients": 8,
+    "total_clients": 10,
+    "current_accuracy": 0.87,
+    "convergence_status": "improving"
+  },
+  "network_status": {
+    "topology_health": "good",
+    "average_latency": 45.2,
+    "packet_loss_rate": 0.001,
+    "bandwidth_utilization": 0.65
+  },
+  "policy_compliance": {
+    "active_policies": 15,
+    "violations_last_hour": 2,
+    "compliance_score": 0.98
+  },
+  "resource_usage": {
+    "cpu_usage": 0.45,
+    "memory_usage": 0.67,
+    "disk_usage": 0.23,
+    "network_io": {
+      "bytes_sent": 1048576000,
+      "bytes_received": 2097152000
+    }
+  }
+}
+\end{lstlisting}
+
+\subsection{FL Server API}
+
+The Federated Learning Server provides APIs for training coordination and model management.
+
+\subsubsection{Training Control}
+
+\begin{table}[H]
+\centering
+\caption{FL Training Control APIs}
+\label{tab:fl-training-api}
+\begin{tabularx}{\textwidth}{@{}llX@{}}
+\toprule
+\textbf{Method} & \textbf{Endpoint} & \textbf{Description} \\
+\midrule
+POST & \texttt{/training/start} & Start federated learning training \\
+POST & \texttt{/training/stop} & Stop current training session \\
+GET & \texttt{/training/status} & Get current training status \\
+GET & \texttt{/training/rounds} & Get training round history \\
+POST & \texttt{/training/configure} & Update training configuration \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Error Handling}
+
+All APIs follow consistent error handling patterns:
+
+\begin{lstlisting}[style=jsoncode, caption=Standard Error Response Format]
+{
+  "error": {
+    "code": "POLICY_VIOLATION",
+    "message": "Client does not meet participation requirements",
+    "details": {
+      "failed_conditions": ["min_data_size"],
+      "required_data_size": 1000,
+      "actual_data_size": 500
+    },
+    "timestamp": "2025-01-15T10:35:00Z",
+    "request_id": "req_123456789"
+  }
+}
+\end{lstlisting}
+
+\paragraph{HTTP Status Codes}
+
+\begin{itemize}
+    \item \textbf{200 OK}: Request successful
+    \item \textbf{201 Created}: Resource created successfully
+    \item \textbf{400 Bad Request}: Invalid request parameters
+    \item \textbf{401 Unauthorized}: Authentication required
+    \item \textbf{403 Forbidden}: Access denied by policy
+    \item \textbf{404 Not Found}: Resource not found
+    \item \textbf{429 Too Many Requests}: Rate limit exceeded
+    \item \textbf{500 Internal Server Error}: Server error
+    \item \textbf{503 Service Unavailable}: Service temporarily unavailable
+\end{itemize}
+
+\subsection{API Client Libraries}
+
+FLOPY-NET provides client libraries in multiple languages:
+
+\begin{itemize}
+    \item \textbf{Python}: \texttt{pip install flopynet-client}
+    \item \textbf{JavaScript/Node.js}: \texttt{npm install flopynet-client}
+    \item \textbf{Go}: Available via Go modules
+    \item \textbf{Java}: Maven/Gradle artifacts
+\end{itemize}
+
+\begin{lstlisting}[style=pythoncode, caption=Python Client Library Example]
+from flopynet_client import PolicyEngineClient, CollectorClient
+
+# Initialize clients
+policy_client = PolicyEngineClient("http://policy-engine:5000")
+collector_client = CollectorClient("http://collector:8000", api_key="your-api-key")
+
+# Check policy
+result = await policy_client.check_policy({
+    "type": "client_participation",
+    "client_id": "client_001",
+    "data_size": 5000
+})
+
+# Submit metrics
+await collector_client.submit_metrics([
+    {
+        "source": "my_component",
+        "metric_name": "custom_metric",
+        "value": 42.0,
+        "timestamp": time.time()
+    }
+])
+\end{lstlisting}
+
+This API reference provides the foundation for integrating with and extending the FLOPY-NET platform. For complete API documentation with interactive examples, refer to the OpenAPI specifications available at each service's \texttt{/docs} endpoint.

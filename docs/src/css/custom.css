@@ -1,0 +1,189 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #79c0ff;
+  --ifm-color-primary-dark: #5aa9ff;
+  --ifm-color-primary-darker: #4a9fff;
+  --ifm-color-primary-darkest: #1a7fff;
+  --ifm-color-primary-light: #98d7ff;
+  --ifm-color-primary-lighter: #a8e1ff;
+  --ifm-color-primary-lightest: #d8f2ff;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #79c0ff;
+  --ifm-color-primary-dark: #5aa9ff;
+  --ifm-color-primary-darker: #4a9fff;
+  --ifm-color-primary-darkest: #1a7fff;
+  --ifm-color-primary-light: #98d7ff;
+  --ifm-color-primary-lighter: #a8e1ff;
+  --ifm-color-primary-lightest: #d8f2ff;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  
+  /* Custom FLOPY-NET Dark Theme */
+  --ifm-background-color: #0d1117;
+  --ifm-background-surface-color: #161b22;
+  --ifm-navbar-background-color: rgba(13, 17, 23, 0.95);
+  --ifm-navbar-shadow: 0 1px 0 rgba(121, 192, 255, 0.1);
+  --ifm-footer-background-color: #0d1117;
+  --ifm-card-background-color: rgba(33, 38, 45, 0.8);
+  --ifm-hero-background-color: #0d1117;
+  --ifm-menu-color-background-active: rgba(121, 192, 255, 0.1);
+  --ifm-menu-color-background-hover: rgba(121, 192, 255, 0.05);
+  
+  /* Text colors */
+  --ifm-color-content: #f0f6fc;
+  --ifm-color-content-secondary: #8b949e;
+  --ifm-heading-color: #f0f6fc;
+  
+  /* Borders */
+  --ifm-border-color: rgba(121, 192, 255, 0.2);
+  --ifm-toc-border-color: rgba(121, 192, 255, 0.2);
+}
+
+/* Custom Glassmorphism Cards */
+.hero-card, .feature-card {
+  background: rgba(33, 38, 45, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(121, 192, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+}
+
+/* Neon accent colors for highlights */
+.neon-blue { color: #79c0ff; }
+.neon-purple { color: #d2a8ff; }
+.neon-pink { color: #ffa7c4; }
+.neon-green { color: #7ce38b; }
+
+/* Hero section custom styling */
+.hero {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2379c0ff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.3;
+}
+
+/* Code blocks styling */
+.prism-code {
+  background: rgba(13, 17, 23, 0.8) !important;
+  border: 1px solid rgba(121, 192, 255, 0.2);
+  border-radius: 8px;
+}
+
+/* Sidebar styling */
+.theme-doc-sidebar-container {
+  background: rgba(22, 27, 34, 0.95);
+  backdrop-filter: blur(8px);
+  border-right: 1px solid rgba(121, 192, 255, 0.2);
+}
+
+/* Table of contents */
+.table-of-contents {
+  border-left: 1px solid rgba(121, 192, 255, 0.2);
+}
+
+/* Admonitions */
+.admonition {
+  border-left: 4px solid var(--ifm-color-primary);
+  background: rgba(33, 38, 45, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+/* Tabs */
+.tabs {
+  border-bottom: 1px solid rgba(121, 192, 255, 0.2);
+}
+
+.tabs__item {
+  border-bottom: 2px solid transparent;
+}
+
+.tabs__item--active {
+  border-bottom-color: var(--ifm-color-primary);
+}
+
+/* Custom animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(121, 192, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(121, 192, 255, 0.6);
+  }
+}
+
+.pulse-button {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+  .hero-card {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+}
+
+/* Custom components for FLOPY-NET */
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.component-card {
+  background: rgba(33, 38, 45, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(121, 192, 255, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.component-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(121, 192, 255, 0.2);
+  border-color: rgba(121, 192, 255, 0.4);
+}
+
+.api-endpoint {
+  background: rgba(33, 38, 45, 0.6);
+  border: 1px solid rgba(121, 192, 255, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.api-method {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+.api-method.get { background: #7ce38b; color: #000; }
+.api-method.post { background: #79c0ff; color: #000; }
+.api-method.put { background: #ffa7c4; color: #000; }
+.api-method.delete { background: #ff6b6b; color: #fff; }

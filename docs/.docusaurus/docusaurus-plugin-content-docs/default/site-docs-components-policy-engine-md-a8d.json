@@ -1,0 +1,27 @@
+{
+  "id": "components/policy-engine",
+  "title": "Policy Engine",
+  "description": "The Policy Engine is the heart of FLOPY-NET's security, governance, and compliance system. It enforces rules across all components, monitors compliance, detects anomalies, and ensures that federated learning operations adhere to defined policies.",
+  "source": "@site/docs/components/policy-engine.md",
+  "sourceDirName": "components",
+  "slug": "/components/policy-engine",
+  "permalink": "/flopy-net/docs/components/policy-engine",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/components/policy-engine.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 4,
+  "frontMatter": {
+    "sidebar_position": 4
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Collector Service",
+    "permalink": "/flopy-net/docs/components/collector"
+  },
+  "next": {
+    "title": "Networking and SDN Integration",
+    "permalink": "/flopy-net/docs/components/networking"
+  }
+}

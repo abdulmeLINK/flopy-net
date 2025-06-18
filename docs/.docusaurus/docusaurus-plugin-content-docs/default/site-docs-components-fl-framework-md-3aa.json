@@ -1,0 +1,27 @@
+{
+  "id": "components/fl-framework",
+  "title": "FL Framework Component",
+  "description": "The FL Framework is the core federated learning implementation that enables distributed machine learning across multiple clients while maintaining data privacy. It provides a scalable server-client architecture built with custom enhancements for network integration and policy compliance.",
+  "source": "@site/docs/components/fl-framework.md",
+  "sourceDirName": "components",
+  "slug": "/components/fl-framework",
+  "permalink": "/flopy-net/docs/components/fl-framework",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/components/fl-framework.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "sidebar_position": 3
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Dashboard Component",
+    "permalink": "/flopy-net/docs/components/dashboard"
+  },
+  "next": {
+    "title": "Collector Service",
+    "permalink": "/flopy-net/docs/components/collector"
+  }
+}

@@ -1,0 +1,79 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Docker
+.dockerignore
+docker-compose*.yml
+Dockerfile*
+
+# Logs and data
+logs/
+data/
+shared_results/
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Documentation
+docs/
+README.md
+LICENSE
+*.rst
+*.md
+
+# Tests
+tests/
+test/
+
+# Exclude directories that might have symlinks
+**/node_modules
+**/.git
+**/.vscode
+**/.idea
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.env
+**/.venv
+**/.DS_Store
+**/.pytest_cache
+**/.coverage
+**/.mypy_cache
+**/.ipynb_checkpoints

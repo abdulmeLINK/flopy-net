@@ -1,0 +1,24 @@
+{
+  "id": "api/networking-api",
+  "title": "Networking API Reference",
+  "description": "The Networking API provides comprehensive network management capabilities through SDN controller integration, supporting both Ryu and ONOS controllers for dynamic traffic management, QoS enforcement, and network topology control.",
+  "source": "@site/docs/api/networking-api.md",
+  "sourceDirName": "api",
+  "slug": "/api/networking-api",
+  "permalink": "/flopy-net/docs/api/networking-api",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/api/networking-api.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Dashboard API Reference",
+    "permalink": "/flopy-net/docs/api/dashboard-api"
+  },
+  "next": {
+    "title": "Basic Federated Learning Experiment",
+    "permalink": "/flopy-net/docs/tutorials/basic-experiment"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "user-guide/running-experiments",
+  "title": "Running Experiments",
+  "description": "Learn how to set up, configure, and execute federated learning experiments in FLOPY-NET. This guide covers everything from basic experiments to advanced research scenarios.",
+  "source": "@site/docs/user-guide/running-experiments.md",
+  "sourceDirName": "user-guide",
+  "slug": "/user-guide/running-experiments",
+  "permalink": "/flopy-net/docs/user-guide/running-experiments",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/user-guide/running-experiments.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Networking and SDN Integration",
+    "permalink": "/flopy-net/docs/components/networking"
+  },
+  "next": {
+    "title": "Monitoring and Troubleshooting",
+    "permalink": "/flopy-net/docs/user-guide/monitoring"
+  }
+}

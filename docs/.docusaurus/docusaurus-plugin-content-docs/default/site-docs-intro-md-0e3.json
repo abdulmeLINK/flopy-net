@@ -1,0 +1,24 @@
+{
+  "id": "intro",
+  "title": "Welcome to FLOPY-NET",
+  "description": "Observe, Control, and Understand Federated Learning in Realistic Networks",
+  "source": "@site/docs/intro.md",
+  "sourceDirName": ".",
+  "slug": "/",
+  "permalink": "/flopy-net/docs/",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/intro.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1,
+    "slug": "/"
+  },
+  "sidebar": "tutorialSidebar",
+  "next": {
+    "title": "Installation",
+    "permalink": "/flopy-net/docs/getting-started/installation"
+  }
+}

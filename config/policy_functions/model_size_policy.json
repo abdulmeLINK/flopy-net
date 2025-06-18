@@ -1,0 +1,18 @@
+{
+  "function_id": "model_size_check",
+  "name": "Model Size Check",
+  "description": "Checks if the client's model size meets the minimum threshold requirements for participation",
+  "code": "def check_model_size(context):\n    \"\"\"\n    Check if model size is within acceptable limits.\n    \n    Args:\n        context: Dictionary with model_size in bytes and other properties\n        \n    Returns:\n        Dictionary with decision and reason\n    \"\"\"\n    # Get model size from context\n    model_size = context.get('model_size', 0)\n    \n    # Get client ID for better logging\n    client_id = context.get('client_id', 'unknown')\n    \n    # Minimum threshold in bytes (1MB)\n    min_size_bytes = 1000000\n    \n    # Maximum size in bytes (1GB)\n    max_size_bytes = 1000000000\n    \n    # Check if model is too small\n    if model_size < min_size_bytes:\n        return {\n            'allowed': False,\n            'reason': f'Client {client_id} model size ({model_size} bytes) is too small, minimum is {min_size_bytes} bytes',\n            'violations': ['model_size_too_small']\n        }\n    \n    # Check if model is too large\n    if model_size > max_size_bytes:\n        return {\n            'allowed': False,\n            'reason': f'Client {client_id} model size ({model_size} bytes) is too large, maximum is {max_size_bytes} bytes',\n            'violations': ['model_size_too_large']\n        }\n    \n    # Model size is within acceptable range\n    return {\n        'allowed': True,\n        'reason': f'Client {client_id} model size ({model_size} bytes) is within acceptable limits'\n    }\n",
+  "metadata": {
+    "policy_type": "fl_client_training",
+    "parameters": {
+      "min_size_bytes": 1000000,
+      "max_size_bytes": 1000000000
+    },
+    "created_by": "admin",
+    "tags": ["model_size", "client_validation"]
+  },
+  "created_at": 1684579421.5443,
+  "last_used": null,
+  "hash": "7e8f23a19e3c0edb94b6c55f2d96a4e5f36b25a0d2c67e8d72c65c7fbde74a91"
+} 

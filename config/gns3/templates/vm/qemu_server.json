@@ -1,0 +1,20 @@
+{
+    "name": "flopynet-qemu-server",
+    "template_type": "qemu",
+    "compute_id": "local",
+    "console_type": "telnet",
+    "adapters": 1,
+    "symbol": ":/symbols/classic/server.svg",
+    "category": "servers",
+    "properties": {
+        "adapter_type": "e1000",
+        "adapters": 1,
+        "boot_priority": "c",
+        "cpu_throttling": 0,
+        "cpus": 1,
+        "hda_disk_image": "linux-micro-root.qcow2",
+        "qemu_path": "qemu-system-x86_64",
+        "ram": 512,
+        "usage": "Federated Learning Server VM"
+    }
+} 

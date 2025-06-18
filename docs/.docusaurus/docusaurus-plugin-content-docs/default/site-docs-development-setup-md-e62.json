@@ -1,0 +1,27 @@
+{
+  "id": "development/setup",
+  "title": "Development Setup",
+  "description": "Set up your development environment for contributing to FLOPY-NET, including local development, testing, and debugging configurations.",
+  "source": "@site/docs/development/setup.md",
+  "sourceDirName": "development",
+  "slug": "/development/setup",
+  "permalink": "/flopy-net/docs/development/setup",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/development/setup.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Advanced Configuration",
+    "permalink": "/flopy-net/docs/tutorials/advanced-configuration"
+  },
+  "next": {
+    "title": "Contributing Guidelines",
+    "permalink": "/flopy-net/docs/development/contributing"
+  }
+}

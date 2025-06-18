@@ -1,0 +1,23 @@
+{
+  "id": "development/contributing",
+  "title": "Contributing Guidelines",
+  "description": "Learn how to contribute to FLOPY-NET, including code standards, submission processes, and community guidelines.",
+  "source": "@site/docs/development/contributing.md",
+  "sourceDirName": "development",
+  "slug": "/development/contributing",
+  "permalink": "/flopy-net/docs/development/contributing",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/development/contributing.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "sidebar_position": 2
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Development Setup",
+    "permalink": "/flopy-net/docs/development/setup"
+  }
+}

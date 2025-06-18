@@ -1,0 +1,43 @@
+{
+  "policy_engine": {
+    "url": "http://policy-engine:5000",
+    "check_endpoint": "/api/check_policy",
+    "applications_endpoint": "/api/policies",
+    "statistics_endpoint": "/api/policies",
+    "metrics_endpoint": "/health"
+  },
+  "fl_server": {
+    "url": "http://fl-server:8085"
+  },
+  "storage": {
+    "metrics_output_dir": "/app/logs",
+    "format": "json"
+  },
+  "logging": {
+    "level": "DEBUG"
+  },
+  "features": {
+    "check_policy_enabled": true,
+    "policy_monitor_enabled": true,
+    "fl_monitor_enabled": true,
+    "network_monitor_enabled": false,
+    "policy_applications_enabled": true,
+    "policy_stats_enabled": true,
+    "policy_history_enabled": true,
+    "policy_reports_enabled": true
+  },
+  "intervals": {
+    "policy_interval_sec": 5,
+    "fl_interval_sec": 5,
+    "network_interval_sec": 5,
+    "policy_report_interval_min": 5
+  },
+  "limits": {
+    "policy_history_limit": 1000,
+    "policy_applications_limit": 1000
+  },
+  "api": {
+    "enabled": true,
+    "port": 8000
+  }
+} 

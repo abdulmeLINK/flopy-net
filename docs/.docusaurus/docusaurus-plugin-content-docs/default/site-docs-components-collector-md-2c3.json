@@ -1,0 +1,24 @@
+{
+  "id": "components/collector",
+  "title": "Collector Service",
+  "description": "The Collector service is the central metrics aggregation and monitoring system for FLOPY-NET. It gathers, stores, and provides real-time and historical data from all system components, enabling comprehensive observability and analysis of federated learning experiments and network operations.",
+  "source": "@site/docs/components/collector.md",
+  "sourceDirName": "components",
+  "slug": "/components/collector",
+  "permalink": "/flopy-net/docs/components/collector",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/components/collector.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "FL Framework Component",
+    "permalink": "/flopy-net/docs/components/fl-framework"
+  },
+  "next": {
+    "title": "Policy Engine",
+    "permalink": "/flopy-net/docs/components/policy-engine"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "user-guide/gns3-integration",
+  "title": "GNS3 Integration",
+  "description": "This guide covers integrating FLOPY-NET with GNS3 for realistic network simulation, enabling comprehensive testing of federated learning systems under various network conditions and topologies.",
+  "source": "@site/docs/user-guide/gns3-integration.md",
+  "sourceDirName": "user-guide",
+  "slug": "/user-guide/gns3-integration",
+  "permalink": "/flopy-net/docs/user-guide/gns3-integration",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/user-guide/gns3-integration.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Policy Management",
+    "permalink": "/flopy-net/docs/user-guide/policy-management"
+  },
+  "next": {
+    "title": "Troubleshooting Guide",
+    "permalink": "/flopy-net/docs/user-guide/troubleshooting"
+  }
+}

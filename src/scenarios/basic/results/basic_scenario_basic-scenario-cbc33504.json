@@ -1,0 +1,12 @@
+{
+    "scenario_id": "basic-scenario-cbc33504",
+    "config_file": "/app/src/scenarios/basic/../../../config/scenarios/basic_main.json",
+    "topology_file": "/app/src/scenarios/basic/../../../config/topology/basic_topology.json",
+    "start_time": 1749863042.4074366,
+    "end_time": 1749863077.430951,
+    "duration_seconds": 35.02,
+    "status": "workload_complete",
+    "error": null,
+    "fl_results": {},
+    "topology_summary": null
+}

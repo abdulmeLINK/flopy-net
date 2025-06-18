@@ -1,0 +1,73 @@
+{
+    "system_version": "v1.0.0-alpha.8",
+    "build_date": "2025-06-10",
+    "components": {
+        "policy-engine": {
+            "version": "v1.0.0-alpha.8",
+            "image": "abdulmelink/flopynet-policy-engine",
+            "status": "alpha",
+            "specialized_tags": ["strict", "adaptive", "byzantine", "privacy"]
+        },
+        "fl-server": {
+            "version": "v1.0.0-alpha.8", 
+            "image": "abdulmelink/flopynet-server",
+            "status": "alpha",
+            "specialized_tags": ["secure", "edge", "gpu", "robust"]
+        },
+        "fl-client": {
+            "version": "v1.0.0-alpha.8",
+            "image": "abdulmelink/flopynet-client", 
+            "status": "alpha",
+            "specialized_tags": ["medical", "iot", "mobile", "adversarial"]
+        },
+        "collector": {
+            "version": "v1.0.0-alpha.8",
+            "image": "abdulmelink/flopynet-collector",
+            "status": "alpha",
+            "specialized_tags": ["metrics", "realtime", "distributed"]
+        },
+        "sdn-controller": {
+            "version": "v1.0.0-alpha.8",
+            "image": "abdulmelink/flopynet-sdn-controller",
+            "status": "alpha",
+            "specialized_tags": ["openflow", "adaptive", "resilient", "bandwidth"]
+        },
+        "openvswitch": {
+            "version": "v1.0.0-alpha.8",
+            "image": "abdulmelink/openvswitch",
+            "status": "alpha",
+            "specialized_tags": ["dpdk", "tunnel", "monitoring"]
+        },
+        "dashboard-backend": {
+            "version": "v1.0.0-alpha.8",
+            "image": "abdulmelink/flopynet-dashboard-backend",
+            "status": "alpha",
+            "specialized_tags": ["analytics", "api"]
+        },
+        "dashboard-frontend": {
+            "version": "v1.0.0-alpha.8",
+            "image": "abdulmelink/flopynet-dashboard-frontend",
+            "status": "alpha",
+            "specialized_tags": ["mobile", "admin"]
+        }
+    },
+    "registry": {
+        "name": "abdulmelink",
+        "url": "https://hub.docker.com/u/abdulmelink"
+    },
+    "changelog": {
+        "v1.0.0-alpha.8": {
+            "date": "2025-06-10",
+            "changes": [
+                "Unified system versioning across all components",
+                "Added comprehensive Docker registry utilities with specialized tags",
+                "Standardized image tagging with abdulmelink registry",
+                "Updated requirements.txt with all dependencies",
+                "Enhanced version management and build configurations",
+                "Added realistic specialized tags for production scenarios",
+                "Separated dashboard-backend and dashboard-frontend components",
+                "Enhanced specialized tags for edge computing, security, and performance"
+            ]
+        }
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "scenario_id": "basic-scenario-bacf6cb8",
+    "config_file": "config\\scenarios\\basic_main.json",
+    "topology_file": "config\\topology\\basic_topology.json",
+    "start_time": 1746311828.7736378,
+    "end_time": 1746311831.2743945,
+    "duration_seconds": 2.5,
+    "status": "failed",
+    "error": "Failed to deploy components",
+    "fl_results": null,
+    "topology_summary": {
+        "nodes": 9,
+        "links": 9
+    }
+}

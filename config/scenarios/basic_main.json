@@ -1,0 +1,94 @@
+{
+  "scenario_type": "basic",
+  "scenario_name": "Basic Federated Learning",
+  "description": "Basic federated learning setup with minimal configuration",
+  
+  "gns3": {
+    "server_url": "http://192.168.141.128:80",
+    "project_name": "basic_federated_learning",
+    "reset_project": true,
+    "cleanup_action": "stop"
+  },
+  
+  "network": {
+    "gns3": {
+        "host": "192.168.141.128", 
+        "port": 80 
+    },
+    "gns3_ssh": { 
+        "user": "gns3", 
+        "password": "gns3", 
+        "port": 22 
+    },
+    "topology_file": "config/topology/basic_topology.json",
+    "use_static_ip": true,
+    "host_mapping": true,
+    "subnet": "192.168.100.0/24",
+    "gns3_network": true,
+    "wait_for_network": true,
+    "network_timeout": 120,
+    "ip_map": {
+      "policy-engine": "192.168.100.20",
+      "fl-server": "192.168.100.10",
+      "collector": "192.168.100.40",
+      "sdn-controller": "192.168.100.41",
+      "openvswitch": "192.168.100.42",
+      "fl-client-1": "192.168.100.101",
+      "fl-client-2": "192.168.100.102",
+      "fl-client-3": "192.168.100.103"
+    }
+  },
+
+  "collector_forwarding": {
+    "node_name": "collector",
+    "internal_ip": "192.168.100.40", 
+    "internal_port": 8000, 
+    "external_port": 8001  
+  },
+  
+  "federation": {
+    "rounds": 5,
+    "local_epochs": 2,
+    "batch_size": 32,
+    "learning_rate": 0.01,
+    "optimizer": "adam",
+    "loss": "categorical_crossentropy",
+    "metrics": ["accuracy"]
+  },
+  
+  "model": {
+    "type": "cnn",
+    "input_shape": [28, 28, 1],
+    "layers": [
+      {"type": "conv2d", "filters": 32, "kernel_size": 3, "activation": "relu"},
+      {"type": "max_pooling2d", "pool_size": 2},
+      {"type": "conv2d", "filters": 64, "kernel_size": 3, "activation": "relu"},
+      {"type": "max_pooling2d", "pool_size": 2},
+      {"type": "flatten"},
+      {"type": "dense", "units": 128, "activation": "relu"},
+      {"type": "dense", "units": 10, "activation": "softmax"}
+    ]
+  },
+  
+  "data": {
+    "dataset": "mnist",
+    "classes": 10,
+    "distribution": "iid",
+    "split": [0.8, 0.2]
+  },
+  
+  "monitoring": {
+    "log_level": "INFO",
+    "metrics_interval": 10,
+    "save_model": true,
+    "save_history": true
+  },
+  
+  "results": {
+    "output_dir": "results/basic",
+    "save_format": "json",
+    "metrics": ["accuracy", "loss", "communication_time", "training_time"]
+  },
+  
+  "training_timeout": 300
+} 

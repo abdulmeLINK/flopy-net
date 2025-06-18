@@ -1,0 +1,12 @@
+{
+    "scenario_id": "basic-scenario-7c59c325",
+    "config_file": "config/scenarios/basic_main.json",
+    "topology_file": "config\\topology\\basic_topology.json",
+    "start_time": 1746291090.2910364,
+    "end_time": 1746291090.589601,
+    "duration_seconds": 0.3,
+    "status": "failed",
+    "error": "Exception during setup: 'TopologyManager' object has no attribute 'get_required_templates'",
+    "fl_results": null,
+    "topology_summary": null
+}

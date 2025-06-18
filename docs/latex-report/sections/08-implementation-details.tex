@@ -1,0 +1,171 @@
+%============================================================================
+% SECTION 8: IMPLEMENTATION DETAILS
+%============================================================================
+\section{Implementation Details}
+\label{sec:implementation-details}
+
+This section provides comprehensive technical implementation details of the FLOPY-NET platform, including technology stack choices, development practices, code organization, and key implementation patterns used throughout the system.
+
+\subsection{Technology Stack Overview}
+
+FLOPY-NET leverages a modern, cloud-native technology stack designed for scalability, maintainability, and research flexibility:
+
+\begin{table}[H]
+\centering
+\caption{Technology Stack by Component}
+\label{tab:technology-stack}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Component} & \textbf{Primary Technologies} & \textbf{Purpose \& Rationale} \\
+\midrule
+FL Framework & Python 3.8+, PyTorch \cite{pytorch}, Flower \cite{beutel2020flower} & Machine learning and federated learning capabilities \\
+Policy Engine & Python, Flask, SQLite & Lightweight, fast policy enforcement \\
+Dashboard Frontend & React 18, TypeScript, Material-UI & Modern, responsive user interface \\
+Dashboard Backend & FastAPI, Python, asyncio & High-performance API server \\
+Collector Service & Python, FastAPI, Redis, SQLite & High-throughput metrics collection \\
+SDN Controller & Python, Ryu Framework \cite{ryu}, OpenFlow \cite{openflow2012specification} & Software-defined networking control \\
+Network Simulation & GNS3, Docker, OpenVSwitch & Realistic network environment simulation \\
+Orchestration & Docker, Docker Compose & Containerized deployment and scaling \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Code Organization and Architecture}
+
+The FLOPY-NET codebase follows a modular, service-oriented architecture with clear separation of concerns:
+
+\begin{lstlisting}[style=pythoncode, caption=Project Structure Overview]
+flopy-net/
+├── src/                          # Core Python source code
+│   ├── collector/                # Metrics collection service
+│   ├── fl/                       # Federated learning framework
+│   │   ├── server/               # FL server implementation
+│   │   ├── client/               # FL client implementation
+│   │   └── common/               # Shared FL utilities
+│   ├── policy_engine/            # Policy enforcement service
+│   ├── networking/               # Network simulation integration
+│   └── utils/                    # Common utilities
+├── dashboard/                    # Web dashboard application
+│   ├── frontend/                 # React frontend
+│   └── backend/                  # FastAPI backend
+├── config/                       # Configuration files
+├── docker/                       # Docker images and configurations
+├── scripts/                      # Utility and deployment scripts
+└── docs/                         # Documentation and reports
+
+# Key implementation principles:
+# 1. Each service is independently deployable
+# 2. Configuration through environment variables and files
+# 3. Comprehensive logging and monitoring
+# 4. API-first design with OpenAPI specifications
+# 5. Test-driven development with pytest
+\end{lstlisting}
+
+\subsection{Development Practices and Standards}
+
+\subsubsection{Code Quality and Testing}
+
+FLOPY-NET implements comprehensive quality assurance practices:
+
+\begin{itemize}
+    \item \textbf{Type Hints}: All Python code uses type hints for better maintainability
+    \item \textbf{Linting}: Code quality enforced with pylint, black, and mypy
+    \item \textbf{Testing}: Comprehensive test suite with pytest, including unit, integration, and end-to-end tests
+    \item \textbf{Documentation}: Docstrings follow Google style, with automated API documentation generation
+    \item \textbf{Version Control}: Git-based workflow with feature branches and pull request reviews
+\end{itemize}
+
+\subsubsection{Configuration Management}
+
+The system implements a hierarchical configuration approach:
+
+\begin{enumerate}
+    \item Command-line arguments (highest priority)
+    \item Environment variables
+    \item Configuration files (JSON/YAML)
+    \item Default values (lowest priority)
+\end{enumerate}
+
+\begin{lstlisting}[style=pythoncode, caption=Configuration Management Implementation]
+import os
+import json
+from typing import Dict, Any, Optional
+from dataclasses import dataclass, field
+
+@dataclass
+class ServiceConfig:
+    """Base configuration class for all services."""
+    host: str = field(default="0.0.0.0")
+    port: int = field(default=8000)
+    debug: bool = field(default=False)
+    log_level: str = field(default="INFO")
+    
+    @classmethod
+    def from_env(cls, prefix: str = "") -> 'ServiceConfig':
+        """Load configuration from environment variables."""
+        config_dict = {}
+        
+        for field_name, field_obj in cls.__dataclass_fields__.items():
+            env_key = f"{prefix}{field_name.upper()}"
+            env_value = os.getenv(env_key)
+            
+            if env_value is not None:
+                # Type conversion based on field type
+                if field_obj.type == bool:
+                    config_dict[field_name] = env_value.lower() in ('true', '1', 'yes')
+                elif field_obj.type == int:
+                    config_dict[field_name] = int(env_value)
+                else:
+                    config_dict[field_name] = env_value
+        
+        return cls(**config_dict)
+    
+    @classmethod
+    def from_file(cls, config_path: str) -> 'ServiceConfig':
+        """Load configuration from JSON file."""
+        with open(config_path, 'r') as f:
+            config_dict = json.load(f)
+        return cls(**config_dict)
+    
+    def merge_with_args(self, args: Dict[str, Any]) -> 'ServiceConfig':
+        """Merge with command-line arguments."""
+        config_dict = self.__dict__.copy()
+        config_dict.update({k: v for k, v in args.items() if v is not None})
+        return self.__class__(**config_dict)
+
+# Usage example for Policy Engine
+@dataclass
+class PolicyEngineConfig(ServiceConfig):
+    port: int = field(default=5000)
+    policy_file: str = field(default="config/policies/policies.json")
+    storage_backend: str = field(default="sqlite")
+    cache_size: int = field(default=1000)
+    
+    @classmethod
+    def load_config(cls) -> 'PolicyEngineConfig':
+        """Load configuration using hierarchy."""
+        # Start with defaults
+        config = cls()
+        
+        # Override with file config if exists
+        config_file = os.getenv("POLICY_CONFIG_FILE", "config/policy_engine.json")
+        if os.path.exists(config_file):
+            config = cls.from_file(config_file)
+        
+        # Override with environment variables
+        env_config = cls.from_env("POLICY_")
+        config = config.merge_with_args(env_config.__dict__)
+        
+        return config
+\end{lstlisting}
+
+% TODO: Continue with more implementation details including:
+% - Service communication patterns
+% - Error handling and resilience
+% - Security implementation
+% - Performance optimizations
+% - Database design and migrations
+% - API design patterns
+% - Logging and monitoring integration
+
+This section will be expanded with detailed implementation specifics for each component.

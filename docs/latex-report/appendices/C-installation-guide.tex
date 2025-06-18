@@ -1,0 +1,383 @@
+%============================================================================
+% APPENDIX C: INSTALLATION GUIDE
+%============================================================================
+\section{Installation Guide}
+\label{appendix:installation-guide}
+
+This appendix provides comprehensive installation instructions for deploying FLOPY-NET in various environments, from development setups to production deployments.
+
+\subsection{System Requirements}
+
+\subsubsection{Hardware Requirements}
+
+\begin{table}[H]
+\centering
+\caption{Hardware Requirements by Deployment Type}
+\label{tab:hardware-requirements}
+\begin{tabularx}{\textwidth}{@{}lXXX@{}}
+\toprule
+\textbf{Component} & \textbf{Development} & \textbf{Testing} & \textbf{Production} \\
+\midrule
+CPU & 4 cores & 8 cores & 16+ cores \\
+RAM & 8 GB & 16 GB & 32+ GB \\
+Storage & 50 GB SSD & 200 GB SSD & 1TB+ SSD \\
+Network & 1 Gbps & 1 Gbps & 10+ Gbps \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Software Requirements}
+
+\begin{itemize}
+    \item \textbf{Operating System}: Linux (Ubuntu 20.04+, CentOS 8+) or Windows 10+ with WSL2
+    \item \textbf{Docker}: Version 20.10.0 or higher
+    \item \textbf{Docker Compose}: Version 2.0.0 or higher
+    \item \textbf{Python}: Version 3.8+ (for development)
+    \item \textbf{Node.js}: Version 16+ (for dashboard development)
+    \item \textbf{GNS3}: Version 2.2+ (for network simulation)
+\end{itemize}
+
+\subsection{Quick Start Installation}
+
+\subsubsection{Clone Repository}
+
+\begin{lstlisting}[style=bashcode, caption=Repository Setup]
+# Clone the FLOPY-NET repository
+git clone https://github.com/your-org/flopy-net.git
+cd flopy-net
+
+# Verify repository structure
+ls -la
+# Should show: dashboard/, docker/, config/, scripts/, docker-compose.yml
+\end{lstlisting}
+
+\subsubsection{Environment Setup}
+
+\begin{lstlisting}[style=bashcode, caption=Environment Configuration]
+# Copy environment template
+cp .env.example .env
+
+# Edit configuration (optional)
+nano .env
+
+# Verify Docker installation
+docker --version
+docker-compose --version
+\end{lstlisting}
+
+\subsubsection{Start Services}
+
+\begin{lstlisting}[style=bashcode, caption=Service Startup]
+# Start all services
+docker-compose up -d
+
+# Verify services are running
+docker-compose ps
+
+# Check service logs
+docker-compose logs -f policy-engine
+docker-compose logs -f fl-server
+\end{lstlisting}
+
+\subsection{Detailed Installation Steps}
+
+\subsubsection{Docker Environment Setup}
+
+\begin{lstlisting}[style=bashcode, caption=Docker Installation (Ubuntu)]
+# Update package index
+sudo apt update
+
+# Install Docker
+sudo apt install -y docker.io docker-compose
+
+# Add user to docker group (requires logout/login)
+sudo usermod -aG docker $USER
+
+# Start Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Verify installation
+docker run hello-world
+\end{lstlisting}
+
+\subsubsection{Container Registry Access}
+
+The system uses pre-built images from Docker Hub under the \texttt{abdulmelink} namespace:
+
+\begin{lstlisting}[style=bashcode, caption=Container Image Verification]
+# Verify image access
+docker pull abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8
+docker pull abdulmelink/flopynet-server:v1.0.0-alpha.8
+docker pull abdulmelink/flopynet-client:v1.0.0-alpha.8
+docker pull abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.8
+
+# List downloaded images
+docker images | grep flopynet
+\end{lstlisting}
+
+\subsubsection{Network Configuration}
+
+The system uses static IP configuration within the Docker network:
+
+\begin{lstlisting}[style=dockercode, caption=Network Configuration]
+# Network configuration in docker-compose.yml
+networks:
+  flopynet_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.100.0/24
+          gateway: 192.168.100.1
+
+# Service IP assignments:
+# - Policy Engine: 192.168.100.20
+# - FL Server: 192.168.100.10
+# - FL Clients: 192.168.100.101-102
+# - SDN Controller: 192.168.100.41
+# - Collector: 192.168.100.40
+\end{lstlisting}
+
+\subsection{Service-Specific Configuration}
+
+\subsubsection{Policy Engine Configuration}
+
+\begin{lstlisting}[style=bashcode, caption=Policy Engine Setup]
+# Create policy configuration directory
+mkdir -p config/policies
+
+# Create basic policy configuration
+cat > config/policies/policy_config.json << EOF
+{
+  "policies": [
+    {
+      "id": "fl_client_basic",
+      "name": "Basic FL Client Policy",
+      "enabled": true,
+      "conditions": [
+        {
+          "field": "client_type",
+          "operator": "==",
+          "value": "fl_client"
+        }
+      ],
+      "actions": [
+        {
+          "type": "allow",
+          "target": "fl_participation"
+        }
+      ]
+    }
+  ]
+}
+EOF
+\end{lstlisting}
+
+\subsubsection{FL Server Configuration}
+
+\begin{lstlisting}[style=bashcode, caption=FL Server Setup]
+# Create FL server configuration
+mkdir -p config/fl_server
+
+# Create server configuration
+cat > config/fl_server/server_config.json << EOF
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "min_clients": 2,
+    "max_clients": 10,
+    "rounds": 10
+  },
+  "model": {
+    "type": "simple_nn",
+    "learning_rate": 0.01,
+    "batch_size": 32
+  }
+}
+EOF
+\end{lstlisting}
+
+\subsubsection{Dashboard Configuration}
+
+\begin{lstlisting}[style=bashcode, caption=Dashboard Setup]
+# Dashboard backend configuration
+mkdir -p config/dashboard
+
+# Create dashboard configuration
+cat > config/dashboard/dashboard_config.json << EOF
+{
+  "dashboard": {
+    "host": "0.0.0.0",
+    "port": 8085,
+    "refresh_interval": 5
+  },
+  "services": {
+    "policy_engine_url": "http://policy-engine:5000",
+    "fl_server_url": "http://fl-server:8080",
+    "collector_url": "http://collector:8000"
+  }
+}
+EOF
+\end{lstlisting}
+
+\subsection{Verification and Testing}
+
+\subsubsection{Service Health Checks}
+
+\begin{lstlisting}[style=bashcode, caption=Health Check Verification]
+# Check all services are healthy
+docker-compose ps
+
+# Test individual service endpoints
+curl http://localhost:5000/health  # Policy Engine
+curl http://localhost:8080/status  # FL Server
+curl http://localhost:8000/health  # Collector
+
+# Test dashboard access
+curl http://localhost:8085/
+\end{lstlisting}
+
+\subsubsection{Functional Testing}
+
+\begin{lstlisting}[style=bashcode, caption=Basic Functionality Test]
+# Test policy engine
+curl -X POST http://localhost:5000/policies \
+  -H "Content-Type: application/json" \
+  -d '{"name": "test", "description": "test policy", "rules": []}'
+
+# Test FL server
+curl -X POST http://localhost:8080/start
+
+# Test dashboard API
+curl http://localhost:8001/api/system/status
+\end{lstlisting}
+
+\subsection{Troubleshooting}
+
+\subsubsection{Common Issues}
+
+\begin{table}[H]
+\centering
+\caption{Common Installation Issues and Solutions}
+\label{tab:troubleshooting}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Issue} & \textbf{Solution} \\
+\midrule
+Port conflicts & Change port mappings in docker-compose.yml \\
+Permission denied & Add user to docker group, restart session \\
+Images not found & Verify Docker Hub access, check image tags \\
+Network issues & Check firewall settings, verify network configuration \\
+Service startup failures & Check logs with docker-compose logs SERVICE \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Log Analysis}
+
+\begin{lstlisting}[style=bashcode, caption=Log Analysis Commands]
+# View all service logs
+docker-compose logs
+
+# View specific service logs
+docker-compose logs -f policy-engine
+docker-compose logs -f fl-server
+docker-compose logs -f collector
+
+# View logs with timestamps
+docker-compose logs -t policy-engine
+
+# Filter logs by level
+docker-compose logs policy-engine | grep ERROR
+\end{lstlisting}
+
+\subsection{Advanced Configuration}
+
+\subsubsection{Production Deployment}
+
+\begin{lstlisting}[style=dockercode, caption=Production Configuration]
+# Production docker-compose.override.yml
+version: '3.8'
+
+services:
+  policy-engine:
+    environment:
+      - LOG_LEVEL=INFO
+      - POLICY_ENGINE_DEBUG=false
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  fl-server:
+    environment:
+      - LOG_LEVEL=INFO
+      - FL_SERVER_DEBUG=false
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+\end{lstlisting}
+
+\subsubsection{Scaling Configuration}
+
+\begin{lstlisting}[style=bashcode, caption=Horizontal Scaling]
+# Scale FL clients
+docker-compose up -d --scale fl-client=5
+
+# Scale with environment variables
+CLIENT_COUNT=10 docker-compose up -d --scale fl-client=${CLIENT_COUNT}
+
+# Verify scaling
+docker-compose ps | grep fl-client
+\end{lstlisting}
+
+\subsection{Security Configuration}
+
+\subsubsection{SSL/TLS Setup}
+
+\begin{lstlisting}[style=bashcode, caption=SSL Certificate Setup]
+# Create SSL certificates directory
+mkdir -p config/ssl
+
+# Generate self-signed certificates (development only)
+openssl req -x509 -newkey rsa:4096 -keyout config/ssl/key.pem \
+  -out config/ssl/cert.pem -days 365 -nodes \
+  -subj "/C=US/ST=State/L=City/O=Org/CN=localhost"
+
+# Set proper permissions
+chmod 600 config/ssl/key.pem
+chmod 644 config/ssl/cert.pem
+\end{lstlisting}
+
+\subsubsection{Environment Security}
+
+\begin{lstlisting}[style=bashcode, caption=Security Hardening]
+# Create secure environment file
+cat > .env.secure << EOF
+# Security settings
+POLICY_ENGINE_DEBUG=false
+FL_SERVER_DEBUG=false
+LOG_LEVEL=INFO
+
+# Database security
+DB_PASSWORD=$(openssl rand -base64 32)
+REDIS_PASSWORD=$(openssl rand -base64 32)
+
+# API security
+API_KEY=$(openssl rand -base64 32)
+JWT_SECRET=$(openssl rand -base64 32)
+EOF
+
+# Secure the environment file
+chmod 600 .env.secure
+\end{lstlisting}
+
+This installation guide provides comprehensive instructions for deploying FLOPY-NET across different environments while maintaining security best practices and proper configuration management.

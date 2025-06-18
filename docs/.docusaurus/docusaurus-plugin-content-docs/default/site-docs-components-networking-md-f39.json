@@ -1,0 +1,24 @@
+{
+  "id": "components/networking",
+  "title": "Networking and SDN Integration",
+  "description": "The FLOPY-NET networking layer provides a comprehensive Software-Defined Network (SDN) infrastructure for realistic federated learning experimentation. It combines SDN controllers, OpenFlow switches, and GNS3 network simulation to create controlled, repeatable network environments that mirror real-world distributed learning scenarios.",
+  "source": "@site/docs/components/networking.md",
+  "sourceDirName": "components",
+  "slug": "/components/networking",
+  "permalink": "/flopy-net/docs/components/networking",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/components/networking.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Policy Engine",
+    "permalink": "/flopy-net/docs/components/policy-engine"
+  },
+  "next": {
+    "title": "Running Experiments",
+    "permalink": "/flopy-net/docs/user-guide/running-experiments"
+  }
+}

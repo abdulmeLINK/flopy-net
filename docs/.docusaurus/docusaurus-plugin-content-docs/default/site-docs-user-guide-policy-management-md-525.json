@@ -1,0 +1,24 @@
+{
+  "id": "user-guide/policy-management",
+  "title": "Policy Management",
+  "description": "This comprehensive guide covers creating, managing, and troubleshooting policies in FLOPY-NET's Policy Engine, enabling dynamic network behavior and adaptive federated learning orchestration.",
+  "source": "@site/docs/user-guide/policy-management.md",
+  "sourceDirName": "user-guide",
+  "slug": "/user-guide/policy-management",
+  "permalink": "/flopy-net/docs/user-guide/policy-management",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/user-guide/policy-management.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Monitoring and Troubleshooting",
+    "permalink": "/flopy-net/docs/user-guide/monitoring"
+  },
+  "next": {
+    "title": "GNS3 Integration",
+    "permalink": "/flopy-net/docs/user-guide/gns3-integration"
+  }
+}

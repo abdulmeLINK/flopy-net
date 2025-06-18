@@ -1,0 +1,105 @@
+\begin{thebibliography}{10}
+
+\bibitem{beutel2020flower}
+Daniel~J Beutel, Taner Topal, Akhil Mathur, Xinchi Qiu, Javier
+  Fernandez-Marques, Yan Gao, Lorenzo Sani, Kwing~Hei Li, Titouan Parcollet,
+  Pedro Porto~Buarque de~Gusmão, et~al.
+\newblock Flower: A friendly federated learning research framework.
+\newblock In {\em arXiv preprint arXiv:2007.14390}, 2020.
+
+\bibitem{blanchard2017machine}
+Peva Blanchard, El~Mahdi El~Mhamdi, Rachid Guerraoui, and Julien Stainer.
+\newblock Machine learning with adversaries: Byzantine tolerant gradient
+  descent.
+\newblock {\em Advances in neural information processing systems}, 30, 2017.
+
+\bibitem{bonawitz2019towards}
+Keith Bonawitz, Hubert Eichner, Wolfgang Grieskamp, Dzmitry Huba, Alex
+  Ingerman, Vladimir Ivanov, Chloe Kiddon, Jakub Kone{\v{c}}n{\`y}, Stefano
+  Makhija, H~Brendan McMahan, et~al.
+\newblock Towards federated learning at scale: System design.
+\newblock {\em Proceedings of machine learning and systems}, 1:374--388, 2019.
+
+\bibitem{docker}
+{Docker Inc.}
+\newblock Docker: Enterprise container platform.
+\newblock \url{https://www.docker.com/}, 2023.
+
+\bibitem{react}
+{Facebook Inc.}
+\newblock React: A javascript library for building user interfaces.
+\newblock \url{https://reactjs.org/}, 2023.
+
+\bibitem{fang2020local}
+Minghong Fang, Xiaoyu Cao, Jinyuan Jia, and Neil Gong.
+\newblock Local model poisoning attacks to byzantine-robust federated learning.
+\newblock In {\em 29th USENIX Security Symposium (USENIX Security 20)}, pages
+  1605--1622, 2020.
+
+\bibitem{gns3}
+{GNS3 Team}.
+\newblock Gns3: The software that empowers network professionals.
+\newblock \url{https://www.gns3.com/}, 2023.
+
+\bibitem{kairouz2019advances}
+Peter Kairouz, H~Brendan McMahan, Brendan Avent, Aur{\'e}lien Bellet, Mehdi
+  Bennis, Arjun~Nitin Bhagoji, Keith Bonawitz, Zachary Charles, Graham Cormode,
+  Rachel Cummings, et~al.
+\newblock Advances and open problems in federated learning.
+\newblock In {\em Foundations and Trends{\textregistered} in Machine Learning},
+  volume~12, pages 1--210. Now Publishers, Inc., 2019.
+
+\bibitem{kreutz2015software}
+Diego Kreutz, Fernando~MV Ramos, Paulo~Esteves Ver{\'\i}ssimo, Christian~Esteve
+  Rothenberg, Siamak Azodolmolky, and Steve Uhlig.
+\newblock Software-defined networking: A comprehensive survey.
+\newblock In {\em Proceedings of the IEEE}, volume 103, pages 14--76. IEEE,
+  2015.
+
+\bibitem{li2020federated}
+Tian Li, Anit~Kumar Sahu, Ameet Talwalkar, and Virginia Smith.
+\newblock Federated learning: Challenges, methods, and future directions.
+\newblock {\em IEEE Signal Processing Magazine}, 37(3):50--60, 2020.
+
+\bibitem{mcmahan2017communication}
+Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, and Blaise Aguera~y
+  Arcas.
+\newblock Communication-efficient learning of deep networks from decentralized
+  data.
+\newblock {\em Proceedings of the 20th International Conference on Artificial
+  Intelligence and Statistics}, pages 1273--1282, 2017.
+
+\bibitem{mothukuri2021survey}
+Viraaji Mothukuri, Reza~M Parizi, Seyedamin Pouriyeh, Yan Huang, Ali
+  Dehghantanha, and Gautam Srivastava.
+\newblock A survey on security and privacy of federated learning.
+\newblock {\em Future Generation Computer Systems}, 115:619--640, 2021.
+
+\bibitem{fastapi}
+Sebastian Ramirez.
+\newblock Fastapi: Modern, fast (high-performance), web framework for building
+  apis with python 3.6+.
+\newblock \url{https://fastapi.tiangolo.com/}, 2023.
+
+\bibitem{nvidia2023flare}
+Holger~R Roth, Yan Cheng, Yuhong Wen, Isaac Yang, Ziyue Xu, et~al.
+\newblock Nvidia flare: Federated learning from simulation to real-world.
+\newblock {\em arXiv preprint arXiv:2210.13291}, 2022.
+
+\bibitem{ryu}
+{Ryu Team}.
+\newblock Ryu sdn framework.
+\newblock \url{https://ryu-sdn.org/}, 2023.
+
+\bibitem{wang2019edge}
+Shiqiang Wang, Bhuvan Urgaonkar, Murtaza Zafer, Ting He, Kevin Chan, and Kin~K
+  Leung.
+\newblock Edge computing: A comprehensive survey.
+\newblock {\em IEEE Internet of Things Journal}, 6(6):10070--10082, 2019.
+
+\bibitem{zhao2018federated}
+Yue Zhao, Meng Li, Liangzhen Lai, Naveen Suda, Damon Civin, and Vikas Chandra.
+\newblock Federated learning with non-iid data.
+\newblock In {\em arXiv preprint arXiv:1806.00582}, 2018.
+
+\end{thebibliography}

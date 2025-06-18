@@ -1,0 +1,761 @@
+%============================================================================
+% SECTION 9: DEPLOYMENT ORCHESTRATION
+%============================================================================
+\section{Deployment Orchestration}
+\label{sec:deployment-orchestration}
+
+FLOPY-NET's deployment architecture leverages containerization and orchestration technologies to provide scalable, reproducible, and maintainable deployments across different environments. This section details the deployment strategies, container orchestration, and operational procedures.
+
+\subsection{Container Architecture}
+
+FLOPY-NET follows a microservices architecture where each component is containerized for independent deployment and scaling:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,    container/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1.2cm, text centered, draw, thick, align=center},
+    registry/.style={cylinder, minimum width=3cm, minimum height=1.5cm, text centered, draw, thick, fill=accent!20, align=center},
+    flow/.style={->, thick, >=stealth}
+]    % Docker Registry
+    \node[registry] (registry) at (0,6) {Docker Hub\\ abdulmelink/*};
+    
+    % Container Images
+    \node[container, fill=primary!20] (server) at (-6,3) {flopynet-server\\ FL Server};
+    \node[container, fill=primary!20] (client) at (-3,3) {flopynet-client\\ FL Client};
+    \node[container, fill=secondary!20] (policy) at (0,3) {flopynet-policy\\ Policy Engine};
+    \node[container, fill=success!20] (collector) at (3,3) {flopynet-collector\\ Collector};
+    \node[container, fill=accent!20] (controller) at (6,3) {flopynet-controller\\ SDN Controller};
+    
+    % Support Containers
+    \node[container, fill=warning!20] (ovs) at (-4,1) {flopynet-openvswitch\\ Network Switch};
+    \node[container, fill=warning!20] (dashboard) at (0,1) {flopynet-dashboard\\ Web Interface};
+    \node[container, fill=warning!20] (gns3) at (4,1) {gns3/gns3server\\ Network Simulator};
+    
+    % Flows from registry
+    \draw[flow, color=primary] (registry) -- (server);
+    \draw[flow, color=primary] (registry) -- (client);
+    \draw[flow, color=secondary] (registry) -- (policy);
+    \draw[flow, color=success] (registry) -- (collector);
+    \draw[flow, color=accent] (registry) -- (controller);
+    \draw[flow, color=warning] (registry) -- (ovs);
+    \draw[flow, color=warning] (registry) -- (dashboard);
+\end{tikzpicture}
+\caption{Container Architecture and Registry}
+\label{fig:container-architecture}
+\end{figure}
+
+\subsection{GNS3 Test Environment Setup}
+
+FLOPY-NET utilizes GNS3 as the network simulation backbone, providing realistic network topologies with FLOPY-NET Docker containers. The test environment consists of a GNS3 VM running the GNS3 server, which orchestrates network simulation and pulls FLOPY-NET containers from the abdulmelink registry.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture} [
+    node distance=1.5cm,
+    vm/.style={rectangle, rounded corners, minimum width=4cm, minimum height=6cm, text centered, draw, very thick, fill=primary!10, align=center},
+    container/.style={rectangle, rounded corners, minimum width=2.8cm, minimum height=1cm, text centered, draw, thick, align=center},
+    network/.style={rectangle, rounded corners, minimum width=2.8cm, minimum height=0.8cm, text centered, draw, thick, fill=accent!20, align=center},
+    registry/.style={ellipse, minimum width=3cm, minimum height=2cm, text centered, draw, thick, fill=warning!20, align=center},
+    flow/.style={->, thick, >=stealth},
+    dashed_flow/.style={->, thick, >=stealth, dashed}
+]
+    % GNS3 VM Box
+    \node[vm] (gns3_vm) at (0,0) {};
+    \node[text width=3.5cm, align=center] at (0,2.5) {\textbf{GNS3 VM}\\ Ubuntu 20.04 LTS\\ 4 vCPUs, 8GB RAM\\ Docker Runtime};
+    
+    % GNS3 Server inside VM
+    \node[container, fill=secondary!30] (gns3_server) at (0,1.5) {GNS3 Server\\ Port 3080};
+    
+    % FLOPY-NET Containers inside GNS3 VM
+    \node[container, fill=primary!30] (fl_server_container) at (-1.2,0.5) {FL Server\\ :8080};
+    \node[container, fill=primary!30] (fl_client_container) at (1.2,0.5) {FL Client\\ :8081};
+    
+    \node[container, fill=success!30] (policy_container) at (-1.2,-0.3) {Policy Engine\\ :5000};
+    \node[container, fill=success!30] (collector_container) at (1.2,-0.3) {Collector\\ :8000};
+    
+    \node[container, fill=accent!30] (sdn_container) at (-1.2,-1.1) {SDN Controller\\ :6633};
+    \node[container, fill=accent!30] (ovs_container) at (1.2,-1.1) {OpenVSwitch\\ :6640};
+    
+    % Virtual Networks
+    \node[network] (fl_network) at (-3.5,0.5) {FL Network\\ 192.168.100.0/24};
+    \node[network] (mgmt_network) at (3.5,0.5) {Management\\ 172.20.0.0/16};
+    \node[network] (sdn_network) at (-3.5,-1.1) {SDN Network\\ 10.0.0.0/8};
+    
+    % External Docker Hub Registry
+    \node[registry] (docker_hub) at (6,3) {Docker Hub\\ abdulmelink/*\\ Registry};
+    
+    % Host System
+    \node[container, fill=warning!30, minimum width=5cm] (host_system) at (0,-3.5) {Host System\\ Windows/Linux\\ GNS3 Client + Docker};
+    
+    % Topology Templates
+    \node[container, fill=info!30, minimum width=3cm] (templates) at (-6,1.5) {Custom Templates\\ FLOPY-NET Nodes};
+    
+    % Flows
+    % Container pulls from registry
+    \draw[flow, color=warning] (docker_hub) -- (gns3_server) node[midway, above right] {Pull Images};
+    
+    % Template injection
+    \draw[dashed_flow, color=info] (templates) -- (gns3_server) node[midway, above] {Inject\\Templates};
+    
+    % Network connections
+    \draw[flow, color=primary] (fl_network) -- (fl_server_container);
+    \draw[flow, color=primary] (fl_network) -- (fl_client_container);
+    \draw[flow, color=success] (mgmt_network) -- (policy_container);
+    \draw[flow, color=success] (mgmt_network) -- (collector_container);
+    \draw[flow, color=accent] (sdn_network) -- (sdn_container);
+    \draw[flow, color=accent] (sdn_network) -- (ovs_container);
+    
+    % Host to VM connection
+    \draw[flow, color=dark] (host_system) -- (gns3_vm) node[midway, right] {VM Control\\SSH/API};
+    
+    % Container orchestration within VM
+    \draw[dashed_flow, color=secondary] (gns3_server) -- (fl_server_container);
+    \draw[dashed_flow, color=secondary] (gns3_server) -- (fl_client_container);
+    \draw[dashed_flow, color=secondary] (gns3_server) -- (policy_container);
+    \draw[dashed_flow, color=secondary] (gns3_server) -- (collector_container);
+    \draw[dashed_flow, color=secondary] (gns3_server) -- (sdn_container);
+    \draw[dashed_flow, color=secondary] (gns3_server) -- (ovs_container);
+\end{tikzpicture}
+\caption{GNS3 Test Environment Architecture with FLOPY-NET Integration}
+\label{fig:gns3-test-setup}
+\end{figure}
+
+\subsubsection{GNS3 Integration Components}
+
+The GNS3 test environment consists of several key components:
+
+\begin{table}[H]
+\centering
+\caption{GNS3 Test Environment Components}
+\label{tab:gns3-components}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Component} & \textbf{Role} & \textbf{Description} \\
+\midrule
+GNS3 VM & Network Simulation Host & Ubuntu VM running GNS3 server with Docker runtime \\
+GNS3 Server & Container Orchestrator & Manages network topology and container lifecycle \\
+Docker Registry & Image Repository & abdulmelink/* images hosted on Docker Hub \\
+Custom Templates & Node Definitions & FLOPY-NET component templates for GNS3 \\
+Virtual Networks & Network Segmentation & Isolated networks for different traffic types \\
+FLOPY-NET Containers & Simulation Components & Federated learning and network components \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Container Deployment Process}
+
+The deployment process follows these steps:
+
+\begin{enumerate}
+    \item \textbf{Template Injection}: Custom FLOPY-NET node templates are loaded into GNS3
+    \item \textbf{Image Pulling}: GNS3 pulls the latest FLOPY-NET images from abdulmelik/* registry
+    \item \textbf{Topology Creation}: Network topology is constructed using GNS3 GUI or API
+    \item \textbf{Container Instantiation}: FLOPY-NET containers are deployed within the topology
+    \item \textbf{Network Configuration}: Virtual networks and OpenVSwitch instances are configured
+    \item \textbf{Service Startup}: All FLOPY-NET services are started in coordinated sequence
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture} [
+    node distance=1.2cm,
+    step/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1cm, text centered, draw, thick, align=center},
+    flow/.style={->, thick, >=stealth}
+]
+    \node[step, fill=primary!20] (templates) at (0,6) {Load Templates};
+    \node[step, fill=secondary!20] (pull) at (0,4.5) {Pull Images};
+    \node[step, fill=success!20] (topology) at (0,3) {Create Topology};
+    \node[step, fill=accent!20] (deploy) at (0,1.5) {Deploy Containers};
+    \node[step, fill=warning!20] (configure) at (0,0) {Configure Networks};
+    \node[step, fill=info!20] (startup) at (0,-1.5) {Start Services};
+    
+    \draw[flow] (templates) -- (pull);
+    \draw[flow] (pull) -- (topology);
+    \draw[flow] (topology) -- (deploy);
+    \draw[flow] (deploy) -- (configure);
+    \draw[flow] (configure) -- (startup);
+    
+    % Side annotations
+    \node[text width=4cm, right=1.5cm] at (templates.east) {Inject FLOPY-NET\\node definitions};
+    \node[text width=4cm, right=1.5cm] at (pull.east) {Download latest\\container images};
+    \node[text width=4cm, right=1.5cm] at (topology.east) {Design network\\architecture};
+    \node[text width=4cm, right=1.5cm] at (deploy.east) {Instantiate\\containers};
+    \node[text width=4cm, right=1.5cm] at (configure.east) {Setup virtual\\networks};
+    \node[text width=4cm, right=1.5cm] at (startup.east) {Initialize\\FLOPY-NET};
+\end{tikzpicture}
+\caption{GNS3 Container Deployment Sequence}
+\label{fig:gns3-deployment-sequence}
+\end{figure}
+
+\subsection{Docker Compose Configuration}
+
+The system uses Docker Compose for orchestrating multi-container deployments:
+
+\begin{lstlisting}[style=dockercode, caption=Main Docker Compose Configuration]
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # Policy Engine - The Heart of the System
+  policy-engine:
+    image: abdulmelink/flopynet-policy:latest
+    container_name: flopynet-policy-engine
+    ports:
+      - "5000:5000"
+    environment:
+      - POLICY_ENGINE_HOST=0.0.0.0
+      - POLICY_ENGINE_PORT=5000
+      - POLICY_CONFIG_FILE=/app/config/policies.json
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./config/policies:/app/config
+      - ./logs:/app/logs
+    networks:
+      flopynet:
+        ipv4_address: 172.20.0.5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Collector Service
+  collector:
+    image: abdulmelink/flopynet-collector:latest
+    container_name: flopynet-collector
+    ports:
+      - "8000:8000"
+    environment:
+      - COLLECTOR_HOST=0.0.0.0
+      - COLLECTOR_PORT=8000
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=sqlite:///data/metrics.db
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      flopynet:
+        ipv4_address: 172.20.0.10
+    depends_on:
+      - policy-engine
+      - redis
+    restart: unless-stopped
+
+  # FL Server
+  fl-server:
+    image: abdulmelink/flopynet-server:latest
+    container_name: flopynet-fl-server
+    ports:
+      - "8080:8080"
+      - "8081:8081"  # HTTP API
+    environment:
+      - FL_SERVER_HOST=0.0.0.0
+      - FL_SERVER_PORT=8080
+      - POLICY_ENGINE_URL=http://policy-engine:5000
+      - COLLECTOR_URL=http://collector:8000
+      - MIN_CLIENTS=2
+      - MAX_CLIENTS=10
+    volumes:
+      - ./config/fl_server:/app/config
+      - ./data:/app/data
+    networks:
+      flopynet:
+        ipv4_address: 172.20.0.20
+    depends_on:
+      - policy-engine
+      - collector
+    restart: unless-stopped
+
+  # FL Clients (can be scaled)
+  fl-client-1:
+    image: abdulmelink/flopynet-client:latest
+    container_name: flopynet-fl-client-1
+    environment:
+      - CLIENT_ID=client_001
+      - FL_SERVER_URL=http://fl-server:8080
+      - POLICY_ENGINE_URL=http://policy-engine:5000
+      - DATA_PATH=/app/data/client_1
+    volumes:
+      - ./data/clients/client_1:/app/data
+      - ./config/fl_client:/app/config
+    networks:
+      flopynet:
+        ipv4_address: 172.20.0.101
+    depends_on:
+      - fl-server
+    restart: unless-stopped
+
+  fl-client-2:
+    image: abdulmelink/flopynet-client:latest
+    container_name: flopynet-fl-client-2
+    environment:
+      - CLIENT_ID=client_002
+      - FL_SERVER_URL=http://fl-server:8080
+      - POLICY_ENGINE_URL=http://policy-engine:5000
+      - DATA_PATH=/app/data/client_2
+    volumes:
+      - ./data/clients/client_2:/app/data
+      - ./config/fl_client:/app/config
+    networks:
+      flopynet:
+        ipv4_address: 172.20.0.102
+    depends_on:
+      - fl-server
+    restart: unless-stopped
+
+  # Dashboard Backend
+  dashboard-backend:
+    image: abdulmelink/flopynet-dashboard-backend:latest
+    container_name: flopynet-dashboard-backend
+    ports:
+      - "8001:8001"
+    environment:
+      - DASHBOARD_HOST=0.0.0.0
+      - DASHBOARD_PORT=8001
+      - POLICY_ENGINE_URL=http://policy-engine:5000
+      - COLLECTOR_URL=http://collector:8000
+      - FL_SERVER_URL=http://fl-server:8080
+    networks:
+      flopynet:
+        ipv4_address: 172.20.0.30
+    depends_on:
+      - policy-engine
+      - collector
+      - fl-server
+    restart: unless-stopped
+
+  # Dashboard Frontend
+  dashboard-frontend:
+    image: abdulmelink/flopynet-dashboard-frontend:latest
+    container_name: flopynet-dashboard-frontend
+    ports:
+      - "8085:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8001
+    networks:
+      flopynet:
+        ipv4_address: 172.20.0.31
+    depends_on:
+      - dashboard-backend
+    restart: unless-stopped
+
+  # Redis for caching and message queuing
+  redis:
+    image: redis:7-alpine
+    container_name: flopynet-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      flopynet:
+        ipv4_address: 172.20.0.40
+    restart: unless-stopped
+
+  # GNS3 Server (External)
+  # Note: This connects to external GNS3 server
+  # Uncomment if running GNS3 in container
+  # gns3-server:
+  #   image: gns3/gns3server:latest
+  #   container_name: flopynet-gns3-server
+  #   ports:
+  #     - "3080:3080"
+  #   volumes:
+  #     - gns3_projects:/opt/gns3-server/projects
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #     flopynet:
+  #       ipv4_address: 172.20.0.50
+  #   restart: unless-stopped
+
+networks:
+  flopynet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  redis_data:
+  gns3_projects:
+\end{lstlisting}
+
+\subsection{Scaling and High Availability}
+
+\subsubsection{Horizontal Scaling}
+
+FLOPY-NET supports horizontal scaling for federated learning clients:
+
+\begin{lstlisting}[style=dockercode, caption=Docker Compose Scaling]
+# Scale FL clients dynamically
+docker-compose up -d --scale fl-client=10
+
+# Scale specific services
+docker-compose up -d --scale collector=3 --scale dashboard-backend=2
+\end{lstlisting}
+
+\subsubsection{Load Balancing Configuration}
+
+For production deployments, NGINX can be used as a load balancer:
+
+\begin{lstlisting}[style=dockercode, caption=NGINX Load Balancer Configuration]
+# nginx.conf for load balancing
+upstream dashboard_backend {
+    server dashboard-backend-1:8001;
+    server dashboard-backend-2:8001;
+    server dashboard-backend-3:8001;
+}
+
+upstream collector_service {
+    server collector-1:8000;
+    server collector-2:8000;
+    server collector-3:8000;
+}
+
+server {
+    listen 80;
+    server_name flopynet.local;
+
+    location /api/ {
+        proxy_pass http://dashboard_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /metrics/ {
+        proxy_pass http://collector_service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location / {
+        proxy_pass http://dashboard-frontend:80;
+        proxy_set_header Host $host;
+    }
+}
+\end{lstlisting}
+
+\subsection{Environment Management}
+
+\subsubsection{Environment Configuration}
+
+Different deployment environments are managed through environment-specific configuration:
+
+\begin{lstlisting}[style=dockercode, caption=Environment Configuration Files]
+# .env.development
+COMPOSE_PROJECT_NAME=flopynet-dev
+ENVIRONMENT=development
+LOG_LEVEL=DEBUG
+POLICY_ENGINE_DEBUG=true
+FL_SERVER_MIN_CLIENTS=2
+GNS3_URL=http://localhost:3080
+
+# .env.production
+COMPOSE_PROJECT_NAME=flopynet-prod
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+POLICY_ENGINE_DEBUG=false
+FL_SERVER_MIN_CLIENTS=5
+GNS3_URL=http://gns3-server:3080
+ENABLE_SSL=true
+
+# .env.testing
+COMPOSE_PROJECT_NAME=flopynet-test
+ENVIRONMENT=testing
+LOG_LEVEL=DEBUG
+MOCK_NETWORK=true
+FAST_TRAINING=true
+\end{lstlisting}
+
+\subsubsection{Configuration Templates}
+
+The system uses configuration templates for different deployment scenarios:
+
+\begin{table}[H]
+\centering
+\caption{Deployment Configuration Templates}
+\label{tab:deployment-templates}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Template} & \textbf{Use Case} & \textbf{Configuration} \\
+\midrule
+Development & Local development & Single instance, debug enabled, fast startup \\
+Testing & Automated testing & Mock components, deterministic behavior \\
+Demo & Demonstrations & Lightweight, sample data, stable performance \\
+Research & Research experiments & Full features, comprehensive logging \\
+Production & Production deployment & High availability, security, monitoring \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Deployment Automation}
+
+\subsubsection{PowerShell Deployment Script}
+
+Automated deployment script for Windows environments:
+
+\begin{lstlisting}[style=dockercode, caption=PowerShell Deployment Script]
+#!/usr/bin/env powershell
+# deploy-flopynet.ps1
+
+param(
+    [Parameter(Mandatory=$false)]
+    [ValidateSet("development", "testing", "production", "demo")]
+    [string]$Environment = "development",
+    
+    [Parameter(Mandatory=$false)]
+    [int]$ClientCount = 5,
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$Clean = $false,
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$Monitor = $false
+)
+
+$ErrorActionPreference = "Stop"
+
+function Write-Status {
+    param([string]$Message, [string]$Color = "Green")
+    Write-Host "==> $Message" -ForegroundColor $Color
+}
+
+function Test-Prerequisites {
+    Write-Status "Checking prerequisites..."
+    
+    # Check Docker
+    try {
+        docker --version | Out-Null
+        docker-compose --version | Out-Null
+    } catch {
+        throw "Docker and Docker Compose are required"
+    }
+    
+    # Check if ports are available
+    $required_ports = @(5000, 8000, 8001, 8080, 8085)
+    foreach ($port in $required_ports) {
+        $connection = Test-NetConnection -ComputerName localhost -Port $port -WarningAction SilentlyContinue
+        if ($connection.TcpTestSucceeded) {
+            throw "Port $port is already in use"
+        }
+    }
+    
+    Write-Status "Prerequisites check passed"
+}
+
+function Initialize-Environment {
+    Write-Status "Initializing $Environment environment..."
+    
+    # Copy environment-specific configuration
+    if (Test-Path ".env.$Environment") {
+        Copy-Item ".env.$Environment" ".env" -Force
+        Write-Status "Loaded environment configuration: $Environment"
+    }
+    
+    # Create required directories
+    $directories = @("data", "logs", "data/clients")
+    foreach ($dir in $directories) {
+        if (-not (Test-Path $dir)) {
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        }
+    }
+    
+    # Initialize client data directories
+    for ($i = 1; $i -le $ClientCount; $i++) {
+        $client_dir = "data/clients/client_$i"
+        if (-not (Test-Path $client_dir)) {
+            New-Item -ItemType Directory -Path $client_dir -Force | Out-Null
+        }
+    }
+}
+
+function Deploy-Services {
+    Write-Status "Deploying FLOPY-NET services..."
+    
+    if ($Clean) {
+        Write-Status "Cleaning previous deployment..."
+        docker-compose down -v --remove-orphans
+        docker system prune -f
+    }
+    
+    # Pull latest images
+    Write-Status "Pulling latest container images..."
+    docker-compose pull
+    
+    # Start core services first
+    Write-Status "Starting core services..."
+    docker-compose up -d policy-engine redis
+    
+    # Wait for core services to be ready
+    Start-Sleep 10
+    
+    # Start application services
+    Write-Status "Starting application services..."
+    docker-compose up -d collector fl-server
+    
+    # Start clients
+    Write-Status "Starting FL clients (count: $ClientCount)..."
+    docker-compose up -d --scale fl-client=$ClientCount
+    
+    # Start dashboard
+    Write-Status "Starting dashboard..."
+    docker-compose up -d dashboard-backend dashboard-frontend
+    
+    Write-Status "Deployment completed successfully!"
+}
+
+function Test-Deployment {
+    Write-Status "Testing deployment..."
+    
+    $services = @(
+        @{Name="Policy Engine"; URL="http://localhost:5000/health"},
+        @{Name="Collector"; URL="http://localhost:8000/health"},
+        @{Name="FL Server"; URL="http://localhost:8080/health"},
+        @{Name="Dashboard API"; URL="http://localhost:8001/health"},
+        @{Name="Dashboard"; URL="http://localhost:8085"}
+    )
+    
+    foreach ($service in $services) {
+        try {
+            $response = Invoke-RestMethod -Uri $service.URL -TimeoutSec 10
+            Write-Status "$($service.Name): OK" "Green"
+        } catch {
+            Write-Status "$($service.Name): FAIL" "Red"
+        }
+    }
+}
+
+function Show-Status {
+    Write-Status "FLOPY-NET Deployment Status"
+    Write-Host "============================" -ForegroundColor Cyan
+    
+    docker-compose ps
+    
+    Write-Host ""
+    Write-Host "Access URLs:" -ForegroundColor Cyan
+    Write-Host "  Dashboard: http://localhost:8085" -ForegroundColor White
+    Write-Host "  API Docs:  http://localhost:8001/docs" -ForegroundColor White
+    Write-Host "  Policy Engine: http://localhost:5000" -ForegroundColor White
+    Write-Host "  Collector: http://localhost:8000" -ForegroundColor White
+    
+    if ($Monitor) {
+        Write-Status "Starting monitoring (Ctrl+C to exit)..."
+        docker-compose logs -f
+    }
+}
+
+# Main execution
+try {
+    Write-Status "FLOPY-NET Deployment Script" "Cyan"
+    Write-Host "Environment: $Environment" -ForegroundColor Yellow
+    Write-Host "Client Count: $ClientCount" -ForegroundColor Yellow
+    
+    Test-Prerequisites
+    Initialize-Environment
+    Deploy-Services
+    Start-Sleep 5
+    Test-Deployment
+    Show-Status
+    
+} catch {
+    Write-Host "Deployment failed: $_" -ForegroundColor Red
+    exit 1
+}
+\end{lstlisting}
+
+\subsection{Health Monitoring and Maintenance}
+
+\subsubsection{Health Checks}
+
+Each service implements comprehensive health checks:
+
+\begin{lstlisting}[style=pythoncode, caption=Service Health Check Implementation]
+from fastapi import FastAPI, HTTPException
+from typing import Dict, Any
+import psutil
+import time
+import asyncio
+
+class HealthChecker:
+    def __init__(self, service_name: str):
+        self.service_name = service_name
+        self.start_time = time.time()
+        self.dependencies = []
+    
+    async def check_health(self) -> Dict[str, Any]:
+        """Comprehensive health check."""
+        try:
+            health_status = {
+                "service": self.service_name,
+                "status": "healthy",
+                "timestamp": time.time(),
+                "uptime": time.time() - self.start_time,
+                "version": "2.0.0",
+                "system": await self._check_system_health(),
+                "dependencies": await self._check_dependencies()
+            }
+            
+            # Determine overall status
+            if any(dep["status"] != "healthy" for dep in health_status["dependencies"]):
+                health_status["status"] = "degraded"
+            
+            return health_status
+            
+        except Exception as e:
+            return {
+                "service": self.service_name,
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": time.time()
+            }
+    
+    async def _check_system_health(self) -> Dict[str, Any]:
+        """Check system-level health metrics."""
+        try:
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            
+            return {
+                "cpu_usage": cpu_percent,
+                "memory_usage": {
+                    "total": memory.total,
+                    "used": memory.used,
+                    "percentage": memory.percent
+                },
+                "disk_usage": {
+                    "total": disk.total,
+                    "used": disk.used,
+                    "percentage": (disk.used / disk.total) * 100
+                }
+            }
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def _check_dependencies(self) -> List[Dict[str, Any]]:
+        """Check health of dependent services."""
+        dependency_results = []
+        
+        for dep in self.dependencies:
+            try:
+                # Attempt to connect to dependency
+                result = await self._ping_service(dep["url"])
+                dependency_results.append({
+                    "name": dep["name"],
+                    "status": "healthy" if result else "unhealthy",
+                    "url": dep["url"],
+                    "response_time": result.get("response_time") if result else None
+                })
+            except Exception as e:
+                dependency_results.append({
+                    "name": dep["name"],
+                    "status": "error",
+                    "error": str(e)
+                })
+        
+        return dependency_results
+\end{lstlisting}
+
+The deployment orchestration framework provides FLOPY-NET with robust, scalable, and maintainable deployment capabilities across different environments and use cases.

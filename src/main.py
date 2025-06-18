@@ -1,259 +1,241 @@
 """
-Federated Learning System - Main Application
+Main entry point for the federated learning application.
 
-This module serves as the entry point for the federated learning system.
-It sets up the application components and starts the REST API server.
+This module serves as the entry point for the federated learning system,
+providing a command-line interface for running different components.
 """
+
 import os
 import sys
+import time
+import json
 import logging
 import argparse
-from typing import Dict, Any
+import threading
+from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from src.application.services.server_service import ServerService
-from src.application.services.client_service import ClientService
-from src.domain.interfaces.policy_engine import IPolicyEngine
-from src.domain.policy.rule_based_policy_engine import RuleBasedPolicyEngine
-from src.infrastructure.repositories.in_memory_client_repository import InMemoryClientRepository
-from src.infrastructure.repositories.file_model_repository import FileModelRepository
-from src.infrastructure.config.config_manager import ConfigManager
-from src.presentation.rest.api_app import ApiApp
-
-# Import simulation components
-from src.api.simulation_api import router as simulation_router
-from src.domain.scenarios.scenario_registry import ScenarioRegistry
-from src.domain.scenarios.urban_scenario import UrbanScenario
-from src.domain.scenarios.industrial_iot_scenario import IndustrialIoTScenario
-from src.domain.scenarios.healthcare_scenario import HealthcareScenario
-
-
-def setup_logging(log_level: str) -> logging.Logger:
-    """
-    Set up logging configuration.
-    
-    Args:
-        log_level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    
-    Returns:
-        Configured logger instance
-    """
-    numeric_level = getattr(logging, log_level.upper(), None)
-    if not isinstance(numeric_level, int):
-        numeric_level = logging.INFO
+# Set up logging
+def setup_logging(level=logging.INFO):
+    log_dir = Path("logs")
+    if not log_dir.exists():
+        log_dir.mkdir(parents=True)
     
     logging.basicConfig(
-        level=numeric_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=level,
+        format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
         handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler('fl_system.log')
+            logging.FileHandler(log_dir / "federated_learning.log"),
+            logging.StreamHandler(sys.stdout)
         ]
     )
     
-    logger = logging.getLogger('federated_learning')
-    logger.setLevel(numeric_level)
-    
-    return logger
+    return logging.getLogger("federated_learning")
 
+# Main logger
+logger = setup_logging()
 
-def create_policy_engine(config: Dict[str, Any], logger: logging.Logger) -> IPolicyEngine:
-    """
-    Create and configure the policy engine.
-    
-    Args:
-        config: Configuration dictionary
-        logger: Logger instance
-    
-    Returns:
-        Configured policy engine
-    """
-    policy_config = config.get('policy', {})
-    enabled = policy_config.get('enabled', True)
-    strategies_path = policy_config.get('strategies_path', './strategies')
-    default_strategy = policy_config.get('default_strategy', 'default')
-    
-    logger.info(f"Creating policy engine (enabled={enabled})")
-    
-    policy_engine = RuleBasedPolicyEngine(
-        enabled=enabled,
-        logger=logger
-    )
-    
-    # Ensure strategies directory exists
-    os.makedirs(strategies_path, exist_ok=True)
-    
-    # Load strategies from directory
-    policy_engine.load_strategies(strategies_path)
-    
-    # Set active strategy
-    if default_strategy:
-        policy_engine.set_active_strategy(default_strategy)
-    
-    return policy_engine
+# Import scenarios from common module
+from src.scenarios.common import SCENARIOS
 
+def start_api_server(host, port, debug=False):
+    """Start the API server with WebSocket support"""
+    logger.info(f"Starting API server on {host}:{port} (debug={debug})")
+    from src.presentation.rest.app import create_app
+    import uvicorn
+    app = create_app()
+    uvicorn.run(app, host=host, port=port, log_level="debug" if debug else "info")
 
-def create_app(config_path: str = None, mode: str = 'server', log_level: str = 'INFO') -> ApiApp:
-    """
-    Create and configure the API application.
+def start_dashboard(host, port, debug=False):
+    """Start the dashboard server"""
+    logger.info(f"Starting dashboard on {host}:{port} (debug={debug})")
+    from src.dashboard.run_dashboard import run_dashboard
+    # Note: run_dashboard doesn't accept host parameter, only port and debug
+    run_dashboard(port=port, debug=debug)
+
+def run_scenario(scenario_id, config=None):
+    """Run a specific federated learning scenario"""
+    logger.info(f"Running scenario {scenario_id} with config: {config}")
+    from src.scenarios.run_scenario import run_scenario
+    run_scenario(scenario_id, config)
+
+def handle_run_command(args):
+    """Handle the 'run' command to start services"""
+    services = []
+    threads = []
     
-    Args:
-        config_path: Path to configuration file
-        mode: Application mode ('server', 'client', or 'both')
-        log_level: Log level
+    # Set debug mode if requested
+    if args.debug:
+        setup_logging(level=logging.DEBUG)
+        logger.debug("Debug mode enabled")
+        logger.debug(f"Command arguments: {args}")
     
-    Returns:
-        Configured API application
-    """
-    # Set up logging
-    logger = setup_logging(log_level)
-    logger.info(f"Starting Federated Learning System in {mode} mode")
-    
-    # Load configuration
-    config_manager = ConfigManager(config_path)
-    config = config_manager.get_config()
-    logger.info(f"Loaded configuration from {config_path if config_path else 'default'}")
-    
-    # Create policy engine
-    policy_engine = create_policy_engine(config, logger)
-    
-    # Initialize application components and use cases
-    server_use_case = None
-    client_use_case = None
-    
-    # Set up server components if in server or both mode
-    if mode in ['server', 'both']:
-        # Create repositories
-        model_repo_path = config.get('server', {}).get('model_repository_path', './models')
-        os.makedirs(model_repo_path, exist_ok=True)
+    # Start API server if requested
+    if args.api:
+        # For the API, we'll create a separate process instead of a thread
+        # to avoid issues with signal handling in Uvicorn
+        import subprocess
         
-        client_repository = InMemoryClientRepository(logger=logger)
-        model_repository = FileModelRepository(base_dir=model_repo_path, logger=logger)
+        cmd = [sys.executable, "-m", "src.presentation.rest.app"]
+        if args.debug:
+            cmd.append("--debug")
         
-        # Create server use case
-        server_use_case = ServerService(
-            client_repository=client_repository,
-            model_repository=model_repository,
-            policy_engine=policy_engine,
-            logger=logger
+        api_process = subprocess.Popen(
+            cmd,
+            env=os.environ.copy()
         )
         
-        logger.info("Server components initialized")
-    
-    # Set up client components if in client or both mode
-    if mode in ['client', 'both']:
-        # Create client use case with minimal dependencies
-        client_use_case = ClientService(
-            policy_engine=policy_engine,
-            logger=logger
-        )
+        services.append(f"API server on {args.host}:{args.api_port}")
         
-        logger.info("Client components initialized")
+        # Print helpful information for testing
+        if args.debug:
+            logger.info("API Debug Info:")
+            logger.info("- API Docs: http://localhost:5000/docs")
+            logger.info("- Health Check: http://localhost:5000/health")
+            logger.info("- Metrics: http://localhost:5000/api/metrics")
+            logger.info("- Generate Test Metrics: POST http://localhost:5000/api/metrics/generate-test")
+            logger.info("- Scenarios: http://localhost:5000/api/scenarios")
+            logger.info("- Metric History: http://localhost:5000/api/metrics/history/{category}/{metric_name}")
     
-    # Create API application
-    app = ApiApp(
-        server_use_case=server_use_case,
-        client_use_case=client_use_case,
-        policy_engine=policy_engine,
-        logger=logger
-    )
+    # Start dashboard if requested
+    if args.dashboard:
+        dashboard_thread = threading.Thread(
+            target=start_dashboard,
+            args=(args.host, args.dashboard_port),
+            kwargs={"debug": args.debug},
+            daemon=True
+        )
+        threads.append(dashboard_thread)
+        services.append(f"Dashboard on {args.host}:{args.dashboard_port}")
+        
+        # Print helpful information for dashboard
+        if args.debug:
+            logger.info("Dashboard Debug Info:")
+            logger.info(f"- Dashboard URL: http://localhost:{args.dashboard_port}")
     
-    logger.info("API application created")
-    return app
+    # Start scenario if requested
+    if args.scenario:
+        config = {}
+        if args.config:
+            try:
+                with open(args.config, 'r') as f:
+                    config = json.load(f)
+            except Exception as e:
+                logger.error(f"Error loading scenario config: {e}")
+                sys.exit(1)
+        
+        scenario_thread = threading.Thread(
+            target=run_scenario,
+            args=(args.scenario, config),
+            daemon=True
+        )
+        threads.append(scenario_thread)
+        services.append(f"Scenario {args.scenario}")
+    
+    # If no services specified, show help
+    if not services:
+        logger.warning("No services specified to run. Use --api, --dashboard, or --scenario")
+        return
+    
+    # Start all threads
+    for thread in threads:
+        thread.start()
+    
+    logger.info(f"Started services: {', '.join(services)}")
+    
+    try:
+        # Keep main thread alive
+        while True:
+            time.sleep(1)
+            
+            # Check if any threads died
+            for thread in threads[:]:
+                if not thread.is_alive():
+                    logger.error(f"A service thread has died. Shutting down...")
+                    if args.api and 'api_process' in locals():
+                        api_process.terminate()
+                    sys.exit(1)
+                    
+    except KeyboardInterrupt:
+        logger.info("Received keyboard interrupt. Shutting down...")
+        # Terminate the API process if it was started
+        if args.api and 'api_process' in locals():
+            api_process.terminate()
+        sys.exit(0)
 
-
-def create_fastapi_app() -> FastAPI:
-    """
-    Create a FastAPI application with simulation capabilities.
-    
-    Returns:
-        FastAPI application instance
-    """
-    # Set up logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-    logger = logging.getLogger("federated_learning_simulations")
-    
-    # Create FastAPI app
-    app = FastAPI(
-        title="Federated Learning Simulation API",
-        description="API for running federated learning simulations with different scenarios and policies",
-        version="1.0.0",
-    )
-    
-    # Add CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],  # In production, replace with specific origins
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    
-    # Register scenarios
-    def register_scenarios():
-        """Register all available simulation scenarios."""
-        logger.info("Registering simulation scenarios")
-        registry = ScenarioRegistry()
-        registry.register_scenario(UrbanScenario)
-        registry.register_scenario(IndustrialIoTScenario)
-        registry.register_scenario(HealthcareScenario)
-        logger.info(f"Registered {len(registry.get_scenario_names())} scenarios")
-    
-    # Include routers
-    app.include_router(simulation_router)
-    
-    @app.on_event("startup")
-    async def startup_event():
-        """Initialize components when the application starts."""
-        logger.info("Starting Federated Learning Simulation API")
-        register_scenarios()
-    
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        """Clean up resources when the application shuts down."""
-        logger.info("Shutting down Federated Learning Simulation API")
-    
-    # Root endpoint for health check
-    @app.get("/", tags=["Health"])
-    async def health_check():
-        """Health check endpoint."""
-        return {
-            "status": "ok",
-            "message": "Federated Learning Simulation API is running",
-            "version": app.version
-        }
-    
-    return app
-
+def handle_scenario_command(args):
+    """Handle the 'scenario' command to manage scenarios"""
+    if args.list:
+        from src.scenarios.run_scenario import SCENARIOS
+        print("\n=== Available Scenarios ===")
+        for scenario_id, info in SCENARIOS.items():
+            print(f"- {scenario_id}: {info.get('name', 'Unnamed')}")
+            if info.get('description'):
+                print(f"  {info.get('description')}")
+        print()
+    elif args.run:
+        config = {}
+        if args.config:
+            try:
+                with open(args.config, 'r') as f:
+                    config = json.load(f)
+            except Exception as e:
+                logger.error(f"Error loading scenario config: {e}")
+                sys.exit(1)
+        
+        run_scenario(args.run, config)
 
 def main():
-    """Main entry point for the application."""
-    parser = argparse.ArgumentParser(description='Federated Learning System')
-    parser.add_argument('--config', '-c', type=str, help='Path to configuration file')
-    parser.add_argument('--mode', '-m', type=str, choices=['server', 'client', 'both', 'simulation'], 
-                        default='server', help='Application mode')
-    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to run the API server on')
-    parser.add_argument('--port', '-p', type=int, default=5000, help='Port to run the API server on')
-    parser.add_argument('--log-level', '-l', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-                        default='INFO', help='Log level')
+    """Main entry point for federated learning system"""
+    parser = argparse.ArgumentParser(
+        description="Federated Learning System with API and Dashboard",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     
+    # Add common arguments
+    parser.add_argument('--debug', action='store_true', help="Enable debug mode", default=False)
+    parser.add_argument('--host', type=str, default="localhost", help="Host to bind services to")
+    
+    # Create subparsers for commands
+    subparsers = parser.add_subparsers(dest='command', help='Command to run')
+    
+    # 'run' command
+    run_parser = subparsers.add_parser('run', help='Run one or more services')
+    run_parser.add_argument('--api', action='store_true', help="Start the API server")
+    run_parser.add_argument('--api-port', type=int, default=5000, help="Port for the API server")
+    run_parser.add_argument('--dashboard', action='store_true', help="Start the dashboard")
+    run_parser.add_argument('--dashboard-port', type=int, default=8050, help="Port for the dashboard")
+    run_parser.add_argument('--scenario', type=str, help="Run a specific scenario")
+    run_parser.add_argument('--config', type=str, help="Configuration file for the scenario")
+    run_parser.add_argument('--debug', action='store_true', help="Enable debug mode", default=False)
+    
+    # 'scenario' command
+    scenario_parser = subparsers.add_parser('scenario', help='Manage scenarios')
+    scenario_parser.add_argument('--list', action='store_true', help="List available scenarios")
+    scenario_parser.add_argument('--run', type=str, help="Run a specific scenario")
+    scenario_parser.add_argument('--config', type=str, help="Configuration file for the scenario")
+    scenario_parser.add_argument('--debug', action='store_true', help="Enable debug mode", default=False)
+    
+    # Parse arguments
     args = parser.parse_args()
     
-    if args.mode == 'simulation':
-        # Run FastAPI app for simulations
-        import uvicorn
-        app = create_fastapi_app()
-        uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level.lower())
+    # If no command specified, default to 'run'
+    if not args.command:
+        args.command = 'run'
+        args.api = True
+        args.dashboard = True
+    
+    # Set debug mode if requested at either level
+    if args.debug:
+        setup_logging(level=logging.DEBUG)
+        logger.debug("Debug mode enabled")
+    
+    # Handle commands
+    if args.command == 'run':
+        handle_run_command(args)
+    elif args.command == 'scenario':
+        handle_scenario_command(args)
     else:
-        # Create and run regular API application
-        app = create_app(config_path=args.config, mode=args.mode, log_level=args.log_level)
-        app.run(host=args.host, port=args.port)
+        parser.print_help()
 
-
-if __name__ == '__main__':
-    main() 
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,968 @@
+%============================================================================
+% APPENDIX E: CODE EXAMPLES
+%============================================================================
+\section{Code Examples}
+\label{appendix:code-examples}
+
+This appendix provides practical code examples for integrating with and extending FLOPY-NET components, based on the actual system architecture and implementation patterns found in the codebase.
+
+\subsection{Policy Engine Integration}
+
+\subsubsection{Custom Policy Implementation}
+
+\begin{lstlisting}[language=python, caption=Custom Policy Definition]
+from policy_engine.models import Policy, Condition, Action
+from policy_engine.storage import get_policy_storage
+from typing import Dict, Any
+
+class CustomPolicyManager:
+    """Custom policy management for FL scenarios"""
+    
+    def __init__(self):
+        self.storage = get_policy_storage()
+    
+    def create_fl_client_policy(self, client_requirements: Dict[str, Any]) -> Policy:
+        """Create a policy for FL client validation"""
+        
+        conditions = []
+        
+        # Add data size requirement
+        if 'min_data_size' in client_requirements:
+            conditions.append(Condition(
+                field="data_size",
+                operator=">=",
+                value=client_requirements['min_data_size']
+            ))
+        
+        # Add trust score requirement
+        if 'min_trust_score' in client_requirements:
+            conditions.append(Condition(
+                field="trust_score",
+                operator=">=",
+                value=client_requirements['min_trust_score']
+            ))
+        
+        # Add client type validation
+        conditions.append(Condition(
+            field="client_type",
+            operator="==",
+            value="fl_client"
+        ))
+        
+        # Define actions
+        actions = [
+            Action(
+                type="fl_participation",
+                target="allow",
+                parameters={"priority": "normal"}
+            ),
+            Action(
+                type="logging",
+                target="audit_log",
+                parameters={"level": "info"}
+            )
+        ]
+        
+        policy = Policy(
+            name=f"FL Client Policy - {client_requirements.get('scenario', 'default')}",
+            description="Validate FL client participation requirements",
+            conditions=conditions,
+            actions=actions,
+            priority=100,
+            enabled=True,
+            tags=["fl", "client_validation"]
+        )
+        
+        return self.storage.create_policy(policy)
+    
+    def create_network_optimization_policy(self, latency_threshold: float) -> Policy:
+        """Create a policy for network optimization based on latency"""
+        
+        policy = Policy(
+            name="Network Latency Optimization",
+            description=f"Optimize network when latency exceeds {latency_threshold}ms",
+            conditions=[
+                Condition(
+                    field="network_latency",
+                    operator=">",
+                    value=latency_threshold
+                )
+            ],
+            actions=[
+                Action(
+                    type="sdn",
+                    target="prioritize_traffic",
+                    parameters={
+                        "priority": "high",
+                        "qos_class": "expedited_forwarding"
+                    }
+                ),
+                Action(
+                    type="notification",
+                    target="alert",
+                    parameters={
+                        "severity": "warning",
+                        "message": f"High latency detected: {latency_threshold}ms"
+                    }
+                )
+            ],
+            priority=200,
+            enabled=True,
+            tags=["network", "optimization", "latency"]
+        )
+        
+        return self.storage.create_policy(policy)
+
+# Usage example
+policy_manager = CustomPolicyManager()
+
+# Create client validation policy
+client_policy = policy_manager.create_fl_client_policy({
+    'min_data_size': 1000,
+    'min_trust_score': 0.7,
+    'scenario': 'healthcare'
+})
+
+# Create network optimization policy
+network_policy = policy_manager.create_network_optimization_policy(50.0)
+\end{lstlisting}
+
+\subsubsection{Policy Evaluation Integration}
+
+\begin{lstlisting}[language=python, caption=Policy Evaluation Client]
+import requests
+import json
+from typing import Dict, Any, List
+
+class PolicyEvaluationClient:
+    """Client for policy evaluation integration"""
+    
+    def __init__(self, policy_engine_url: str = "http://policy-engine:5000"):
+        self.base_url = policy_engine_url
+        self.session = requests.Session()
+    
+    def evaluate_fl_client_participation(self, client_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate if a client can participate in FL training"""
+        
+        evaluation_context = {
+            "client_id": client_data.get("client_id"),
+            "client_type": "fl_client",
+            "data_size": client_data.get("data_size", 0),
+            "trust_score": client_data.get("trust_score", 0.0),
+            "last_participation": client_data.get("last_participation"),
+            "computational_capability": client_data.get("cpu_cores", 1)
+        }
+        
+        try:
+            response = self.session.post(
+                f"{self.base_url}/policies/evaluate",
+                json={
+                    "context": evaluation_context,
+                    "policy_types": ["fl_client_validation"]
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return {
+                    "allowed": result.get("decision") == "ALLOW",
+                    "reason": result.get("reason"),
+                    "matched_policies": result.get("matched_policies", []),
+                    "violations": result.get("violations", [])
+                }
+            else:
+                return {
+                    "allowed": False,
+                    "reason": f"Policy evaluation failed: {response.status_code}",
+                    "error": response.text
+                }
+        
+        except Exception as e:
+            return {
+                "allowed": False,
+                "reason": f"Policy evaluation error: {str(e)}",
+                "error": str(e)
+            }
+    
+    def check_network_optimization_needed(self, network_metrics: Dict[str, float]) -> bool:
+        """Check if network optimization policies should be triggered"""
+        
+        context = {
+            "network_latency": network_metrics.get("latency", 0.0),
+            "packet_loss": network_metrics.get("packet_loss", 0.0),
+            "bandwidth_utilization": network_metrics.get("bandwidth_util", 0.0),
+            "jitter": network_metrics.get("jitter", 0.0)
+        }
+        
+        try:
+            response = self.session.post(
+                f"{self.base_url}/policies/evaluate",
+                json={
+                    "context": context,
+                    "policy_types": ["network_optimization"]
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result.get("decision") == "OPTIMIZE"
+            
+            return False
+        
+        except Exception as e:
+            print(f"Network optimization check failed: {e}")
+            return False
+
+# Usage example
+policy_client = PolicyEvaluationClient()
+
+# Evaluate client participation
+client_data = {
+    "client_id": "client_001",
+    "data_size": 5000,
+    "trust_score": 0.85,
+    "cpu_cores": 4
+}
+
+evaluation_result = policy_client.evaluate_fl_client_participation(client_data)
+print(f"Client participation allowed: {evaluation_result['allowed']}")
+print(f"Reason: {evaluation_result['reason']}")
+\end{lstlisting}
+
+\subsection{FL Server Integration}
+
+\subsubsection{Custom FL Server Extension}
+
+\begin{lstlisting}[language=python, caption=Extended FL Server Implementation]
+import asyncio
+import aiohttp
+from typing import Dict, List, Any
+import logging
+import json
+
+class ExtendedFLServer:
+    """Extended FL Server with policy integration and monitoring"""
+    
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.clients = {}
+        self.training_rounds = 0
+        self.policy_client = PolicyEvaluationClient(
+            config.get('policy_engine_url', 'http://policy-engine:5000')
+        )
+        self.collector_url = config.get('collector_url', 'http://collector:8000')
+        self.logger = logging.getLogger(__name__)
+    
+    async def register_client(self, client_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Register a new FL client with policy validation"""
+        
+        client_id = client_data.get('client_id')
+        
+        # Evaluate client eligibility through policy engine
+        evaluation = self.policy_client.evaluate_fl_client_participation(client_data)
+        
+        if not evaluation['allowed']:
+            self.logger.warning(f"Client {client_id} registration rejected: {evaluation['reason']}")
+            return {
+                "status": "rejected",
+                "reason": evaluation['reason'],
+                "client_id": client_id
+            }
+        
+        # Register client
+        self.clients[client_id] = {
+            **client_data,
+            "status": "registered",
+            "last_seen": asyncio.get_event_loop().time(),
+            "training_rounds": 0
+        }
+        
+        # Report registration to collector
+        await self.report_client_event(client_id, "registered")
+        
+        self.logger.info(f"Client {client_id} registered successfully")
+        return {
+            "status": "registered",
+            "client_id": client_id,
+            "message": "Client registered successfully"
+        }
+    
+    async def start_training_round(self) -> Dict[str, Any]:
+        """Start a new training round with policy-compliant clients"""
+        
+        eligible_clients = []
+        
+        # Check each client's current eligibility
+        for client_id, client_data in self.clients.items():
+            if client_data['status'] == 'registered':
+                # Re-evaluate eligibility for this training round
+                evaluation = self.policy_client.evaluate_fl_client_participation(client_data)
+                if evaluation['allowed']:
+                    eligible_clients.append(client_id)
+                else:
+                    self.logger.info(f"Client {client_id} excluded from round: {evaluation['reason']}")
+        
+        if len(eligible_clients) < self.config.get('min_clients', 2):
+            return {
+                "status": "insufficient_clients",
+                "eligible_clients": len(eligible_clients),
+                "required_clients": self.config.get('min_clients', 2)
+            }
+        
+        # Start training round
+        self.training_rounds += 1
+        
+        # Notify eligible clients
+        round_config = {
+            "round_number": self.training_rounds,
+            "learning_rate": self.config.get('learning_rate', 0.01),
+            "batch_size": self.config.get('batch_size', 32),
+            "local_epochs": self.config.get('local_epochs', 5)
+        }
+        
+        # Report training round start to collector
+        await self.report_training_event("round_started", {
+            "round_number": self.training_rounds,
+            "participating_clients": eligible_clients
+        })
+        
+        return {
+            "status": "started",
+            "round_number": self.training_rounds,
+            "participating_clients": eligible_clients,
+            "round_config": round_config
+        }
+    
+    async def report_client_event(self, client_id: str, event_type: str):
+        """Report client events to the collector service"""
+        
+        event_data = {
+            "source": "fl_server",
+            "event_type": f"client_{event_type}",
+            "client_id": client_id,
+            "timestamp": asyncio.get_event_loop().time(),
+            "round_number": self.training_rounds
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.collector_url}/events",
+                    json=event_data
+                ) as response:
+                    if response.status != 200:
+                        self.logger.warning(f"Failed to report event to collector: {response.status}")
+        except Exception as e:
+            self.logger.error(f"Error reporting event to collector: {e}")
+    
+    async def report_training_event(self, event_type: str, event_data: Dict[str, Any]):
+        """Report training events to the collector service"""
+        
+        training_event = {
+            "source": "fl_server",
+            "event_type": f"training_{event_type}",
+            "timestamp": asyncio.get_event_loop().time(),
+            **event_data
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.collector_url}/events",
+                    json=training_event
+                ) as response:
+                    if response.status != 200:
+                        self.logger.warning(f"Failed to report training event: {response.status}")
+        except Exception as e:
+            self.logger.error(f"Error reporting training event: {e}")
+    
+    def get_server_status(self) -> Dict[str, Any]:
+        """Get current server status"""
+        return {
+            "status": "running",
+            "training_rounds": self.training_rounds,
+            "registered_clients": len(self.clients),
+            "active_clients": len([c for c in self.clients.values() if c['status'] == 'registered']),
+            "config": {
+                "min_clients": self.config.get('min_clients', 2),
+                "max_clients": self.config.get('max_clients', 10)
+            }
+        }
+
+# Usage example
+fl_config = {
+    "policy_engine_url": "http://policy-engine:5000",
+    "collector_url": "http://collector:8000",
+    "min_clients": 2,
+    "max_clients": 10,
+    "learning_rate": 0.01,
+    "batch_size": 32,
+    "local_epochs": 5
+}
+
+fl_server = ExtendedFLServer(fl_config)
+
+# Example client registration
+client_registration = {
+    "client_id": "client_001",
+    "data_size": 5000,
+    "trust_score": 0.9,
+    "computational_capability": 4
+}
+
+# This would be called in an async context
+# result = await fl_server.register_client(client_registration)
+\end{lstlisting}
+
+\subsection{SDN Controller Integration}
+
+\subsubsection{Custom Network Optimization}
+
+\begin{lstlisting}[language=python, caption=SDN Controller Integration]
+import requests
+import json
+from typing import Dict, List, Any
+import logging
+
+class FLNetworkOptimizer:
+    """Network optimization controller for FL traffic"""
+    
+    def __init__(self, sdn_controller_url: str = "http://sdn-controller:8181"):
+        self.sdn_url = sdn_controller_url
+        self.logger = logging.getLogger(__name__)
+        self.fl_servers = set()
+        self.fl_clients = set()
+    
+    def register_fl_topology(self, servers: List[str], clients: List[str]):
+        """Register FL servers and clients with SDN controller"""
+        
+        # Register FL servers
+        for server_ip in servers:
+            try:
+                response = requests.post(
+                    f"{self.sdn_url}/fl/register/server",
+                    json={"server_ip": server_ip}
+                )
+                if response.status_code == 200:
+                    self.fl_servers.add(server_ip)
+                    self.logger.info(f"Registered FL server: {server_ip}")
+                else:
+                    self.logger.error(f"Failed to register server {server_ip}: {response.text}")
+            except Exception as e:
+                self.logger.error(f"Error registering server {server_ip}: {e}")
+        
+        # Register FL clients
+        for client_ip in clients:
+            try:
+                response = requests.post(
+                    f"{self.sdn_url}/fl/register/client",
+                    json={"client_ip": client_ip}
+                )
+                if response.status_code == 200:
+                    self.fl_clients.add(client_ip)
+                    self.logger.info(f"Registered FL client: {client_ip}")
+                else:
+                    self.logger.error(f"Failed to register client {client_ip}: {response.text}")
+            except Exception as e:
+                self.logger.error(f"Error registering client {client_ip}: {e}")
+    
+    def optimize_fl_communication(self, server_ip: str, client_ips: List[str], priority: int = 200):
+        """Optimize network paths for FL communication"""
+        
+        optimization_results = []
+        
+        for client_ip in client_ips:
+            try:
+                response = requests.post(
+                    f"{self.sdn_url}/fl/prioritize",
+                    json={
+                        "src_ip": client_ip,
+                        "dst_ip": server_ip,
+                        "priority": priority,
+                        "duration": 600  # 10 minutes
+                    }
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    optimization_results.append({
+                        "client_ip": client_ip,
+                        "status": "optimized",
+                        "details": result
+                    })
+                    self.logger.info(f"Optimized path: {client_ip} -> {server_ip}")
+                else:
+                    optimization_results.append({
+                        "client_ip": client_ip,
+                        "status": "failed",
+                        "error": response.text
+                    })
+            
+            except Exception as e:
+                optimization_results.append({
+                    "client_ip": client_ip,
+                    "status": "error",
+                    "error": str(e)
+                })
+                self.logger.error(f"Error optimizing path {client_ip} -> {server_ip}: {e}")
+        
+        return optimization_results
+    
+    def get_network_statistics(self) -> Dict[str, Any]:
+        """Get current network statistics from SDN controller"""
+        
+        try:
+            response = requests.get(f"{self.sdn_url}/fl/stats")
+            if response.status_code == 200:
+                return response.json()
+            else:
+                self.logger.error(f"Failed to get network stats: {response.status_code}")
+                return {}
+        except Exception as e:
+            self.logger.error(f"Error getting network stats: {e}")
+            return {}
+    
+    def monitor_fl_traffic(self) -> Dict[str, Any]:
+        """Monitor FL-specific traffic patterns"""
+        
+        network_stats = self.get_network_statistics()
+        
+        # Extract FL-relevant metrics
+        fl_metrics = {
+            "fl_servers": list(self.fl_servers),
+            "fl_clients": list(self.fl_clients),
+            "total_flows": network_stats.get("total_flows", 0),
+            "fl_prioritized_flows": network_stats.get("fl_priority_flows", 0),
+            "average_latency": network_stats.get("average_latency", 0.0),
+            "network_utilization": network_stats.get("bandwidth_utilization", 0.0)
+        }
+        
+        return fl_metrics
+
+# Usage example
+network_optimizer = FLNetworkOptimizer()
+
+# Register FL topology
+fl_servers = ["192.168.100.10"]
+fl_clients = ["192.168.100.101", "192.168.100.102"]
+
+network_optimizer.register_fl_topology(fl_servers, fl_clients)
+
+# Optimize communication paths
+optimization_results = network_optimizer.optimize_fl_communication(
+    server_ip="192.168.100.10",
+    client_ips=fl_clients,
+    priority=250  # High priority
+)
+
+# Monitor traffic
+traffic_stats = network_optimizer.monitor_fl_traffic()
+print(f"FL Traffic Statistics: {json.dumps(traffic_stats, indent=2)}")
+\end{lstlisting}
+
+\subsection{Dashboard Integration}
+
+\subsubsection{Custom Dashboard Component}
+
+\begin{lstlisting}[language=python, caption=Dashboard Backend Extension]
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+import aiohttp
+import asyncio
+from typing import Dict, Any, List
+import logging
+
+class DashboardDataAggregator:
+    """Aggregates data from multiple FLOPY-NET services for dashboard display"""
+    
+    def __init__(self, service_urls: Dict[str, str]):
+        self.service_urls = service_urls
+        self.logger = logging.getLogger(__name__)
+    
+    async def get_system_overview(self) -> Dict[str, Any]:
+        """Get comprehensive system overview"""
+        
+        # Gather data from all services concurrently
+        tasks = [
+            self._get_policy_engine_status(),
+            self._get_fl_server_status(),
+            self._get_collector_metrics(),
+            self._get_network_status()
+        ]
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        policy_status, fl_status, collector_metrics, network_status = results
+        
+        # Build comprehensive overview
+        overview = {
+            "timestamp": asyncio.get_event_loop().time(),
+            "services": {
+                "policy_engine": self._safe_extract(policy_status),
+                "fl_server": self._safe_extract(fl_status),
+                "collector": self._safe_extract(collector_metrics),
+                "network": self._safe_extract(network_status)
+            },
+            "system_health": self._assess_system_health(results)
+        }
+        
+        return overview
+    
+    async def _get_policy_engine_status(self) -> Dict[str, Any]:
+        """Get policy engine status"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.service_urls['policy_engine']}/health") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        # Get additional policy statistics
+                        async with session.get(f"{self.service_urls['policy_engine']}/policies") as policies_response:
+                            if policies_response.status == 200:
+                                policies = await policies_response.json()
+                                data['total_policies'] = len(policies)
+                                data['enabled_policies'] = len([p for p in policies if p.get('enabled', False)])
+                        return data
+                    else:
+                        return {"status": "error", "code": response.status}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    
+    async def _get_fl_server_status(self) -> Dict[str, Any]:
+        """Get FL server status"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Get server status
+                async with session.get(f"{self.service_urls['fl_server']}/status") as response:
+                    if response.status == 200:
+                        status_data = await response.json()
+                        
+                        # Get client information
+                        async with session.get(f"{self.service_urls['fl_server']}/clients") as clients_response:
+                            if clients_response.status == 200:
+                                clients_data = await clients_response.json()
+                                status_data['clients'] = clients_data
+                        
+                        # Get training metrics
+                        async with session.get(f"{self.service_urls['fl_server']}/metrics") as metrics_response:
+                            if metrics_response.status == 200:
+                                metrics_data = await metrics_response.json()
+                                status_data['metrics'] = metrics_data
+                        
+                        return status_data
+                    else:
+                        return {"status": "error", "code": response.status}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    
+    async def _get_collector_metrics(self) -> Dict[str, Any]:
+        """Get collector service metrics"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.service_urls['collector']}/metrics/summary") as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        return {"status": "error", "code": response.status}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    
+    async def _get_network_status(self) -> Dict[str, Any]:
+        """Get network and SDN controller status"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.service_urls['sdn_controller']}/fl/stats") as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        return {"status": "error", "code": response.status}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    
+    def _safe_extract(self, data: Any) -> Dict[str, Any]:
+        """Safely extract data from service responses"""
+        if isinstance(data, Exception):
+            return {"status": "error", "message": str(data)}
+        elif isinstance(data, dict):
+            return data
+        else:
+            return {"status": "unknown", "data": str(data)}
+    
+    def _assess_system_health(self, service_results: List[Any]) -> Dict[str, Any]:
+        """Assess overall system health based on service responses"""
+        
+        healthy_services = 0
+        total_services = len(service_results)
+        
+        for result in service_results:
+            if isinstance(result, dict) and result.get("status") != "error":
+                healthy_services += 1
+        
+        health_percentage = (healthy_services / total_services) * 100
+        
+        if health_percentage >= 90:
+            health_status = "excellent"
+        elif health_percentage >= 75:
+            health_status = "good"
+        elif health_percentage >= 50:
+            health_status = "degraded"
+        else:
+            health_status = "critical"
+        
+        return {
+            "status": health_status,
+            "healthy_services": healthy_services,
+            "total_services": total_services,
+            "health_percentage": health_percentage
+        }
+
+# FastAPI integration
+app = FastAPI(title="FLOPY-NET Dashboard API")
+
+# Initialize data aggregator
+service_urls = {
+    "policy_engine": "http://policy-engine:5000",
+    "fl_server": "http://fl-server:8080",
+    "collector": "http://collector:8000",
+    "sdn_controller": "http://sdn-controller:8181"
+}
+
+data_aggregator = DashboardDataAggregator(service_urls)
+
+@app.get("/api/system/overview")
+async def get_system_overview():
+    """Get comprehensive system overview"""
+    try:
+        overview = await data_aggregator.get_system_overview()
+        return JSONResponse(content=overview)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/fl/training/status")
+async def get_fl_training_status():
+    """Get current FL training status"""
+    try:
+        fl_status = await data_aggregator._get_fl_server_status()
+        return JSONResponse(content=fl_status)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Usage example would be running the FastAPI app
+# uvicorn extended_dashboard:app --host 0.0.0.0 --port 8001
+\end{lstlisting}
+
+\subsection{Collector Service Integration}
+
+\subsubsection{Custom Metrics Collection}
+
+\begin{lstlisting}[language=python, caption=Custom Metrics Collector]
+import asyncio
+import aiohttp
+import time
+import json
+from typing import Dict, Any, List
+import logging
+
+class CustomMetricsCollector:
+    """Custom metrics collector for FL-specific metrics"""
+    
+    def __init__(self, collector_url: str = "http://collector:8000"):
+        self.collector_url = collector_url
+        self.logger = logging.getLogger(__name__)
+    
+    async def collect_fl_training_metrics(self, fl_server_url: str, round_number: int):
+        """Collect FL training metrics and submit to collector"""
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Get training metrics from FL server
+                async with session.get(f"{fl_server_url}/metrics") as response:
+                    if response.status == 200:
+                        metrics_data = await response.json()
+                        
+                        # Transform metrics for collector
+                        collector_metrics = []
+                        
+                        # Training round metrics
+                        if 'accuracy' in metrics_data:
+                            for i, accuracy in enumerate(metrics_data['accuracy']):
+                                collector_metrics.append({
+                                    "source": "fl_training",
+                                    "metric_name": "accuracy",
+                                    "value": accuracy,
+                                    "timestamp": time.time(),
+                                    "metadata": {
+                                        "round": i + 1,
+                                        "training_session": round_number
+                                    }
+                                })
+                        
+                        if 'loss' in metrics_data:
+                            for i, loss in enumerate(metrics_data['loss']):
+                                collector_metrics.append({
+                                    "source": "fl_training",
+                                    "metric_name": "loss",
+                                    "value": loss,
+                                    "timestamp": time.time(),
+                                    "metadata": {
+                                        "round": i + 1,
+                                        "training_session": round_number
+                                    }
+                                })
+                        
+                        # Submit metrics to collector
+                        await self.submit_metrics(collector_metrics)
+                        
+                        self.logger.info(f"Collected {len(collector_metrics)} FL training metrics")
+                    
+                    else:
+                        self.logger.error(f"Failed to get FL metrics: {response.status}")
+        
+        except Exception as e:
+            self.logger.error(f"Error collecting FL training metrics: {e}")
+    
+    async def collect_network_performance_metrics(self, sdn_controller_url: str):
+        """Collect network performance metrics from SDN controller"""
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{sdn_controller_url}/fl/stats") as response:
+                    if response.status == 200:
+                        network_stats = await response.json()
+                        
+                        # Transform network metrics
+                        collector_metrics = []
+                        
+                        # Network latency
+                        if 'average_latency' in network_stats:
+                            collector_metrics.append({
+                                "source": "network",
+                                "metric_name": "average_latency",
+                                "value": network_stats['average_latency'],
+                                "timestamp": time.time(),
+                                "metadata": {"unit": "ms"}
+                            })
+                        
+                        # Bandwidth utilization
+                        if 'bandwidth_utilization' in network_stats:
+                            collector_metrics.append({
+                                "source": "network",
+                                "metric_name": "bandwidth_utilization",
+                                "value": network_stats['bandwidth_utilization'],
+                                "timestamp": time.time(),
+                                "metadata": {"unit": "percentage"}
+                            })
+                        
+                        # Flow statistics
+                        if 'total_flows' in network_stats:
+                            collector_metrics.append({
+                                "source": "network",
+                                "metric_name": "total_flows",
+                                "value": network_stats['total_flows'],
+                                "timestamp": time.time(),
+                                "metadata": {"type": "count"}
+                            })
+                        
+                        # Submit metrics
+                        await self.submit_metrics(collector_metrics)
+                        
+                        self.logger.info(f"Collected {len(collector_metrics)} network metrics")
+        
+        except Exception as e:
+            self.logger.error(f"Error collecting network metrics: {e}")
+    
+    async def collect_policy_compliance_metrics(self, policy_engine_url: str):
+        """Collect policy compliance metrics"""
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Get policy statistics
+                async with session.get(f"{policy_engine_url}/policies/stats") as response:
+                    if response.status == 200:
+                        policy_stats = await response.json()
+                        
+                        collector_metrics = []
+                        
+                        # Policy decision metrics
+                        for decision_type, count in policy_stats.get('decisions', {}).items():
+                            collector_metrics.append({
+                                "source": "policy_engine",
+                                "metric_name": f"policy_decisions_{decision_type}",
+                                "value": count,
+                                "timestamp": time.time(),
+                                "metadata": {"decision_type": decision_type}
+                            })
+                        
+                        # Policy evaluation time
+                        if 'average_evaluation_time' in policy_stats:
+                            collector_metrics.append({
+                                "source": "policy_engine",
+                                "metric_name": "policy_evaluation_time",
+                                "value": policy_stats['average_evaluation_time'],
+                                "timestamp": time.time(),
+                                "metadata": {"unit": "ms"}
+                            })
+                        
+                        await self.submit_metrics(collector_metrics)
+                        
+                        self.logger.info(f"Collected {len(collector_metrics)} policy metrics")
+        
+        except Exception as e:
+            self.logger.error(f"Error collecting policy metrics: {e}")
+    
+    async def submit_metrics(self, metrics: List[Dict[str, Any]]):
+        """Submit metrics to collector service"""
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.collector_url}/metrics",
+                    json={"metrics": metrics}
+                ) as response:
+                    if response.status == 200:
+                        self.logger.debug(f"Successfully submitted {len(metrics)} metrics")
+                    else:
+                        self.logger.error(f"Failed to submit metrics: {response.status}")
+        
+        except Exception as e:
+            self.logger.error(f"Error submitting metrics: {e}")
+    
+    async def run_collection_cycle(self, service_urls: Dict[str, str], interval: int = 30):
+        """Run continuous metrics collection cycle"""
+        
+        self.logger.info(f"Starting metrics collection cycle (interval: {interval}s)")
+        
+        while True:
+            try:
+                # Collect metrics from all services
+                await asyncio.gather(
+                    self.collect_fl_training_metrics(service_urls['fl_server'], int(time.time())),
+                    self.collect_network_performance_metrics(service_urls['sdn_controller']),
+                    self.collect_policy_compliance_metrics(service_urls['policy_engine']),
+                    return_exceptions=True
+                )
+                
+                self.logger.debug("Completed metrics collection cycle")
+                
+            except Exception as e:
+                self.logger.error(f"Error in metrics collection cycle: {e}")
+            
+            # Wait for next collection interval
+            await asyncio.sleep(interval)
+
+# Usage example
+async def main():
+    collector = CustomMetricsCollector()
+    
+    service_urls = {
+        'fl_server': 'http://fl-server:8080',
+        'sdn_controller': 'http://sdn-controller:8181',
+        'policy_engine': 'http://policy-engine:5000'
+    }
+    
+    # Run continuous collection
+    await collector.run_collection_cycle(service_urls, interval=30)
+
+# Run with: asyncio.run(main())
+\end{lstlisting}
+
+These code examples demonstrate practical integration patterns with FLOPY-NET components, providing templates for extending the system's functionality while maintaining compatibility with the existing architecture.

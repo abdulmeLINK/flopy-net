@@ -1,0 +1,585 @@
+%============================================================================
+% SECTION 3: POLICY ENGINE COMPONENT
+%============================================================================
+\section{Policy Engine Component}
+\label{sec:policy-engine}
+
+The Policy Engine represents the heart of FLOPY-NET's governance and security framework. As stated in the project architecture principles: "Policy Engine is the heart: If anything related to the Policy Engine needs fix first try to match the component architecture with policy engine architecture instead of trying to modify Policy Engine." This centralized service enforces rules across all components, monitors compliance, detects anomalies, and ensures that federated learning operations adhere to defined policies.
+
+\subsection{Architecture Overview}
+
+The Policy Engine operates as a Flask-based REST API service on port 5000, providing centralized policy definition, enforcement, and monitoring capabilities.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2.5cm,
+    box/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1cm, text centered, draw, thick, align=center},
+    flow/.style={->, thick, >=stealth}
+]    % Policy Definition Layer
+    \node[box, fill=primary!20] (network_policies) at (-4,6) {\begin{tabular}{c}Network Security\\Policies\end{tabular}};
+    \node[box, fill=primary!20] (fl_policies) at (0,6) {\begin{tabular}{c}FL Performance\\Policies\end{tabular}};
+    \node[box, fill=primary!20] (trust_policies) at (4,6) {\begin{tabular}{c}Trust \& Reputation\\Policies\end{tabular}};
+    \node[box, fill=primary!20] (custom_policies) at (8,6) {\begin{tabular}{c}Custom Policy\\Functions\end{tabular}};
+      % Policy Engine Core
+    \node[box, fill=secondary!20, minimum width=12cm] (policy_core) at (2,4) {%
+        \begin{tabular}{c}\textbf{Policy Engine Core - Port 5000}\\Policy Loader | Flask API | Rule Evaluator | Event Buffer\end{tabular}%
+    };
+      % Storage Layer
+    \node[box, fill=success!20] (memory_storage) at (-2,2) {\begin{tabular}{c}In-Memory\\Storage\end{tabular}};
+    \node[box, fill=success!20] (sqlite_storage) at (2,2) {\begin{tabular}{c}SQLite\\Storage\end{tabular}};
+    \node[box, fill=success!20] (event_buffer) at (6,2) {\begin{tabular}{c}Event Deque\\Buffer\end{tabular}};
+      % Target Components
+    \node[box, fill=accent!20] (fl_server) at (-4,0) {\begin{tabular}{c}FL Server\\8080\end{tabular}};
+    \node[box, fill=accent!20] (fl_clients) at (-1,0) {\begin{tabular}{c}FL Clients\\100-255\end{tabular}};
+    \node[box, fill=accent!20] (dashboard) at (2,0) {\begin{tabular}{c}Dashboard\\8001\end{tabular}};
+    \node[box, fill=accent!20] (collector) at (5,0) {\begin{tabular}{c}Collector\\8000\end{tabular}};
+    \node[box, fill=accent!20] (sdn) at (8,0) {\begin{tabular}{c}SDN Controller\\6633\end{tabular}};
+    
+    % Flows
+    \draw[flow, color=primary] (network_policies) -- (policy_core);
+    \draw[flow, color=primary] (fl_policies) -- (policy_core);
+    \draw[flow, color=primary] (trust_policies) -- (policy_core);
+    \draw[flow, color=primary] (custom_policies) -- (policy_core);
+    
+    \draw[flow, color=secondary] (policy_core) -- (memory_storage);
+    \draw[flow, color=secondary] (policy_core) -- (sqlite_storage);
+    \draw[flow, color=secondary] (policy_core) -- (event_buffer);
+    
+    \draw[flow, color=success] (policy_core) -- (fl_server);
+    \draw[flow, color=success] (policy_core) -- (fl_clients);
+    \draw[flow, color=success] (policy_core) -- (dashboard);
+    \draw[flow, color=success] (policy_core) -- (collector);
+    \draw[flow, color=success] (policy_core) -- (sdn);
+    
+    % Bidirectional feedback
+    \draw[flow, color=accent, dashed] (fl_server) -- (policy_core);
+    \draw[flow, color=accent, dashed] (fl_clients) -- (policy_core);
+    \draw[flow, color=accent, dashed] (dashboard) -- (policy_core);
+    \draw[flow, color=accent, dashed] (collector) -- (policy_core);
+    \draw[flow, color=accent, dashed] (sdn) -- (policy_core);
+\end{tikzpicture}
+\caption{Policy Engine Component Architecture}
+\label{fig:policy-engine-architecture}
+\end{figure}
+
+\subsection{Core Features}
+
+\subsubsection{Network Security Enforcement}
+
+The Policy Engine provides comprehensive network-level security controls:
+
+\begin{itemize}
+    \item \textbf{Connection Control}: Manages which components can communicate with each other
+    \item \textbf{Port-Based Access}: Controls access to specific service ports (FL Server: 8080, Collector: 8000, Policy Engine: 5000)
+    \item \textbf{Protocol Filtering}: TCP/UDP protocol-based traffic filtering
+    \item \textbf{IP-Based Rules}: Source and destination IP address matching and filtering
+\end{itemize}
+
+\subsubsection{Policy File Management}
+
+The system uses a hierarchical JSON-based policy structure:
+% TODO: Give also exampple of other action types and conditions 
+\begin{lstlisting}[style=jsoncode, caption=Policy Configuration Structure]
+{
+  "version": 2,
+  "policies": {
+    "default-net-sec-001": {
+      "id": "default-net-sec-001",
+      "name": "base_network_security",
+      "type": "network_security",
+      "description": "Base network security policy allowing essential FL system communication",
+      "priority": 100,
+      "rules": [
+        {
+          "action": "allow",
+          "description": "Allow FL clients to connect to FL server",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client",
+            "dst_type": "fl-server",
+            "dst_port": 8080
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow metrics reporting to collector",
+          "match": {
+            "protocol": "tcp",
+            "dst_type": "collector",
+            "dst_port": 8000
+          }
+        },
+        {
+          "action": "allow",
+          "description": "Allow policy verification from all components",
+          "match": {
+            "protocol": "tcp",
+            "dst_type": "policy-engine",
+            "dst_port": 5000
+          }
+        }
+      ]
+    }
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Event Logging and Monitoring}
+
+The Policy Engine maintains comprehensive event tracking:
+
+\begin{table}[H]
+\centering
+\caption{Policy Engine Event Types}
+\label{tab:policy-events}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Event Type} & \textbf{Trigger} & \textbf{Description} \\
+\midrule
+ENGINE\_START & Service startup & Policy Engine initialization complete \\
+POLICY\_LOADED & Configuration change & New policies loaded from file/API \\
+POLICY\_APPLIED & Rule evaluation & Policy rule successfully applied \\
+POLICY\_VIOLATION & Compliance check & Policy violation detected \\
+CLIENT\_BLOCKED & Security rule & FL client blocked by security policy \\
+PERFORMANCE\_WARNING & Threshold breach & Performance metric exceeded limits \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Policy Enforcement Flow}
+
+The following sequence diagram illustrates the policy enforcement process:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    actor/.style={rectangle, minimum width=2cm, minimum height=0.8cm, text centered, draw, thick},
+    message/.style={->, thick, >=stealth},
+    return/.style={<-, thick, >=stealth, dashed}
+]
+    % Actors
+    \node[actor, fill=primary!20] (component) at (0,8) {Component};
+    \node[actor, fill=secondary!20] (engine) at (4,8) {Policy Engine};
+    \node[actor, fill=success!20] (storage) at (8,8) {Policy Storage};
+    
+    % Lifelines
+    \draw[dashed] (component) -- (0,0);
+    \draw[dashed] (engine) -- (4,0);
+    \draw[dashed] (storage) -- (8,0);
+    
+    % Messages
+    \draw[message] (0,7) -- (4,7) node[midway, above] {Policy Check Request};
+    \draw[message] (4,6.5) -- (8,6.5) node[midway, above] {Load Rules};
+    \draw[return] (4,6) -- (8,6) node[midway, above] {Policy Rules};
+    \draw[message] (4,5.5) -- (4,5.5) node[right] {Evaluate Conditions};
+    \draw[message] (4,5) -- (4,5) node[right] {Apply Actions};
+    \draw[return] (0,4.5) -- (4,4.5) node[midway, above] {Policy Decision};
+    \draw[message] (4,4) -- (8,4) node[midway, above] {Log Event};
+    \draw[message] (4,3.5) -- (4,3.5) node[right] {Update Metrics};
+\end{tikzpicture}
+\caption{Policy Enforcement Sequence Flow}
+\label{fig:policy-enforcement-flow}
+\end{figure}
+
+\subsection{Real-Time Rule Interpretation and Decision Making}
+
+The Policy Engine implements a sophisticated real-time decision-making framework that processes rules, evaluates conditions, and executes actions with sub-second latency requirements.
+
+\subsubsection{Rule Interpretation Engine}
+
+The core rule interpretation follows a multi-stage evaluation pipeline:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture} [
+    node distance=3cm,
+    stage/.style={rectangle, rounded corners, minimum width=2.8cm, minimum height=1.2cm, text centered, draw, thick, align=center},
+    flow/.style={->, thick, >=stealth},
+    decision/.style={diamond, minimum width=1.3cm, minimum height=2cm, text centered, draw, thick, align=center}
+]    % Input
+    \node[stage, fill=primary!20] (request) at (0,8) {\begin{tabular}{c}Policy Check\\Request\end{tabular}};
+    
+    % Stage 1: Parsing
+    \node[stage, fill=secondary!20] (parse) at (0,6.5) {\begin{tabular}{c}Context\\Parsing\end{tabular}};
+    
+    % Stage 2: Rule Matching
+    \node[stage, fill=secondary!20] (match) at (0,5) {\begin{tabular}{c}Rule\\Matching\end{tabular}};
+    
+    % Stage 3: Condition Evaluation
+    \node[stage, fill=success!20] (evaluate) at (0,3.5) {\begin{tabular}{c}Condition\\Evaluation\end{tabular}};
+    
+    % Decision Point
+    \node[decision, fill=warning!20] (decision) at (0,0) {\begin{tabular}{c}All\\Conditions\\Met?\end{tabular}};
+    
+    % Actions
+    \node[stage, fill=accent!20] (allow) at (-3,-2) {\begin{tabular}{c}Execute\\Allow Action\end{tabular}};
+    \node[stage, fill=danger!20] (deny) at (3,-2) {\begin{tabular}{c}Execute\\Deny Action\end{tabular}};
+    
+    % Logging
+    \node[stage, fill=info!20] (log) at (0,-3.5) {\begin{tabular}{c}Log Decision\\\& Update Metrics\end{tabular}};
+    
+    % Flows
+    \draw[flow] (request) -- (parse);
+    \draw[flow] (parse) -- (match);
+    \draw[flow] (match) -- (evaluate);
+    \draw[flow] (evaluate) -- (decision);
+    \draw[flow] (decision) -- (allow) node[midway, above left] {Yes};
+    \draw[flow] (decision) -- (deny) node[midway, above right] {No};
+    \draw[flow] (allow) -- (log);
+    \draw[flow] (deny) -- (log);
+      % Side annotations
+    \node[text width=3cm, right=1.5cm] at (parse.east) {\begin{tabular}{c}Extract IP, port,\\protocol, component\\type from request\end{tabular}};
+    \node[text width=3cm, right=1.5cm] at (match.east) {\begin{tabular}{c}Find applicable\\policies based on\\priority and scope\end{tabular}};
+    \node[text width=3cm, right=1.5cm] at (evaluate.east) {\begin{tabular}{c}Evaluate match\\conditions using\\boolean logic\end{tabular}};
+\end{tikzpicture}
+\caption{Real-Time Rule Interpretation Pipeline}
+\label{fig:rule-interpretation-pipeline}
+\end{figure}
+
+\subsubsection{Decision Making Algorithm}
+
+The Policy Engine uses a priority-based decision making algorithm with the following logic:
+
+\begin{enumerate}
+    \item \textbf{Rule Prioritization}: Policies are sorted by priority (highest first)
+    \item \textbf{Condition Matching}: Each rule's conditions are evaluated against the request context
+    \item \textbf{First Match Wins}: The first rule whose conditions are satisfied determines the action
+    \item \textbf{Default Deny}: If no rules match, the default action is "deny"
+    \item \textbf{Action Execution}: The determined action (allow/deny/modify) is executed
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture} [
+    node distance=1.5cm,
+    process/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1cm, text centered, draw, thick, align=center},
+    decision/.style={diamond, minimum width=2.5cm, minimum height=1.5cm, text centered, draw, thick, align=center},
+    flow/.style={->, thick, >=stealth}
+]
+    % Start
+    \node[process, fill=primary!20] (start) at (0,10) {Incoming Request};
+    
+    % Load policies
+    \node[process, fill=secondary!20] (load) at (0,8.5) {Load Policies\\ (Priority Sorted)};
+    
+    % Initialize
+    \node[process, fill=secondary!20] (init) at (0,7) {Initialize Rule\\ Iterator};
+    
+    % Check if more rules
+    \node[decision, fill=warning!20] (more_rules) at (0,5) {More\\Rules?};
+    
+    % Get next rule
+    \node[process, fill=success!20] (next_rule) at (-4,5) {Get Next Rule};
+    
+    % Evaluate conditions
+    \node[decision, fill=info!20] (conditions) at (-4,2) {All\\Conditions\\Match?};
+    
+    % Execute action
+    \node[process, fill=accent!20] (execute) at (-4,-1) {Execute Rule\\ Action};
+    
+    % Default deny
+    \node[process, fill=danger!20] (default_deny) at (4,5) {Apply Default\\ Deny};
+    
+    % Log and return
+    \node[process, fill=neutral!20] (log_return) at (4,-1) {Log Decision\\ \& Return Result};
+    
+    % Flows
+    \draw[flow] (start) -- (load);
+    \draw[flow] (load) -- (init);
+    \draw[flow] (init) -- (more_rules);
+    \draw[flow] (more_rules) -- (next_rule) node[midway, above left] {Yes};
+    \draw[flow] (more_rules) -- (default_deny) node[midway, above right] {No};
+    \draw[flow] (next_rule) -- (more_rules);
+    \draw[flow] (conditions) -- (execute) node[midway, right] {Yes};
+    \draw[flow] (conditions.north) -- (more_rules.south) node[near start, right] {No};
+    \draw[flow] (execute) -- (log_return);
+    \draw[flow] (default_deny) -- (log_return);
+\end{tikzpicture}
+\caption{Policy Decision Making Algorithm Flow}
+\label{fig:decision-algorithm}
+\end{figure}
+
+\subsubsection{Context Evaluation Framework}
+
+The Policy Engine evaluates multiple types of conditions in real-time:
+
+\begin{table}[H]
+\centering
+\caption{Real-Time Condition Types}
+\label{tab:condition-types}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Condition Type} & \textbf{Example} & \textbf{Real-Time Evaluation} \\
+\midrule
+Network-based & src\_ip, dst\_port, protocol & Direct packet header inspection \\
+Component-based & src\_type, dst\_type & Component registry lookup \\
+Time-based & time\_range, day\_of\_week & System timestamp evaluation \\
+Performance-based & cpu\_usage, memory\_usage & Real-time metrics query \\
+Trust-based & trust\_score, reputation & Dynamic trust calculation \\
+Custom Functions & model\_size\_check() & Python function execution \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Performance Optimization Strategies}
+
+The real-time decision engine implements several optimization techniques:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,
+    optimization/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1cm, text centered, draw, thick, align=center},
+    flow/.style={<->, thick, >=stealth}
+]
+    % Central engine
+    \node[optimization, fill=primary!20] (engine) at (0,0) {\textbf{Policy Engine Core}};
+      % Optimizations
+    \node[optimization, fill=secondary!20] (cache) at (-4,3) {Rule Caching \& Indexing};
+    \node[optimization, fill=secondary!20] (parallel) at (4,3) {Parallel Condition Evaluation};
+    \node[optimization, fill=success!20] (precompute) at (-4,-3) {Pre-computed Results};
+    \node[optimization, fill=success!20] (pipeline) at (4,-3) {Pipelined Processing};
+    
+    % Memory optimizations
+    \node[optimization, fill=accent!20] (memory) at (0,4) {In-Memory Storage};
+    \node[optimization, fill=accent!20] (batch) at (0,-4) {Batch Operations};
+    
+    % Connections
+    \draw[flow] (engine) -- (cache);
+    \draw[flow] (engine) -- (parallel);
+    \draw[flow] (engine) -- (precompute);
+    \draw[flow] (engine) -- (pipeline);
+    \draw[flow] (engine) -- (memory);
+    \draw[flow] (engine) -- (batch);
+\end{tikzpicture}
+\caption{Real-Time Performance Optimization Architecture}
+\label{fig:performance-optimization}
+\end{figure}
+
+\subsubsection{Custom Policy Functions}
+
+The Policy Engine supports custom Python functions for complex decision logic:
+
+\begin{lstlisting}[style=pythoncode, caption=Custom Policy Function Implementation]
+def model_size_policy(context: Dict[str, Any]) -> bool:
+    """
+    Custom policy function to check model size constraints.
+    
+    Args:
+        context: Request context containing model information
+        
+    Returns:
+        bool: True if policy allows the action, False otherwise
+    """
+    model_size = context.get('model_size_mb', 0)
+    client_type = context.get('client_type', 'unknown')
+    available_memory = context.get('available_memory_mb', 0)
+    
+    # Define size limits based on client type
+    size_limits = {
+        'mobile': 50,      # 50MB for mobile clients
+        'edge': 100,       # 100MB for edge devices
+        'server': 500,     # 500MB for server clients
+        'gpu': 1000        # 1GB for GPU-enabled clients
+    }
+    
+    max_allowed = size_limits.get(client_type, 50)  # Default to mobile limit
+    
+    # Check if model fits in available memory (with 20% buffer)
+    memory_check = model_size <= (available_memory * 0.8)
+    
+    # Check if model size is within type limits
+    size_check = model_size <= max_allowed
+    
+    # Log the decision reasoning
+    decision = memory_check and size_check
+    
+    logger.info(f"Model size policy: size={model_size}MB, "
+               f"type={client_type}, max_allowed={max_allowed}MB, "
+               f"available_memory={available_memory}MB, decision={decision}")
+    
+    return decision
+\end{lstlisting}
+
+\subsection{API Endpoints}
+
+The Policy Engine exposes comprehensive REST API endpoints:
+
+\begin{table}[H]
+\centering
+\caption{Policy Engine API Endpoints}
+\label{tab:policy-api-endpoints}
+\begin{tabular}{@{}llp{5cm}@{}}
+\toprule
+\textbf{Method} & \textbf{Endpoint} & \textbf{Description} \\
+\midrule
+GET & /health & Service health check \\
+GET & /policies & Retrieve all active policies \\
+POST & /policies & Create new policy \\
+PUT & /policies/\{id\} & Update existing policy \\
+DELETE & /policies/\{id\} & Delete policy \\
+POST & /check & Perform policy compliance check \\
+GET & /events & Retrieve recent events \\
+GET & /metrics & Retrieve policy metrics \\
+POST & /reload & Reload policies from file \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Integration Patterns}
+
+\subsubsection{FL Server Integration}
+
+The FL Server checks policies before major operations:
+
+\begin{lstlisting}[style=pythoncode, caption=FL Server Policy Integration]
+class FLServer:
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize the FL server with configuration."""
+        self.config = config
+        # Policy engine integration
+        self.policy_engine_url = config.get("policy_engine_url", "http://localhost:5000")
+        self.policy_auth_token = config.get("policy_auth_token", None)
+        self.policy_timeout = config.get("policy_timeout", 10)
+        self.policy_max_retries = config.get("policy_max_retries", 3)
+    
+    def check_policy(self, policy_type: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Check if the action is allowed by the policy engine."""
+        # Add timestamp to prevent replay attacks
+        context["timestamp"] = time.time()
+        
+        # Create signature for verification
+        signature = self.create_policy_signature(policy_type, context)
+        context["signature"] = signature
+        
+        # Call policy engine API
+        headers = {'Content-Type': 'application/json'}
+        if self.policy_auth_token:
+            headers['Authorization'] = f"Bearer {self.policy_auth_token}"
+            
+        payload = {'policy_type': policy_type, 'context': context}
+        
+        response = requests.post(
+            f"{self.policy_engine_url}/api/v1/check",
+            headers=headers,
+            json=payload,
+            timeout=self.policy_timeout
+        )
+        response.raise_for_status()
+        result = response.json()
+        
+        # Track metrics
+        with metrics_lock:
+            global_metrics["policy_checks_performed"] += 1
+            if result.get('allowed'):
+                global_metrics["policy_checks_allowed"] += 1
+            else:
+                global_metrics["policy_checks_denied"] += 1
+        
+        return result
+\end{lstlisting}
+
+\subsubsection{Network Controller Integration}
+
+The SDN controller enforces network-level policies:
+
+\begin{lstlisting}[style=pythoncode, caption=SDN Controller Policy Integration]
+class SDNPolicyEngine:
+    def __init__(self, sdn_controller: Optional[ISDNController] = None):
+        """Initialize the SDN Policy Engine."""
+        super().__init__()
+        self.sdn_controller = sdn_controller
+        self.policy_cache = {}
+        
+    def _apply_security_policy(self, policy_definition: Dict[str, Any]) -> None:
+        """Apply a security policy to the SDN controller."""
+        policy_logic = policy_definition.get("logic", {})
+        blocked_ips = policy_logic.get("blocked_ips", [])
+        
+        # Apply security policy to switches
+        switches = self.sdn_controller.get_switches()
+        for switch in switches:
+            switch_id = switch.get("id")
+            
+            # Block specified IPs
+            for ip in blocked_ips:
+                # Create flow to drop traffic from blocked IP
+                match = {
+                    "nw_src": ip,
+                    "dl_type": 0x0800  # IPv4
+                }
+                
+                # Empty actions list means drop the packet
+                actions = []
+                
+                self.sdn_controller.add_flow(
+                    switch_id,
+                    200,  # High priority
+                    match,
+                    actions
+                )
+\end{lstlisting}
+
+\subsection{Performance and Scalability}
+
+The Policy Engine is designed for high-performance policy evaluation:
+
+\begin{itemize}
+    \item \textbf{In-Memory Caching}: Frequently accessed policies cached in memory
+    \item \textbf{Rule Indexing}: Policies indexed by conditions for fast lookup
+    \item \textbf{Bulk Operations}: Support for batch policy checks
+    \item \textbf{Event Buffering}: Asynchronous event logging to prevent blocking
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Policy Engine Performance Metrics}
+\label{tab:policy-performance}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Metric} & \textbf{Design Target} \\
+\midrule
+Policy Check Latency & Sub-second response time \\
+Throughput & Concurrent request handling \\
+Policy Storage & Scalable rule storage \\
+Event Buffer Size & Configurable event history \\
+Memory Usage & Optimized for container deployment \\
+Startup Time & Fast initialization \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Configuration Management}
+
+The Policy Engine supports multiple configuration sources with a clear hierarchy:
+
+\begin{enumerate}
+    \item Command-line arguments (highest priority)
+    \item Environment variables
+    \item Configuration files (JSON)
+    \item Default values (lowest priority)
+\end{enumerate}
+
+\begin{lstlisting}[style=jsoncode, caption=Policy Engine Configuration]
+{
+  "policy_id": "policy-engine",
+  "host": "0.0.0.0",
+  "port": 5000,
+  "metrics_port": 9091,
+  "log_level": "INFO",
+  "log_file": "/app/logs/policy-engine.log",
+  "policy_file": "/app/config/policies/policies.json",
+  "policy_ip": "192.168.100.20",
+  "collector_host": "metrics-collector",
+  "fl_server_port": 8080,
+  "collector_port": 8081,
+  "node_ip_collector": "192.168.100.40",
+  "node_ip_fl_server": "192.168.100.10",
+  "node_ip_openvswitch": "192.168.100.60",
+  "node_ip_policy_engine": "192.168.100.20",
+  "node_ip_sdn_controller": "192.168.100.41"
+}
+\end{lstlisting}
+
+The Policy Engine serves as the foundation for all governance and security operations in FLOPY-NET, ensuring that the federated learning environment operates within defined boundaries while maintaining comprehensive audit trails and real-time monitoring capabilities.

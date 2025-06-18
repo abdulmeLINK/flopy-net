@@ -1,0 +1,12 @@
+{
+    "scenario_id": "basic-scenario-30d149ec",
+    "config_file": ".\\config\\scenarios\\basic_main.json",
+    "topology_file": ".\\config\\topology\\basic_topology.json",
+    "start_time": 1749481397.962548,
+    "end_time": 1749481399.4242435,
+    "duration_seconds": 1.46,
+    "status": "failed",
+    "error": "Exception during setup: DeploymentManager.__init__() missing 1 required positional argument: 'config'",
+    "fl_results": null,
+    "topology_summary": null
+}

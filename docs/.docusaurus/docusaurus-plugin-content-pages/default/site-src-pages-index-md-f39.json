@@ -1,0 +1,12 @@
+{
+  "type": "mdx",
+  "permalink": "/flopy-net/",
+  "source": "@site/src/pages/index.md",
+  "title": "Welcome to FLOPY-NET",
+  "description": "Federated Learning Observatory Platform - Network Emulation & Testing",
+  "frontMatter": {
+    "title": "Welcome to FLOPY-NET",
+    "description": "Federated Learning Observatory Platform - Network Emulation & Testing"
+  },
+  "unlisted": false
+}

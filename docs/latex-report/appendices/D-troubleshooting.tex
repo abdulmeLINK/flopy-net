@@ -1,0 +1,415 @@
+%============================================================================
+% APPENDIX D: TROUBLESHOOTING GUIDE
+%============================================================================
+\section{Troubleshooting Guide}
+\label{appendix:troubleshooting}
+
+This appendix provides comprehensive troubleshooting guidance for common issues encountered when deploying and operating FLOPY-NET, organized by component and symptom type.
+
+\subsection{General System Issues}
+
+\subsubsection{Docker and Container Issues}
+
+\begin{table}[H]
+\centering
+\caption{Docker-Related Issues and Solutions}
+\label{tab:docker-issues}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+\textbf{Issue} & \textbf{Symptoms} & \textbf{Solution} \\
+\midrule
+Container won't start & Exit code 125, permission errors & Check Docker daemon, user permissions \\
+Port conflicts & "Port already in use" errors & Change port mappings, check running services \\
+Image pull failures & Network timeouts, authentication errors & Verify Docker Hub access, check credentials \\
+Memory issues & OOMKilled status, container crashes & Increase memory limits, check resource usage \\
+Network isolation & Services can't communicate & Verify network configuration, check firewall \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=bashcode, caption=Docker Troubleshooting Commands]
+# Check Docker daemon status
+sudo systemctl status docker
+
+# View container resource usage
+docker stats
+
+# Inspect container configuration
+docker inspect CONTAINER_NAME
+
+# Check container logs
+docker logs CONTAINER_NAME --tail 100
+
+# Check network connectivity
+docker network ls
+docker network inspect flopynet_network
+\end{lstlisting}
+
+\subsubsection{Service Discovery Issues}
+
+\begin{lstlisting}[style=bashcode, caption=Service Discovery Debugging]
+# Test service connectivity within Docker network
+docker exec policy-engine ping fl-server
+docker exec fl-server ping collector
+
+# Check DNS resolution
+docker exec policy-engine nslookup fl-server
+docker exec policy-engine cat /etc/hosts
+
+# Verify service endpoints
+docker exec policy-engine curl http://fl-server:8080/status
+docker exec fl-server curl http://policy-engine:5000/health
+\end{lstlisting}
+
+\subsection{Policy Engine Issues}
+
+\subsubsection{Policy Engine Startup Problems}
+
+\begin{table}[H]
+\centering
+\caption{Policy Engine Troubleshooting}
+\label{tab:policy-engine-issues}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+\textbf{Issue} & \textbf{Symptoms} & \textbf{Solution} \\
+\midrule
+Configuration errors & Startup failures, JSON parse errors & Validate policy\_config.json syntax \\
+Database issues & SQLite errors, permission denied & Check database file permissions \\
+Port binding failures & Address already in use & Change POLICY\_ENGINE\_PORT environment variable \\
+Policy loading errors & Invalid policy warnings & Validate policy syntax and structure \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=bashcode, caption=Policy Engine Diagnostics]
+# Check policy engine logs
+docker-compose logs policy-engine
+
+# Validate policy configuration
+docker exec policy-engine python -m json.tool /app/config/policies/policy_config.json
+
+# Test policy engine API
+curl -v http://localhost:5000/health
+curl -v http://localhost:5000/policies
+
+# Check database file
+docker exec policy-engine ls -la /data/
+docker exec policy-engine sqlite3 /data/policies.db ".tables"
+\end{lstlisting}
+
+\subsubsection{Policy Evaluation Issues}
+
+\begin{lstlisting}[style=pythoncode, caption=Policy Debugging Script]
+#!/usr/bin/env python3
+import requests
+import json
+
+def debug_policy_engine():
+    """Debug policy engine functionality"""
+    base_url = "http://localhost:5000"
+    
+    # Test health endpoint
+    try:
+        response = requests.get(f"{base_url}/health")
+        print(f"Health check: {response.status_code}")
+        print(f"Response: {response.json()}")
+    except Exception as e:
+        print(f"Health check failed: {e}")
+    
+    # Test policy listing
+    try:
+        response = requests.get(f"{base_url}/policies")
+        print(f"Policies: {response.status_code}")
+        print(f"Count: {len(response.json())}")
+    except Exception as e:
+        print(f"Policy listing failed: {e}")
+    
+    # Test policy creation
+    test_policy = {
+        "name": "test_policy",
+        "description": "Test policy for debugging",
+        "rules": [{"field": "test", "operator": "==", "value": "debug"}]
+    }
+    
+    try:
+        response = requests.post(f"{base_url}/policies", json=test_policy)
+        print(f"Policy creation: {response.status_code}")
+        if response.status_code == 201:
+            print("Policy created successfully")
+        else:
+            print(f"Error: {response.text}")
+    except Exception as e:
+        print(f"Policy creation failed: {e}")
+
+if __name__ == "__main__":
+    debug_policy_engine()
+\end{lstlisting}
+
+\subsection{FL Server Issues}
+
+\subsubsection{FL Server Connectivity Problems}
+
+\begin{table}[H]
+\centering
+\caption{FL Server Troubleshooting}
+\label{tab:fl-server-issues}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+\textbf{Issue} & \textbf{Symptoms} & \textbf{Solution} \\
+\midrule
+Client connection failures & Timeout errors, connection refused & Check network configuration, firewall rules \\
+Training not starting & Server idle, no client participation & Verify minimum client threshold \\
+Policy engine integration & Authorization failures & Check policy engine connectivity \\
+Resource exhaustion & High memory/CPU usage & Monitor resource usage, adjust limits \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=bashcode, caption=FL Server Diagnostics]
+# Check FL server status
+curl http://localhost:8080/status
+
+# Monitor FL server logs
+docker-compose logs -f fl-server
+
+# Test FL server endpoints
+curl -X POST http://localhost:8080/start
+curl http://localhost:8080/clients
+curl http://localhost:8080/metrics
+
+# Check resource usage
+docker stats fl-server
+\end{lstlisting}
+
+\subsubsection{Client Registration Issues}
+
+\begin{lstlisting}[style=bashcode, caption=Client Registration Debugging]
+# Check client logs
+docker-compose logs fl-client-1
+docker-compose logs fl-client-2
+
+# Test client registration manually
+curl -X POST http://localhost:8080/register \
+  -H "Content-Type: application/json" \
+  -d '{"client_id": "debug_client", "capabilities": ["basic"]}'
+
+# Verify client list
+curl http://localhost:8080/clients | jq .
+\end{lstlisting}
+
+\subsection{Dashboard Issues}
+
+\subsubsection{Dashboard Connectivity Problems}
+
+\begin{table}[H]
+\centering
+\caption{Dashboard Troubleshooting}
+\label{tab:dashboard-issues}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+\textbf{Issue} & \textbf{Symptoms} & \textbf{Solution} \\
+\midrule
+Frontend not loading & Blank page, 404 errors & Check dashboard-frontend service status \\
+API connection failures & Empty data, connection errors & Verify dashboard-backend connectivity \\
+Real-time updates not working & Stale data, no refreshing & Check WebSocket connections \\
+Service integration issues & Missing metrics, partial data & Verify service endpoint configuration \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=bashcode, caption=Dashboard Diagnostics]
+# Check dashboard services
+docker-compose ps | grep dashboard
+
+# Test dashboard backend API
+curl http://localhost:8001/api/system/status
+curl http://localhost:8001/api/fl/status
+curl http://localhost:8001/api/policy/status
+
+# Check frontend access
+curl -I http://localhost:8085/
+
+# Monitor dashboard logs
+docker-compose logs -f dashboard-backend
+docker-compose logs -f dashboard-frontend
+\end{lstlisting}
+
+\subsection{Network and SDN Issues}
+
+\subsubsection{SDN Controller Problems}
+
+\begin{table}[H]
+\centering
+\caption{SDN Controller Troubleshooting}
+\label{tab:sdn-issues}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+\textbf{Issue} & \textbf{Symptoms} & \textbf{Solution} \\
+\midrule
+Controller startup failures & Ryu application errors & Check Ryu configuration, Python dependencies \\
+Switch connectivity issues & No switches detected & Verify GNS3 configuration, OpenFlow settings \\
+Flow installation failures & Traffic not prioritized & Check OpenFlow version compatibility \\
+API endpoint errors & REST API not responding & Verify Ryu REST API configuration \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[style=bashcode, caption=SDN Controller Diagnostics]
+# Check SDN controller logs
+docker-compose logs sdn-controller
+
+# Test SDN controller API
+curl http://localhost:8181/stats/switches
+curl http://localhost:8181/stats/flows/1
+
+# Test FL-specific endpoints
+curl -X POST http://localhost:8181/fl/register/server \
+  -H "Content-Type: application/json" \
+  -d '{"server_ip": "192.168.100.10"}'
+
+# Check Ryu application status
+docker exec sdn-controller ps aux | grep ryu
+\end{lstlisting}
+
+\subsubsection{GNS3 Integration Issues}
+
+\begin{lstlisting}[style=bashcode, caption=GNS3 Troubleshooting]
+# Check GNS3 server status (if running separately)
+curl http://localhost:3080/v2/version
+
+# Test GNS3 project access
+curl http://localhost:3080/v2/projects
+
+# Check virtual network interfaces
+docker exec sdn-controller ip addr show
+
+# Test OpenFlow connectivity
+docker exec sdn-controller nc -zv gns3-server 6633
+\end{lstlisting}
+
+\subsection{Performance Issues}
+
+\subsubsection{Resource Utilization Problems}
+
+\begin{lstlisting}[style=bashcode, caption=Performance Diagnostics]
+# Monitor overall system resources
+docker stats --no-stream
+
+# Check disk usage
+df -h
+docker system df
+
+# Monitor network usage
+docker exec policy-engine netstat -i
+docker exec fl-server ss -tuln
+
+# Check memory and CPU limits
+docker inspect policy-engine | jq '.[0].HostConfig.Memory'
+docker inspect fl-server | jq '.[0].HostConfig.CpuShares'
+\end{lstlisting}
+
+\subsubsection{Database Performance Issues}
+
+\begin{lstlisting}[style=bashcode, caption=Database Performance Debugging]
+# Check SQLite database size and performance
+docker exec policy-engine ls -lh /data/policies.db
+
+# Analyze database queries (if SQLite3 available)
+docker exec policy-engine sqlite3 /data/policies.db \
+  ".timeout 2000" \
+  "EXPLAIN QUERY PLAN SELECT * FROM policies;"
+
+# Check database locks
+docker exec policy-engine fuser /data/policies.db
+\end{lstlisting}
+
+\subsection{Configuration Issues}
+
+\subsubsection{Environment Variable Problems}
+
+\begin{lstlisting}[style=bashcode, caption=Environment Configuration Debugging]
+# Check environment variables in running containers
+docker exec policy-engine env | grep -E "(POLICY|FL|LOG)"
+docker exec fl-server env | grep -E "(FL|POLICY|SERVER)"
+
+# Verify Docker Compose environment loading
+docker-compose config
+
+# Check for environment file issues
+cat .env | grep -v "^#" | grep -v "^$"
+\end{lstlisting}
+
+\subsubsection{Configuration File Validation}
+
+\begin{lstlisting}[style=bashcode, caption=Configuration Validation]
+# Validate JSON configuration files
+find config/ -name "*.json" -exec echo "Checking {}" \; \
+  -exec python -m json.tool {} > /dev/null \;
+
+# Check Docker Compose file syntax
+docker-compose config -q
+
+# Validate policy configuration structure
+docker exec policy-engine python -c "
+import json
+with open('/app/config/policies/policy_config.json') as f:
+    config = json.load(f)
+    print(f'Loaded {len(config.get(\"policies\", []))} policies')
+"
+\end{lstlisting}
+
+\subsection{Logging and Monitoring}
+
+\subsubsection{Log Aggregation and Analysis}
+
+\begin{lstlisting}[style=bashcode, caption=Log Analysis Tools]
+# Aggregate all service logs with timestamps
+docker-compose logs -t > flopynet-logs.txt
+
+# Filter logs by severity
+docker-compose logs | grep -i error
+docker-compose logs | grep -i warning
+
+# Monitor real-time logs for specific patterns
+docker-compose logs -f | grep -E "(ERROR|WARN|FAIL)"
+
+# Extract performance metrics from logs
+docker-compose logs collector | grep -E "(latency|throughput|response_time)"
+\end{lstlisting}
+
+\subsubsection{Health Check Implementation}
+
+\begin{lstlisting}[style=bashcode, caption=Comprehensive Health Check Script]
+#!/bin/bash
+# health_check.sh - Comprehensive system health verification
+
+echo "=== FLOPY-NET Health Check ==="
+
+# Check Docker services
+echo "Checking Docker services..."
+docker-compose ps
+
+# Check service health endpoints
+services=("policy-engine:5000/health" "fl-server:8080/status" "collector:8000/health")
+
+for service in "${services[@]}"; do
+    echo "Checking $service..."
+    if curl -f "http://localhost:${service#*:}" > /dev/null 2>&1; then
+        echo "✓ $service is healthy"
+    else
+        echo "✗ $service is not responding"
+    fi
+done
+
+# Check resource usage
+echo "Checking resource usage..."
+docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+
+# Check network connectivity
+echo "Checking inter-service connectivity..."
+docker exec policy-engine ping -c 1 fl-server > /dev/null 2>&1 && echo "✓ Policy Engine → FL Server" || echo "✗ Policy Engine → FL Server"
+
+echo "Health check complete."
+\end{lstlisting}
+
+This troubleshooting guide provides systematic approaches to diagnosing and resolving issues across all FLOPY-NET components, enabling efficient problem resolution and system maintenance.

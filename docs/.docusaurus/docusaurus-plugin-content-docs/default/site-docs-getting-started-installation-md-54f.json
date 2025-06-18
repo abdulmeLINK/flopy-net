@@ -1,0 +1,27 @@
+{
+  "id": "getting-started/installation",
+  "title": "Installation",
+  "description": "Get FLOPY-NET up and running on your system in just a few steps.",
+  "source": "@site/docs/getting-started/installation.md",
+  "sourceDirName": "getting-started",
+  "slug": "/getting-started/installation",
+  "permalink": "/flopy-net/docs/getting-started/installation",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/getting-started/installation.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Welcome to FLOPY-NET",
+    "permalink": "/flopy-net/docs/"
+  },
+  "next": {
+    "title": "Quick Start",
+    "permalink": "/flopy-net/docs/getting-started/quick-start"
+  }
+}

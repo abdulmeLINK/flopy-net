@@ -1,0 +1,84 @@
+name: Deploy Documentation to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths: 
+      - 'docs/**'
+      - '.github/workflows/deploy-docs.yml'
+  pull_request:
+    branches: [main]
+    paths: 
+      - 'docs/**'
+
+jobs:
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for better build performance
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd docs
+          npm ci
+      
+      - name: Build website
+        run: |
+          cd docs
+          npm run build
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/build
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        if: github.ref == 'refs/heads/main'
+
+  # Test build on PRs
+  test-build:
+    name: Test Build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd docs
+          npm ci
+      
+      - name: Test build
+        run: |
+          cd docs
+          npm run build

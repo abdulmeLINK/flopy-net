@@ -1,0 +1,24 @@
+{
+  "id": "user-guide/monitoring",
+  "title": "Monitoring and Troubleshooting",
+  "description": "This guide provides comprehensive monitoring capabilities and troubleshooting procedures for FLOPY-NET experiments, helping you identify issues, optimize performance, and maintain system health.",
+  "source": "@site/docs/user-guide/monitoring.md",
+  "sourceDirName": "user-guide",
+  "slug": "/user-guide/monitoring",
+  "permalink": "/flopy-net/docs/user-guide/monitoring",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/user-guide/monitoring.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Running Experiments",
+    "permalink": "/flopy-net/docs/user-guide/running-experiments"
+  },
+  "next": {
+    "title": "Policy Management",
+    "permalink": "/flopy-net/docs/user-guide/policy-management"
+  }
+}

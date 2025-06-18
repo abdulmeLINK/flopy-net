@@ -1,256 +1,139 @@
-# Federated Learning Framework
+# FLOPY-NET: Federated Learning and SDN Observatory Platform
 
-This framework provides a modular architecture for building federated learning systems with an emphasis on performance, security, and policy-based management.
+FLOPY-NET is a comprehensive platform for simulating and monitoring federated learning (FL) environments over a Software-Defined Network (SDN). It integrates GNS3 for network emulation, a custom FL framework, and a monitoring dashboard to provide insights into the performance, security, and behavior of distributed learning systems.
 
-## Features
+## Key Features
 
-- **Federated Learning**: Train machine learning models across decentralized devices
-- **Policy-Based Management**: Define and enforce policies for client selection, resource allocation, and data privacy
-- **Software-Defined Networking**: Network optimizations for efficient model distribution and updates 
-- **Scalable Architecture**: Modular, extensible design to support various ML models and training strategies
-- **Realistic Simulation Scenarios**: Pre-defined realistic environments for testing federated learning strategies
+- **Federated Learning Simulation**: Train and evaluate FL models across a network of distributed clients.
+- **SDN Integration**: Utilizes an SDN controller (Ryu) to manage network traffic, enforce policies, and simulate real-world network conditions.
+- **Comprehensive Monitoring Dashboard**: A web-based interface to visualize FL training progress, network topology, system events, and policy compliance.
+- **Policy Engine**: A centralized service to define and enforce rules for network traffic and component interactions.
+- **Data Collection and Analysis**: A dedicated collector service gathers metrics from all components for storage and analysis.
+- **Realistic Scenario Simulation**: Define and run complex scenarios involving different network conditions (e.g., packet loss, latency) and node behaviors.
+
+---
 
 ## Project Structure
 
-```
-src/
-├── api/                   # API interface layer
-│   └── simulation_api.py  # Simulation API routes
-├── application/           # Application layer containing services and use cases
-│   ├── fl_strategies/     # Federated learning strategies (FedAvg, etc.)
-│   └── services/          # Application services
-├── domain/                # Domain layer with core business logic and interfaces
-│   ├── entities/          # Domain entities (Model, Client, etc.)
-│   ├── interfaces/        # Repository and service interfaces
-│   ├── policy/            # Policy-related components
-│   │   └── policy_engine.py  # Policy engine implementation
-│   └── scenarios/         # Simulation scenarios
-│       ├── scenario_registry.py  # Registry for all scenarios
-│       ├── urban_scenario.py     # Urban environment scenario
-│       ├── industrial_iot_scenario.py  # Industrial IoT scenario
-│       └── healthcare_scenario.py      # Healthcare scenario
-├── infrastructure/        # Infrastructure implementation layer
-│   ├── repositories/      # Data storage implementations
-│   └── sdn/               # Software-defined networking components
-├── service/               # Service layer
-│   └── simulation_runner.py  # Simulation execution service
-└── main.py                # Main application entry point
-```
-
-## Model Repository
-
-Models are stored using the `FileModelRepository` implementation with the following structure:
+The project is organized into several key directories:
 
 ```
-models/
-├── [model_name]/
-│   ├── [version]_metadata.json     # Model metadata
-│   ├── [version]_weights_0.npy     # Weight array 0
-│   ├── [version]_weights_1.npy     # Weight array 1
-│   └── ...
+/
+├── dashboard/        # The web-based monitoring dashboard (React frontend and FastAPI backend)
+├── src/              # The core Python source code for all backend services
+│   ├── collector/      # Metric collection service
+│   ├── fl/             # Federated learning framework components
+│   ├── ml/             # Core machine learning models and utilities
+│   ├── networking/     # Networking simulation and GNS3 integration
+│   ├── policy_engine/  # Policy enforcement service
+│   └── scenarios/      # Definable simulation scenarios
+├── config/           # System configuration files
+├── scripts/          # Utility and setup scripts
+└── docker-compose.yml # Main Docker Compose file for launching the platform
 ```
 
-Key improvements:
-- NumPy arrays are properly serialized for storage
-- Efficient binary storage of model weights
-- Versioning support for tracking model evolution
-
-## Simulation Scenarios
-
-The framework includes predefined realistic scenarios for testing federated learning strategies:
-
-### Urban Scenario
-
-A city environment simulation with the following characteristics:
-- Mobile and stationary clients (smartphones, laptops, IoT devices)
-- Urban network infrastructure with varying signal quality
-- Rush hour congestion patterns
-- WiFi/cellular handovers
-- High device heterogeneity
-
-### Industrial IoT Scenario
-
-A factory floor environment with:
-- Smart manufacturing equipment and industrial sensors
-- Challenging RF conditions (metal interference, machinery noise)
-- Time-sensitive applications with high reliability requirements
-- Legacy and modern equipment coexistence
-- Shift patterns affecting network load
-
-### Healthcare Scenario
-
-A hospital and clinic environment featuring:
-- Medical imaging devices (MRI, CT, X-ray)
-- Strict privacy and security requirements
-- High reliability needs for patient-critical systems
-- Heterogeneous data distributions across facilities
-- Priority-based network traffic for medical applications
-
-## Simulation Policy Engine
-
-The framework includes a powerful policy engine that enforces rules across the federated learning system. The policy engine is integrated with simulations to provide realistic policy-based behavior:
-
-### Policy Domains
-
-Policies are organized by domains to match different simulation scenarios:
-
-- **Healthcare**: Policies for healthcare environments with strict privacy and security requirements
-- **Industrial IoT**: Policies for industrial environments with high reliability requirements
-- **Urban**: Policies for urban environments with mobile devices and varying connectivity
-- **General**: Default policies applicable to all scenarios
-
-### Policy Types
-
-The policy engine supports several types of policies:
-
-- **Server Configuration**: Control server behavior including minimum client requirements and privacy mechanisms
-- **Client Selection**: Define which clients can participate in training based on battery levels, charging status, etc.
-- **Network**: Manage traffic priorities, encryption requirements, and latency constraints
-- **Data Privacy**: Enforce anonymization requirements and compliance with regulations (e.g., HIPAA)
-
-### Using Custom Policies
-
-When running simulations, you can provide custom policy configurations:
-
-```json
-{
-  "server_config": [
-    {
-      "min_clients": 10,
-      "privacy_mechanism": "secure_aggregation"
-    }
-  ],
-  "network": [
-    {
-      "traffic_priority": {
-        "fl_training": 2,
-        "model_distribution": 1
-      },
-      "encryption": "required"
-    }
-  ]
-}
-```
-
-This can be passed when starting a simulation:
-
-```bash
-curl -X POST "http://localhost:8000/api/simulations" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "scenario_name": "Healthcare", 
-    "policy_config": {
-      "server_config": [{"min_clients": 10, "privacy_mechanism": "secure_aggregation"}],
-      "network": [{"encryption": "required", "encryption_level": "AES-256"}]
-    }
-  }'
-```
+---
 
 ## Getting Started
 
 ### Prerequisites
 
+- Docker and Docker Compose
 - Python 3.8+
-- NumPy
-- PyTorch (or other ML frameworks)
-- FastAPI (for API access)
+- Node.js and npm (for frontend development)
+- A running GNS3 server (configured in `docker-compose.yml` and `config/`)
 
-### Installation
+### Running the Platform
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/federated-learning.git
-cd federated-learning
+1.  **Clone the repository:**
+    ```bash
+git clone <repository-url>
+    cd flopy-net
+    ```
 
-# Setup virtual environment
-python -m venv fl_venv
-source fl_venv/bin/activate  # On Windows: fl_venv\Scripts\activate
+2.  **Configure Environment Variables:**
+    Create a `.env` file in the root directory and configure the service URLs, particularly for GNS3. You can use the `docker-compose.yml` file as a reference.
+    ```env
+    GNS3_URL=http://<your-gns3-server-ip>:3080
+    POLICY_ENGINE_URL=http://localhost:5000
+    # ... other variables
+    ```
 
-# Install dependencies
-pip install -r requirements.txt
-```
+3.  **Start the services:**
+    ```bash
+docker-compose up -d
+    ```
 
-### Running the Simulation
+4.  **Access the Dashboard:**
+    Open your browser and navigate to `http://localhost:8085`.
 
-#### Simulation Mode
+---
 
-Run the application in simulation mode:
+## System Components
 
-```bash
-python -m src.main --mode simulation --port 8000
-```
+### 1. Dashboard
 
-This launches a dedicated FastAPI server with the simulation API endpoints.
+The dashboard provides a comprehensive web-based interface to monitor and control the entire FLOPY-NET system. It offers real-time visualization of federated learning progress, network topology, system metrics, and policy compliance.
 
-#### Using the Simulation API
+**Key Features:**
+- **Real-time FL Monitoring**: Training progress, client status, model metrics
+- **Network Visualization**: Interactive topology maps, SDN integration, GNS3 status
+- **Policy Dashboard**: Compliance monitoring, security metrics, trust scores
+- **System Health**: Component status, resource usage, performance analytics
 
-The simulation API provides endpoints for running and managing federated learning simulations with different scenarios:
+**Architecture:**
+- **Frontend**: React 18 + TypeScript with Material-UI and interactive visualizations
+- **Backend**: FastAPI server aggregating data from Collector, GNS3, and Policy Engine
+- **Alternative Interface**: Dash-based dashboard with Plotly charts
 
-```bash
-# List available scenarios
-curl -X GET "http://localhost:8000/api/simulations/scenarios" -H "accept: application/json"
+**Access Points:**
+- Main Dashboard: http://localhost:8085
+- API Documentation: http://localhost:8001/docs
+- Alternative Interface: http://localhost:8050
 
-# Get details about a specific scenario
-curl -X GET "http://localhost:8000/api/simulations/scenarios/Healthcare" -H "accept: application/json"
+For detailed setup, development, and API documentation, see `dashboard/README.md`.
 
-# Start a simulation with a specific scenario
-curl -X POST "http://localhost:8000/api/simulations" \
-  -H "Content-Type: application/json" \
-  -d '{"scenario_name": "Healthcare", "policy_config": {"server_config": [{"min_clients": 8}]}}'
+### 2. Collector
 
-# List all running simulations
-curl -X GET "http://localhost:8000/api/simulations" -H "accept: application/json"
+The collector service is responsible for gathering, storing, and providing metrics from all other components in the system, including the FL server, network switches, and policy engine. It uses a time-series database for efficient storage and retrieval.
 
-# Get details about a specific simulation
-curl -X GET "http://localhost:8000/api/simulations/{simulation_id}" -H "accept: application/json"
+### 3. Policy Engine
 
-# Get metrics for a specific simulation
-curl -X GET "http://localhost:8000/api/simulations/{simulation_id}/metrics" -H "accept: application/json"
+The policy engine is a central service that enforces rules and security policies. Other components query the policy engine to determine if actions are permitted (e.g., "Can this client join the training round?"). Policies are defined in configuration files and can be dynamically updated.
 
-# Stop a running simulation
-curl -X POST "http://localhost:8000/api/simulations/{simulation_id}/stop" -H "accept: application/json"
-```
+### 4. Networking
 
-#### Using Python script
+The networking component, powered by GNS3 and an SDN controller, simulates the underlying network topology. It allows for creating realistic network environments for the FL clients and servers, including the ability to introduce packet loss, latency, and other challenges.
 
-```python
-import requests
+### 5. Scenarios
 
-# Base URL for the simulation API
-base_url = "http://localhost:8000/api/simulations"
+Scenarios are Python classes that define a complete experiment, including the network topology, the FL training configuration, and any specific events or network conditions to simulate. This allows for reproducible and complex experiments.
 
-# List available scenarios
-response = requests.get(f"{base_url}/scenarios")
-scenarios = response.json()
-print(f"Available scenarios: {[s['name'] for s in scenarios]}")
+---
 
-# Run a simulation
-response = requests.post(
-    base_url,
-    json={
-        "scenario_name": "Healthcare",
-        "config_overrides": {
-            "server": {
-                "min_clients": 8
-            }
-        }
-    }
-)
-simulation = response.json()
-simulation_id = simulation["simulation_id"]
-print(f"Started simulation with ID: {simulation_id}")
+## Documentation Structure
 
-# Monitor simulation status
-response = requests.get(f"{base_url}/{simulation_id}")
-status = response.json()["status"]
-print(f"Simulation status: {status}")
+The project documentation is organized as follows:
 
-# Get simulation metrics
-response = requests.get(f"{base_url}/{simulation_id}/metrics")
-metrics = response.json()["metrics"]
-print(f"Simulation metrics: {metrics}")
-```
+### Component Documentation
+- **`dashboard/README.md`**: Complete dashboard setup, development, and API documentation
+- **`src/ml/README.md`**: Machine learning models, dynamic loading, and development guidelines
+- **`src/networking/README.md`**: Network simulation and GNS3 integration overview
+- **`src/networking/simulators/README.md`**: Detailed simulator implementation and usage
 
-## License
+### Configuration Documentation
+- **`config/README.md`**: Configuration system overview, file hierarchy, and best practices
+- **`config/policies/README.md`**: Policy definitions, management, and development
+- **`config/gns3/templates/README.md`**: GNS3 template configuration and IP management
 
-[MIT License](LICENSE)
+### Utility Documentation
+- **`scripts/README.md`**: Utility scripts for GNS3 management, cleanup, and maintenance
+
+### Quick Reference
+- **System Architecture**: This README (overview and getting started)
+- **Dashboard Access**: http://localhost:8085 (frontend), http://localhost:8001/docs (API)
+- **Configuration Hierarchy**: CLI Args > Environment Variables > JSON Files > Defaults
+- **Policy Management**: Edit `config/policies/policies.json` for active policies
+- **GNS3 Management**: Use scripts in `scripts/` directory for maintenance
+
+---

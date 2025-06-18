@@ -1,0 +1,24 @@
+{
+  "id": "api/collector-api",
+  "title": "Collector API Reference",
+  "description": "The Collector API provides access to system metrics, monitoring data, and real-time performance information from all FLOPY-NET components.",
+  "source": "@site/docs/api/collector-api.md",
+  "sourceDirName": "api",
+  "slug": "/api/collector-api",
+  "permalink": "/flopy-net/docs/api/collector-api",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/api/collector-api.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Policy Engine API Reference",
+    "permalink": "/flopy-net/docs/api/policy-engine-api"
+  },
+  "next": {
+    "title": "Dashboard API Reference",
+    "permalink": "/flopy-net/docs/api/dashboard-api"
+  }
+}

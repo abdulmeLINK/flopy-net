@@ -1,0 +1,556 @@
+%============================================================================
+% SECTION 5: FEDERATED LEARNING FRAMEWORK
+%============================================================================
+\section{Federated Learning Framework}
+\label{sec:fl-framework}
+
+The Federated Learning Framework represents the core distributed machine learning implementation that enables privacy-preserving training across multiple clients while maintaining data locality. This framework provides a scalable server-client architecture with custom enhancements for network integration, policy compliance, and comprehensive monitoring.
+
+\subsection{Architecture Overview}
+
+The FL Framework implements a hierarchical federated learning architecture optimized for network-aware operations and policy enforcement:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2.5cm,    server/.style={rectangle, rounded corners, minimum width=4cm, minimum height=1.5cm, text centered, draw, thick, fill=primary!20, align=center},
+    client/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, fill=secondary!20, align=center},
+    service/.style={rectangle, rounded corners, minimum width=2cm, minimum height=1cm, text centered, draw, thick, fill=accent!20, align=center},
+    flow/.style={->, thick, >=stealth}
+]
+    % FL Server Layer
+    \node[server] (fl_server) at (0,6) {%
+        \textbf{FL Server (Port 8080)}\\ %
+        abdulmelink/flopynet-server\\ %
+        IP: 192.168.100.10%
+    };
+    
+    \node[service] (api) at (4,6) {HTTP API\\ 8081};
+    \node[service] (coord) at (4,5) {Training\\ Coordinator};
+    \node[service] (agg) at (4,4) {Model\\ Aggregator};
+    
+    % FL Client Layer
+    \node[client] (client1) at (-4,2) {FL Client 1\\ 192.168.100.101};
+    \node[client] (client2) at (0,2) {FL Client 2\\ 192.168.100.102};
+    \node[client] (clientn) at (4,2) {FL Client N\\ 100-255 range};
+    
+    % Integration Layer
+    \node[service, fill=success!20] (policy) at (-4,0) {Policy Engine\\ 5000};
+    \node[service, fill=success!20] (collector) at (0,0) {Collector\\ 8000};
+    \node[service, fill=success!20] (sdn) at (4,0) {SDN Controller\\ 6633};
+    
+    % FL Protocol Connections
+    \draw[flow, color=primary, thick] (fl_server) -- (client1) node[midway, left] {FL Protocol};
+    \draw[flow, color=primary, thick] (fl_server) -- (client2);
+    \draw[flow, color=primary, thick] (fl_server) -- (clientn) node[midway, right] {FL Protocol};
+    
+    % Service Connections
+    \draw[flow, color=secondary] (fl_server) -- (api);
+    \draw[flow, color=secondary] (fl_server) -- (coord);
+    \draw[flow, color=secondary] (fl_server) -- (agg);
+    
+    % Integration Connections
+    \draw[flow, color=success, dashed] (fl_server) -- (policy) node[midway, below left] {Policy Check};
+    \draw[flow, color=success, dashed] (fl_server) -- (collector) node[midway, below] {Metrics};
+    \draw[flow, color=accent, dotted] (sdn) -- (client1);
+    \draw[flow, color=accent, dotted] (sdn) -- (client2);
+    \draw[flow, color=accent, dotted] (sdn) -- (clientn);
+\end{tikzpicture}
+\caption{Federated Learning Framework Architecture}
+\label{fig:fl-framework-architecture}
+\end{figure}
+
+\subsection{Core Components}
+
+\subsubsection{FL Server Implementation}
+
+The FL Server coordinates the federated learning process across distributed clients:
+
+\begin{lstlisting}[style=pythoncode, caption=FL Server Core Implementation]
+class FLServer:
+    """Federated Learning Server implementation."""
+    
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize the FL server with configuration."""
+        self.config = config
+        self.host = config.get("host", "0.0.0.0")
+        self.port = config.get("port", 8080)
+        self.rounds = config.get("rounds", 3)
+        self.min_clients = config.get("min_clients", 1)
+        self.min_available_clients = config.get("min_available_clients", self.min_clients)
+        self.model_name = config.get("model", "unknown")
+        self.dataset = config.get("dataset", "unknown")
+        self.server_status = "initializing"
+        self.is_running = False
+        self.server = None
+        self.metrics_thread = None
+        
+        # Policy engine integration
+        self.policy_engine_url = config.get("policy_engine_url", "http://localhost:5000")
+        self.policy_auth_token = config.get("policy_auth_token", None)
+        self.policy_timeout = config.get("policy_timeout", 10)
+        self.policy_max_retries = config.get("policy_max_retries", 3)
+        
+        # Results and metrics configuration
+        self.results_dir = config.get("results_dir", "./results")
+        self.metrics_host = config.get("metrics_host", "0.0.0.0")
+        self.metrics_port = config.get("metrics_port", 8081)
+        
+        # Model parameters persistence
+        self.model_checkpoint_file = config.get("model_checkpoint_file", "./last_model_checkpoint.pkl")
+        self.saved_parameters = None
+        
+        # Initialize global metrics with server configuration
+        global_metrics["start_time"] = time.time()
+        global_metrics["current_round"] = 0
+        global_metrics["connected_clients"] = 0
+        global_metrics["policy_checks_performed"] = 0
+        global_metrics["policy_checks_allowed"] = 0
+        global_metrics["policy_checks_denied"] = 0
+        policy_result = await self.policy_client.check_policy({
+            "type": "training_round",
+            "round": self.current_round,
+            "active_clients": len(self.clients)
+        })
+        
+        if policy_result["action"] != "ALLOW":
+            raise PolicyViolationError(policy_result["reason"])
+        
+        # Select clients for this round
+        selected_clients = self._select_clients()
+        
+        # Send model to selected clients
+        client_tasks = [
+            self._send_model_to_client(client_id)
+            for client_id in selected_clients
+        ]
+        
+        # Wait for client updates
+        client_updates = await asyncio.gather(*client_tasks)
+        
+        # Aggregate client updates
+        aggregated_model = self._aggregate_updates(client_updates)
+        
+        # Update global model
+        self.model = aggregated_model
+        self.current_round += 1
+        
+        # Report metrics
+        await self._report_round_metrics(client_updates)
+        
+        return {
+            "round": self.current_round,
+            "participants": len(selected_clients),
+            "accuracy": self._evaluate_model(),
+            "convergence": self._check_convergence()
+        }
+    
+    def _select_clients(self) -> List[str]:
+        """Select clients for training round based on policy."""
+        available_clients = list(self.clients.keys())
+        min_clients = self.config.get("min_clients", 2)
+        max_clients = self.config.get("max_clients", len(available_clients))
+        
+        # Policy-based client selection
+        eligible_clients = []
+        for client_id in available_clients:
+            if self._is_client_eligible(client_id):
+                eligible_clients.append(client_id)
+        
+        if len(eligible_clients) < min_clients:
+            raise InsufficientClientsError(
+                f"Only {len(eligible_clients)} eligible clients, "
+                f"minimum required: {min_clients}"
+            )
+        
+        return random.sample(eligible_clients, min(max_clients, len(eligible_clients)))
+\end{lstlisting}
+
+\subsubsection{FL Client Implementation}
+
+FL Clients perform local training while maintaining data privacy:
+
+\begin{lstlisting}[style=pythoncode, caption=FL Client Implementation]
+class FLClient:
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize the FL client."""
+        self.config = config
+        self.client_id = config.get("client_id", f"client_{os.getpid()}")
+        self.server_host = config.get("server_host", "localhost")
+        self.server_port = config.get("server_port", 8080)
+        self.model_name = config.get("model", "cnn")
+        self.dataset = config.get("dataset", "mnist")
+        self.local_epochs = config.get("local_epochs", 1)
+        self.batch_size = config.get("batch_size", 32)
+        self.learning_rate = config.get("learning_rate", 0.01)
+        
+        # Policy engine integration
+        self.policy_engine_url = config.get("policy_engine_url", "http://localhost:5000")
+        self.policy_auth_token = config.get("policy_auth_token", None)
+        self.strict_policy_mode = config.get("strict_policy_mode", True)
+        self.policy_check_signatures = {}
+        self.last_policy_check_time = None
+        
+    def check_policy(self, policy_type: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Check if the action is allowed by the policy engine."""
+        try:
+            # Add system metrics to context
+            system_metrics = self.get_system_metrics()
+            context.update(system_metrics)
+            
+            # Add timestamp to prevent replay attacks
+            context["timestamp"] = time.time()
+            
+            # Create signature for verification
+            signature = self.create_policy_signature(policy_type, context)
+            context["signature"] = signature
+            
+            # Store signature for later verification
+            self.policy_check_signatures[signature] = {
+                "policy_type": policy_type,
+                "timestamp": context["timestamp"]
+            }
+            
+            # Call policy engine API
+            headers = {'Content-Type': 'application/json'}
+            if self.policy_auth_token:
+                headers['Authorization'] = f"Bearer {self.policy_auth_token}"
+                
+            payload = {
+                'policy_type': policy_type,
+                'context': context
+            }
+            
+            # Try the v1 API first
+            response = requests.post(
+                f"{self.policy_engine_url}/api/v1/check",
+                headers=headers,
+                json=payload,
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"Policy check result: {result}")
+                result["signature"] = signature
+                return result
+            else:
+                logger.warning(f"Failed to check policy: {response.status_code}")
+                
+                # In strict mode, fail if policy check fails
+                if self.strict_policy_mode:
+                    raise PolicyEnforcementError(f"Policy check failed")
+                
+                # Default to allowing if policy engine is unreachable
+                return {"allowed": True, "reason": "Policy engine unavailable"}
+                
+        except Exception as e:
+            logger.error(f"Error checking policy: {e}")
+              # In strict mode, fail if policy check fails
+            if self.strict_policy_mode:
+                raise PolicyEnforcementError(f"Policy check error: {str(e)}")
+            
+            # Default to allowing if policy engine is unreachable
+            return {"allowed": True, "reason": f"Error checking policy: {e}"}
+\end{lstlisting}
+
+\subsubsection{Training Loop Implementation}
+
+The FL client implements a robust training loop with error handling and metrics collection:
+
+\begin{lstlisting}[language=Python, caption=Training Loop with Loss Tracking]
+def train_epoch(self, model, data_loader, optimizer, criterion):
+    """Train model for one epoch with comprehensive logging"""
+    model.train()
+    epoch_losses = []
+    
+    for batch_idx, (data, targets) in enumerate(data_loader):
+        optimizer.zero_grad()
+        outputs = model(data)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+        
+        epoch_losses.append(loss.item())
+        
+        if batch_idx % 10 == 0:
+            logger.info(f"Batch {batch_idx}: Loss = {loss.item():.6f}")
+    
+    avg_epoch_loss = sum(epoch_losses) / len(epoch_losses)
+    return avg_epoch_loss
+
+def local_training(self, epochs=5, learning_rate=0.01):
+    """Execute local training with comprehensive metrics"""
+    training_loss = []
+    
+    for epoch in range(epochs):
+        avg_epoch_loss = self.train_epoch(
+            self.model, self.train_loader, 
+            self.optimizer, self.criterion
+        )
+        training_loss.append(avg_epoch_loss)
+        
+        logger.info(f"Epoch {epoch+1}/{epochs}: Loss = {avg_epoch_loss:.6f}")
+    
+    return {
+        "epochs": epochs,
+        "final_loss": training_loss[-1],
+        "loss_history": training_loss,
+        "learning_rate": learning_rate
+    }
+
+\subsection{Federated Learning Algorithms}
+
+\subsubsection{FedAvg Implementation}
+
+The framework implements the standard Federated Averaging algorithm with enhancements:
+
+\begin{algorithm}[H]
+\caption{Enhanced FedAvg Algorithm}
+\label{alg:fedavg}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} Initial model $w_0$, number of rounds $T$, client fraction $C$
+\STATE \textbf{Output:} Final global model $w_T$
+\FOR{$t = 0$ to $T-1$}
+    \STATE $S_t \leftarrow$ PolicyEngine.SelectClients($C \cdot n$)
+    \STATE $n_t \leftarrow |S_t|$
+    \FOR{each client $k \in S_t$ \textbf{in parallel}}
+        \STATE $w_{t+1}^k \leftarrow$ ClientUpdate($k$, $w_t$)
+        \STATE PolicyEngine.ValidateUpdate($w_{t+1}^k$)
+    \ENDFOR
+    \STATE $w_{t+1} \leftarrow \sum_{k=1}^{n_t} \frac{n_k}{n} w_{t+1}^k$
+    \STATE MetricsCollector.RecordRound($t+1$, $w_{t+1}$, $S_t$)
+\ENDFOR
+\RETURN $w_T$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Advanced Aggregation Strategies}
+
+The framework supports multiple aggregation algorithms:
+
+\begin{table}[H]
+\centering
+\caption{Supported Aggregation Algorithms}
+\label{tab:aggregation-algorithms}
+\begin{tabular}{@{}llp{5cm}@{}}
+\toprule
+\textbf{Algorithm} & \textbf{Type} & \textbf{Description} \\
+\midrule
+FedAvg & Weighted Average & Standard federated averaging by data size \cite{mcmahan2017communication} \\
+FedProx & Proximal & Adds proximal term to handle heterogeneity \cite{li2020fedprox} \\
+FedNova & Normalized & Addresses client drift in heterogeneous settings \cite{wang2020fednova} \\
+SCAFFOLD & Variance Reduced & Uses control variates to reduce variance \cite{karimireddy2020scaffold} \\
+FedOpt & Adaptive & Server-side adaptive optimization \cite{reddi2020adaptive} \\
+Secure Aggregation & Privacy-Preserving & Cryptographic secure aggregation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Network Integration}
+
+\subsubsection{Client Management}
+
+The FL Framework uses a policy-based client management system:
+
+\begin{lstlisting}[style=pythoncode, caption=FL Server Client Management]
+class FLServer:
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize FL Server with policy integration."""
+        self.config = config
+        self.model_type = config.get("model", "cnn")
+        self.dataset = config.get("dataset", "mnist") 
+        self.num_rounds = config.get("num_rounds", 10)
+        self.min_clients = config.get("min_clients", 2)
+        self.fraction_fit = config.get("fraction_fit", 1.0)
+        self.fraction_evaluate = config.get("fraction_evaluate", 1.0)
+        
+        # Policy integration for training governance
+        self.policy_engine_url = config.get("policy_engine_url", "http://localhost:5000")
+        self.metrics_collector_url = config.get("metrics_collector_url", "http://localhost:8002")
+        
+        # Client tracking for coordination
+        self.active_clients = set()
+        self.client_metrics = {}
+        
+    async def check_policy(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Check policy compliance before training operations."""
+        try:
+            headers = {"Content-Type": "application/json"}
+            if hasattr(self, 'auth_token') and self.auth_token:
+                headers["Authorization"] = f"Bearer {self.auth_token}"
+            
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(
+                    f"{self.policy_engine_url}/api/policy/check",
+                    json=request_data,
+                    headers=headers
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        logger.info(f"Policy check result: {result.get('action', 'UNKNOWN')}")
+                        return result
+                    else:
+                        logger.warning(f"Policy check failed with status {response.status}")
+                        return {"action": "DENY", "reason": f"Policy service error: {response.status}"}
+        
+        except Exception as e:            logger.error(f"Policy check error: {e}")
+            return {"action": "DENY", "reason": f"Policy check failed: {str(e)}"}
+        
+        # Network quality scoring example
+        packet_loss = network_info.get("packet_loss", {}).get(client_ip, 1.0)
+        
+        # Normalize scores (lower latency and packet loss = higher score)
+        latency_score = max(0, 1 - (latency / 1000))  # Assume 1s max latency
+        bandwidth_score = min(1, bandwidth / 100)      # Assume 100 Mbps max
+        loss_score = 1 - packet_loss
+        
+        return (latency_score + bandwidth_score + loss_score) / 3
+\end{lstlisting}
+
+\subsubsection{Network Resilience}
+
+The framework implements several mechanisms for network resilience:
+
+\begin{itemize}
+    \item \textbf{Adaptive Timeout}: Dynamic timeout adjustment based on network conditions
+    \item \textbf{Model Compression}: Gradient compression to reduce communication overhead
+    \item \textbf{Asynchronous Updates}: Support for asynchronous client updates
+    \item \textbf{Checkpoint Recovery}: Automatic recovery from network failures
+\end{itemize}
+
+\subsection{Privacy and Security}
+
+\subsubsection{Differential Privacy}
+
+The framework supports differential privacy mechanisms:
+
+\begin{lstlisting}[style=pythoncode, caption=Differential Privacy Implementation]
+class DifferentialPrivacyMechanism:
+    def __init__(self, epsilon: float, delta: float):
+        self.epsilon = epsilon
+        self.delta = delta
+        
+    def add_noise(self, gradients: torch.Tensor) -> torch.Tensor:
+        """Add Gaussian noise to gradients for differential privacy."""
+        sensitivity = self._calculate_sensitivity(gradients)
+        sigma = self._calculate_noise_scale(sensitivity)
+        
+        noise = torch.normal(
+            mean=0, 
+            std=sigma, 
+            size=gradients.shape,
+            device=gradients.device
+        )
+        
+        return gradients + noise
+    
+    def _calculate_sensitivity(self, gradients: torch.Tensor) -> float:
+        """Calculate L2 sensitivity of gradients."""
+        return torch.norm(gradients, p=2).item()
+    
+    def _calculate_noise_scale(self, sensitivity: float) -> float:
+        """Calculate noise scale for (ε,δ)-differential privacy."""
+        return sensitivity * math.sqrt(2 * math.log(1.25 / self.delta)) / self.epsilon
+\end{lstlisting}
+
+\subsubsection{Secure Aggregation}
+
+Implementation of cryptographic secure aggregation:
+
+\begin{itemize}
+    \item \textbf{Homomorphic Encryption}: Allows computation on encrypted data
+    \item \textbf{Secret Sharing}: Distributes model updates across multiple servers
+    \item \textbf{Secure Multi-party Computation}: Enables privacy-preserving aggregation
+    \item \textbf{Key Management}: Secure key distribution and rotation
+\end{itemize}
+
+\subsection{Performance Optimization}
+
+\subsubsection{Model Compression}
+
+The framework implements several model compression techniques:
+
+\begin{table}[H]
+\centering
+\caption{Model Compression Techniques}
+\label{tab:compression-techniques}
+\begin{tabular}{@{}llp{5cm}@{}}
+\toprule
+\textbf{Technique} & \textbf{Compression Ratio} & \textbf{Use Case} \\
+\midrule
+Gradient Quantization & 4-8x & Reduce communication\\overhead \\
+Sparsification & 10-100x & Remove insignificant\\parameters \\
+Low-rank Approximation & 2-4x & Approximate weight matrices \\
+Huffman Encoding & 2-3x & Entropy-based compression \\
+Structured Pruning & 5-10x & Remove entire\\channels/layers \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Training Configuration}
+
+The FL Server configures training rounds with policy enforcement:
+
+\begin{lstlisting}[style=pythoncode, caption=FL Server Training Configuration]
+def configure_fit(self, server_round: int, parameters: Parameters, client_manager: ClientManager) -> List[Tuple[ClientProxy, FitIns]]:
+    """Configure the fit round with policy checks."""
+    if self.server_instance:
+        # Check if training was stopped by policy in previous round
+        with metrics_lock:
+            if global_metrics.get("training_stopped_by_policy", False):
+                reason = global_metrics.get("stop_reason", "Training stopped by policy")
+                logger.warning(f"Training was stopped by policy, terminating at round {server_round}")
+                raise StopTrainingPolicySignal(f"Training stopped by policy: {reason}")
+        
+        # Wait if training is currently paused
+        self.server_instance.wait_if_paused(f"Round {server_round} configuration")
+        
+        # Check client training policy before allowing round to start
+        current_time = time.localtime()
+        training_policy_context = {
+            "operation": "model_training",
+            "server_id": self.server_instance.config.get("server_id", "default-server"),
+            "current_round": int(server_round),
+            "server_round": int(server_round),
+            "model": self.server_instance.model_name,
+            "dataset": self.server_instance.dataset,
+            "available_clients": int(client_manager.num_available()),
+            "timestamp": time.time(),
+            "current_hour": int(current_time.tm_hour),
+            "current_minute": int(current_time.tm_min),
+            "current_day_of_week": int(current_time.tm_wday),
+            "current_timestamp": time.time()
+        }
+        
+        # Check fl_client_training policy before allowing any training
+        while True:
+            client_training_policy_result = self.server_instance.check_policy("fl_client_training", training_policy_context)
+            if client_training_policy_result.get("allowed", True):
+                logger.info(f"Policy allows round {server_round} to proceed")
+                break
+            else:
+                reason = client_training_policy_result.get("reason", "Client training denied by policy")
+                logger.warning(f"Round {server_round} PAUSED: {reason}")
+                
+                # Pause training instead of stopping
+                self.server_instance.pause_training(f"Round {server_round}: {reason}")
+                
+                # Wait and re-check policy
+                time.sleep(10)  # Check every 10 seconds
+\end{lstlisting}
+
+\subsection{Monitoring and Metrics}
+
+The FL Framework provides comprehensive monitoring capabilities:
+
+\begin{itemize}
+    \item \textbf{Training Metrics}: Accuracy, loss, convergence rate
+    \item \textbf{System Metrics}: Resource utilization, communication overhead
+    \item \textbf{Client Metrics}: Participation rate, reliability, data quality
+    \item \textbf{Network Metrics}: Latency, bandwidth, packet loss
+    \item \textbf{Security Metrics}: Privacy budget consumption, anomaly detection
+\end{itemize}
+
+The Federated Learning Framework serves as the core engine for distributed machine learning in FLOPY-NET, providing a robust, scalable, and secure platform for federated learning research and deployment.

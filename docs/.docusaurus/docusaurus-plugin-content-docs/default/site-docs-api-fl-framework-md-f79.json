@@ -1,0 +1,24 @@
+{
+  "id": "api/fl-framework",
+  "title": "FL Framework API",
+  "description": "The FL Framework provides REST APIs for managing federated learning experiments, including client registration, training coordination, and model management.",
+  "source": "@site/docs/api/fl-framework.md",
+  "sourceDirName": "api",
+  "slug": "/api/fl-framework",
+  "permalink": "/flopy-net/docs/api/fl-framework",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/api/fl-framework.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "API Reference Overview",
+    "permalink": "/flopy-net/docs/api/overview"
+  },
+  "next": {
+    "title": "Policy Engine API Reference",
+    "permalink": "/flopy-net/docs/api/policy-engine-api"
+  }
+}

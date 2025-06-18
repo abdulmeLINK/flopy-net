@@ -1,0 +1,177 @@
+{
+  "docusaurus-plugin-content-docs": {
+    "default": {
+      "path": "/flopy-net/docs",
+      "versions": [
+        {
+          "name": "current",
+          "label": "Next",
+          "isLast": true,
+          "path": "/flopy-net/docs",
+          "mainDocId": "intro",
+          "docs": [
+            {
+              "id": "api/collector",
+              "path": "/flopy-net/docs/api/collector"
+            },
+            {
+              "id": "api/collector-api",
+              "path": "/flopy-net/docs/api/collector-api",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/dashboard-api",
+              "path": "/flopy-net/docs/api/dashboard-api",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/fl-framework",
+              "path": "/flopy-net/docs/api/fl-framework",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/networking-api",
+              "path": "/flopy-net/docs/api/networking-api",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/overview",
+              "path": "/flopy-net/docs/api/overview",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/policy-engine",
+              "path": "/flopy-net/docs/api/policy-engine"
+            },
+            {
+              "id": "api/policy-engine-api",
+              "path": "/flopy-net/docs/api/policy-engine-api",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "architecture/overview",
+              "path": "/flopy-net/docs/architecture/overview",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "components/collector",
+              "path": "/flopy-net/docs/components/collector",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "components/dashboard",
+              "path": "/flopy-net/docs/components/dashboard",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "components/dashboard_new",
+              "path": "/flopy-net/docs/components/dashboard_new"
+            },
+            {
+              "id": "components/fl-framework",
+              "path": "/flopy-net/docs/components/fl-framework",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "components/networking",
+              "path": "/flopy-net/docs/components/networking",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "components/policy-engine",
+              "path": "/flopy-net/docs/components/policy-engine",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "components/scenarios",
+              "path": "/flopy-net/docs/components/scenarios"
+            },
+            {
+              "id": "development/contributing",
+              "path": "/flopy-net/docs/development/contributing",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "development/setup",
+              "path": "/flopy-net/docs/development/setup",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "getting-started/installation",
+              "path": "/flopy-net/docs/getting-started/installation",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "getting-started/quick-start",
+              "path": "/flopy-net/docs/getting-started/quick-start",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "intro",
+              "path": "/flopy-net/docs/",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "tutorials/advanced-configuration",
+              "path": "/flopy-net/docs/tutorials/advanced-configuration",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "tutorials/basic-experiment",
+              "path": "/flopy-net/docs/tutorials/basic-experiment",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "tutorials/custom-scenarios",
+              "path": "/flopy-net/docs/tutorials/custom-scenarios",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "user-guide/configuration",
+              "path": "/flopy-net/docs/user-guide/configuration"
+            },
+            {
+              "id": "user-guide/gns3-integration",
+              "path": "/flopy-net/docs/user-guide/gns3-integration",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "user-guide/monitoring",
+              "path": "/flopy-net/docs/user-guide/monitoring",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "user-guide/policy-management",
+              "path": "/flopy-net/docs/user-guide/policy-management",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "user-guide/running-experiments",
+              "path": "/flopy-net/docs/user-guide/running-experiments",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "user-guide/troubleshooting",
+              "path": "/flopy-net/docs/user-guide/troubleshooting",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "user-guides/running-experiments",
+              "path": "/flopy-net/docs/user-guides/running-experiments"
+            }
+          ],
+          "draftIds": [],
+          "sidebars": {
+            "tutorialSidebar": {
+              "link": {
+                "path": "/flopy-net/docs/",
+                "label": "intro"
+              }
+            }
+          }
+        }
+      ],
+      "breadcrumbs": true
+    }
+  }
+}

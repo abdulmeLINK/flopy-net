@@ -1,0 +1,27 @@
+{
+  "id": "getting-started/quick-start",
+  "title": "Quick Start",
+  "description": "Get hands-on with FLOPY-NET in under 10 minutes! This guide will walk you through running your first federated learning experiment with network simulation.",
+  "source": "@site/docs/getting-started/quick-start.md",
+  "sourceDirName": "getting-started",
+  "slug": "/getting-started/quick-start",
+  "permalink": "/flopy-net/docs/getting-started/quick-start",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/getting-started/quick-start.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "sidebar_position": 2
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Installation",
+    "permalink": "/flopy-net/docs/getting-started/installation"
+  },
+  "next": {
+    "title": "System Overview",
+    "permalink": "/flopy-net/docs/architecture/overview"
+  }
+}

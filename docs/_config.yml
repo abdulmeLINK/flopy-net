@@ -1,0 +1,75 @@
+# FLOPY-NET Documentation Site Configuration
+
+# Site settings
+title: "FLOPY-NET Documentation"
+description: "Comprehensive documentation for the Federated Learning and SDN Observatory Platform"
+baseurl: "/flopy-net" # the subpath of your site, e.g. /blog
+url: "https://abdulmelink.github.io" # the base hostname & protocol for your site
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Theme
+theme: just-the-docs
+remote_theme: just-the-docs/just-the-docs
+
+# Just the Docs theme configuration
+color_scheme: flopy-dark
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+
+# Navigation structure
+nav_sort: case_insensitive
+
+# Footer
+footer_content: "Copyright &copy; 2025 Abdulmelik Saylan. FLOPY-NET is open source under the MIT License."
+
+# Google Analytics (optional)
+# ga_tracking: G-XXXXXXXXXX
+
+# GitHub integration
+gh_edit_link: true
+gh_edit_link_text: "Edit this page on GitHub"
+gh_edit_repository: "https://github.com/abdulmelink/flopy-net"
+gh_edit_branch: "main"
+gh_edit_view_mode: "tree"
+
+# Aux links for the upper right navigation
+aux_links:
+  "GitHub Repository":
+    - "https://github.com/abdulmelink/flopy-net"
+  "Live Demo":
+    - "https://abdulmelink.github.io/flopy-net/"
+
+# Collection settings
+collections:
+  tutorials:
+    permalink: "/:collection/:name/"
+    output: true
+
+# Plugins
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-feed
+
+# SEO settings
+author: Abdulmelik Saylan
+twitter:
+  username: abdulmelink
+  card: summary_large_image
+
+# Custom variables
+version: "v1.0.0-alpha.8"
+github_username: abdulmelink

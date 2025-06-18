@@ -1,0 +1,408 @@
+%============================================================================
+% SECTION 6: COLLECTOR SERVICE
+%============================================================================
+\section{Collector Service}
+\label{sec:collector-service}
+
+The Collector Service serves as the central observability hub for the FLOPY-NET platform, gathering metrics, events, and operational data from all system components. Built on a SQLite-based storage architecture with configurable monitoring intervals, it provides comprehensive data collection capabilities for federated learning experiments and network analysis.
+
+\subsection{Architecture Overview}
+
+The Collector Service implements a modular monitoring architecture with specialized components for different data sources:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,    component/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, align=center},
+    storage/.style={cylinder, minimum width=2cm, minimum height=1.5cm, text centered, draw, thick, align=center},
+    flow/.style={->, thick, >=stealth}
+]
+    % Data Sources
+    \node[component, fill=primary!20] (fl_server) at (-6,6) {FL Server\\ 8085}; % Corrected port
+    \node[component, fill=primary!20] (fl_clients) at (-3,6) {FL Clients\\ 100-255};
+    \node[component, fill=primary!20] (policy) at (0,6) {Policy Engine\\ 5000};
+    \node[component, fill=primary!20] (sdn) at (3,6) {SDN Controller\\ 8181};
+    \node[component, fill=primary!20] (network) at (6,6) {Network\\ Components};
+    
+    % Collector Core
+    \node[component, fill=secondary!20, minimum width=8cm] (collector_core) at (0,4) {%
+        \textbf{Collector Service Core (Port 8000)}\\ %
+        Flask API | SQLite Storage | Scheduled Monitoring%
+    };
+    
+    % Monitoring Components
+    \node[component, fill=success!20] (fl_monitor) at (-4,2) {FL\\ Monitor};
+    \node[component, fill=success!20] (policy_monitor) at (-1,2) {Policy\\ Monitor};
+    \node[component, fill=success!20] (network_monitor) at (2,2) {Network\\ Monitor};
+    \node[component, fill=success!20] (event_monitor) at (5,2) {Event\\ Monitor};
+    
+    % Storage Layer
+    \node[storage, fill=accent!20] (sqlite_db) at (-2,0) {SQLite\\ Database};
+    \node[storage, fill=accent!20] (logs) at (2,0) {Log Files\\ (JSON)};
+    
+    % Data flows from sources to collector
+    \draw[flow, color=primary] (fl_server) -- (collector_core);
+    \draw[flow, color=primary] (fl_clients) -- (collector_core);
+    \draw[flow, color=primary] (policy) -- (collector_core);
+    \draw[flow, color=primary] (sdn) -- (collector_core);
+    \draw[flow, color=primary] (network) -- (collector_core);
+    
+    % Internal monitoring flows
+    \draw[flow, color=secondary] (collector_core) -- (fl_monitor);
+    \draw[flow, color=secondary] (collector_core) -- (policy_monitor);
+    \draw[flow, color=secondary] (collector_core) -- (network_monitor);
+    \draw[flow, color=secondary] (collector_core) -- (event_monitor);
+    
+    % Storage flows
+    \draw[flow, color=success] (fl_monitor) -- (sqlite_db);
+    \draw[flow, color=success] (policy_monitor) -- (sqlite_db);
+    \draw[flow, color=success] (network_monitor) -- (logs);
+    \draw[flow, color=success] (event_monitor) -- (logs);
+\end{tikzpicture}
+\caption{Collector Service Architecture}
+\label{fig:collector-architecture}
+\end{figure}
+
+\subsection{Core Components}
+
+\subsubsection{Monitoring Architecture}
+
+The collector employs specialized monitoring components that operate on configurable intervals:
+
+\begin{table}[H]
+\centering
+\caption{Collector Monitoring Components}
+\label{tab:collector-monitors}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Monitor} & \textbf{Default Interval} & \textbf{Purpose} \\
+\midrule
+FL Monitor & 60 seconds & Collects federated learning metrics, training progress, client status \\
+Policy Monitor & 60 seconds & Gathers policy engine statistics, rule evaluations, compliance data \\
+Network Monitor & 180 seconds & Monitors SDN controller, network topology, traffic statistics \\
+Event Monitor & 120 seconds & Captures system events, alerts, and operational logs \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The system supports two operational modes with different monitoring intervals:
+
+\begin{itemize}
+    \item \textbf{Development/Mock Mode}: Typically 3x faster (e.g., 20s for FL/Policy, 40-60s for Network/Event monitors)
+    \item \textbf{Production Mode}: Optimized intervals (60-180 seconds) for stable operation
+\end{itemize}
+
+\subsubsection{Storage Implementation}
+
+The collector uses SQLite as its primary storage backend with optimized schema design:
+
+\begin{lstlisting}[style=pythoncode, caption=Time Series Storage Implementation]
+class MetricsStorage:
+    """SQLite-based metrics storage with performance optimizations."""
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super(MetricsStorage, cls).__new__(cls)
+                    cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self, output_dir: str = "/logs", db_name: str = "metrics.db", 
+                 max_age_days: int = 7, cleanup_interval_hours: int = 6):
+        """Initialize SQLite-based metrics storage."""
+        if self._initialized:
+            return
+
+        with self._lock:
+            if self._initialized:
+                return
+
+            self.output_dir = output_dir
+            self.db_path = os.path.join(output_dir, db_name)
+            self.max_age_days = max_age_days
+            self.cleanup_interval_hours = cleanup_interval_hours
+            self._last_cleanup = datetime.now()
+            self._connection_pool = {}
+            self._pool_lock = threading.Lock()
+
+            try:
+                os.makedirs(self.output_dir, exist_ok=True)
+                self._init_database()
+                self._create_indexes()
+                logger.info(f"SQLite metrics storage initialized: {self.db_path}")
+                
+                # Run initial cleanup
+                self._cleanup_old_data()
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize SQLite storage: {e}")
+                raise
+
+            self._initialized = True
+
+    def _init_database(self):
+        """Initialize database tables with optimized schema."""
+        with self._get_connection() as conn:
+            # Main metrics table with optimized columns
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL NOT NULL,
+                    timestamp_iso TEXT NOT NULL,
+                    metric_type TEXT NOT NULL,
+                    source_component TEXT,
+                    round_number INTEGER,
+                    accuracy REAL,
+                    loss REAL,
+                    status TEXT,
+                    data_json TEXT NOT NULL,
+                    created_at REAL DEFAULT (julianday('now'))
+                )
+            """)
+            
+            # Events table
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL NOT NULL,
+                    timestamp_iso TEXT NOT NULL,
+                    event_id TEXT,
+                    source_component TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    event_level TEXT DEFAULT 'INFO',
+                    message TEXT,
+                    details_json TEXT,
+                    created_at REAL DEFAULT (julianday('now'))
+                )
+            """)
+            
+            # FL training summary table for fast dashboard queries
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS fl_training_summary (
+                    round_number INTEGER PRIMARY KEY,
+                    timestamp REAL NOT NULL,
+                    accuracy REAL,
+                    loss REAL,
+                    training_duration REAL,
+                    model_size_mb REAL,
+                    clients_count INTEGER,
+                    status TEXT,
+                    training_complete BOOLEAN DEFAULT 0,
+                    updated_at REAL DEFAULT (julianday('now'))
+                )
+            """)
+            
+            conn.commit()
+
+    def _create_indexes(self):
+        """Create optimized indexes for fast queries."""
+        with self._get_connection() as conn:
+            # Metrics table indexes
+            indexes = [
+                "CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(timestamp DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_metrics_type_timestamp ON metrics(metric_type, timestamp DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_metrics_round ON metrics(round_number) WHERE round_number IS NOT NULL",
+                "CREATE INDEX IF NOT EXISTS idx_metrics_fl_rounds ON metrics(metric_type, round_number) WHERE metric_type LIKE 'fl_round_%'",
+                "CREATE INDEX IF NOT EXISTS idx_metrics_source_timestamp ON metrics(source_component, timestamp DESC)",
+                
+                # Events table indexes
+                "CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_events_component_timestamp ON events(source_component, timestamp DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_events_type_timestamp ON events(event_type, timestamp DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_events_level ON events(event_level)",
+                
+                # FL summary indexes
+                "CREATE INDEX IF NOT EXISTS idx_fl_summary_round ON fl_training_summary(round_number DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_fl_summary_timestamp ON fl_training_summary(timestamp DESC)"
+            ]
+            
+            for index_sql in indexes:
+                try:
+                    conn.execute(index_sql)
+                except sqlite3.Error as e:
+                    logger.warning(f"Index creation warning: {e}")
+            
+            conn.commit()
+\end{lstlisting}        
+        conn.close()
+        return results
+\end{lstlisting}
+
+\subsection{Metric Types and Categories}
+
+The Collector Service handles various types of metrics from different system components:
+
+\begin{table}[H]
+\centering
+\caption{Metric Categories and Sources}
+\label{tab:metric-categories}
+\begin{tabular}{@{}llp{5cm}@{}}
+\toprule
+\textbf{Category} & \textbf{Source} & \textbf{Example Metrics} \\
+\midrule
+FL Training & FL Server & accuracy, loss, convergence\_rate, round\_duration \\
+Client Performance & FL Clients (via FL Server) & local\_accuracy, training\_time, data\_size, participation\_rate \\
+Network & SDN Controller & latency, bandwidth, packet\_loss, flow\_count \\
+Policy Compliance & Policy Engine & policy\_violations, rule\_evaluations, compliance\_score \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Monitoring Components}
+
+The collector service implements four specialized monitoring components, each responsible for different aspects of the system:
+
+\subsubsection{FL Monitor}
+Tracks federated learning progress by periodically querying the FL server for:
+\begin{itemize}
+    \item Training round metrics (accuracy, loss, convergence)
+    \item Client participation and status
+    \item Model performance statistics
+    \item Training duration and efficiency metrics
+\end{itemize}
+
+\subsubsection{Policy Monitor}
+Monitors policy engine operations and compliance:
+\begin{itemize}
+    \item Policy rule evaluations and outcomes
+    \item Compliance score calculations
+    \item Security policy violations
+    \item Resource allocation decisions
+\end{itemize}
+
+\subsubsection{Network Monitor}
+Interfaces with the SDN controller to collect network statistics:
+\begin{itemize}
+    \item Network topology changes
+    \item Traffic flow statistics
+    \item QoS policy enforcement
+    \item Bandwidth utilization metrics
+\end{itemize}
+
+\subsubsection{Event Monitor}
+Intended for capturing system-wide events and operational logs. The current implementation includes a placeholder for this functionality, which can be extended to process and store relevant event data.
+
+\subsection{API Endpoints}
+
+The Collector Service exposes comprehensive REST APIs:
+
+\begin{table}[H]
+\centering
+\caption{Collector Service API Endpoints}
+\label{tab:collector-api}
+\begin{tabular}{@{}llp{4.5cm}@{}}
+\toprule
+\textbf{Method} & \textbf{Endpoint} & \textbf{Description} \\
+\midrule
+POST & /metrics & Submit new metrics data \\
+GET & /metrics & Query historical metrics\\with filters \\
+GET & /health & Service health check \\
+GET & /config & Retrieve current service\\configuration \\
+GET & /metrics/sources & List all unique metric\\sources \\
+GET & /metrics/sources/\{source\}/names & List metric names for a\\given source \\
+GET & /metrics/sources/\{source\}/names/\{metric\}/timestamps & Get time range for a specific metric \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Configuration and Deployment}
+
+The Collector Service is configured through both environment variables and JSON configuration files:
+
+\begin{table}[H]
+\centering
+\caption{Collector Service Configuration}
+\label{tab:collector-config}
+\begin{tabular}{@{}llp{5cm}@{}}
+\toprule
+\textbf{Parameter} & \textbf{Default/Configured} & \textbf{Description} \\
+\midrule
+API\_PORT & 8000 & External API port for dashboard and direct access \\
+FL\_SERVER\_URL & http://fl\_server:8085/fl\_server & FL server endpoint for metrics collection \\
+POLICY\_ENGINE\_URL & http://policy\_engine:5000/policy\_engine & Policy engine endpoint for metrics collection \\
+SDN\_CONTROLLER\_URL & http://sdn\_controller:8181/sdn\_controller & SDN controller REST API for metrics collection \\
+STORAGE\_DB\_PATH & /app/data/collector.db & Path to the SQLite\\database file \\
+STORAGE\_LOG\_DIR & /app/logs/collector & Directory for collector log files \\
+LOG\_LEVEL & INFO & Logging verbosity level \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Monitoring Intervals}
+
+The system adapts monitoring intervals based on the operational mode:
+
+\begin{itemize}
+    \item \textbf{Development Mode}: 5-30 second intervals for rapid feedback
+    \item \textbf{Production Mode}: 60-180 second intervals for efficiency
+    \item \textbf{Event-driven Collection}: Immediate capture for critical events
+\end{itemize}
+
+\subsection{Integration with FLOPY-NET Components}
+
+The Collector Service integrates with other FLOPY-NET components through well-defined interfaces:
+
+\begin{table}[H]
+\centering
+\caption{Component Integration Points}
+\label{tab:collector-integration}
+\begin{tabular}{@{}llp{5cm}@{}}
+\toprule
+\textbf{Component} & \textbf{Integration Method} & \textbf{Data Collected} \\
+\midrule
+FL Server & HTTP polling \& metrics endpoints & Training metrics, client status, model performance \\
+Policy Engine & REST API queries & Policy evaluations, compliance scores, violations \\
+SDN Controller & OpenFlow statistics & Network topology, flow statistics, QoS metrics \\
+Dashboard & Real-time API & Aggregated metrics, historical data, system status \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Comparison with Industry Solutions}
+
+FLOPY-NET's Collector Service differs from commercial federated learning platforms in several key aspects. While platforms like NVIDIA FLARE \cite{nvidia2023flare} focus on production deployment, FLOPY-NET's approach to observability is tailored for research, similar to the goals of frameworks like Flower \cite{beutel2020flower} which also aim to support diverse experimental setups.
+
+\begin{table}[H]
+\centering
+\caption{Collector Service vs. Industry Solutions}
+\label{tab:collector-comparison}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Feature} & \textbf{FLOPY-NET} & \textbf{NVIDIA FLARE} \\
+\midrule
+Storage Backend & SQLite (research-focused) & Configurable (production-ready) \\
+Network Integration & Deep SDN integration & Basic network monitoring \\
+Policy Integration & Real-time policy monitoring & Limited policy features \\
+Deployment & Docker-based simulation & Enterprise deployment \\
+Monitoring Scope & Network + FL + Policy & Primarily FL-focused \\
+Target Use Case & Research \& experimentation & Production deployment \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Retention and Lifecycle Management}
+
+The Collector Service handles data persistence as described below:
+
+\begin{itemize}
+    \item \textbf{SQLite Optimization}: The underlying SQLite database schema includes indexes on key columns such as source, metric name, and timestamp. These indexes are designed to enhance query performance for time-series data retrieval.
+    \item \textbf{Flexible Data Storage}: Metric labels and associated metadata are stored as JSON strings within the database. This approach allows for a flexible schema capable of accommodating diverse metric structures from various components without requiring rigid table alterations.
+    \item \textbf{Data Persistence}: Collected metrics are persistently stored in the SQLite database. However, automated data retention policies (e.g., configurable time-based cleanup), data archival mechanisms, and sophisticated duplicate prevention logic are not currently implemented within the Collector Service itself. Such functionalities would require external processes or represent areas for future enhancement.
+\end{itemize}
+
+\subsection{Research and Experimental Focus}
+
+Unlike production-oriented solutions such as NVIDIA FLARE \cite{nvidia2023flare}, FLOPY-NET's Collector Service is specifically designed for research environments, a philosophy shared by frameworks such as Flower \cite{beutel2020flower} that prioritize flexibility and detailed data collection for academic exploration:
+
+\begin{itemize}
+    \item \textbf{Network-Centric}: Deep integration with SDN controllers and network simulation
+    \item \textbf{Policy-Aware}: Real-time policy compliance monitoring and evaluation
+    \item \textbf{Scenario-Based}: Support for complex experimental scenarios with varying network conditions
+    \item \textbf{Educational}: Detailed logging and metrics suitable for learning and research
+    \item \textbf{Flexible Architecture}: Easily configurable for different experimental setups
+\end{itemize}
+
+The Collector Service serves as a critical component in FLOPY-NET's research-oriented architecture, providing comprehensive observability for federated learning experiments in realistic network environments. Its integration with policy engines and SDN controllers enables researchers to study the complex interactions between network conditions, policy enforcement, and federated learning performance.

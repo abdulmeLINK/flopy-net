@@ -1,0 +1,27 @@
+{
+  "policy_id": "policy-engine",
+  "host": "0.0.0.0",
+  "port": 5000,
+  "metrics_port": 9091,
+  "log_level": "INFO",
+  "log_file": "/app/logs/policy-engine.log",
+  "policy_file": "/app/config/policies/policies.json"
+,
+  "policy_ip": "192.168.100.20"
+,
+  "collector_host": "metrics-collector"
+,
+  "fl_server_port": 8080
+,
+  "collector_port": 8081
+,
+  "node_ip_collector": "192.168.100.40"
+,
+  "node_ip_fl_server": "192.168.100.10"
+,
+  "node_ip_openvswitch": "192.168.100.60"
+,
+  "node_ip_policy_engine": "192.168.100.20"
+,
+  "node_ip_sdn_controller": "192.168.100.41"
+}

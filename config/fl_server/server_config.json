@@ -1,0 +1,23 @@
+{
+  "server_id": "fl-server",
+  "host": "0.0.0.0",
+  "port": 8080,
+  "min_clients": 1,
+  "min_available_clients": 1,
+  "log_level": "INFO",
+  "log_file": "/app/logs/fl-server.log",
+  "data_dir": "/app/data",
+  "policy_engine_host": "policy-engine",
+  "collector_host": "metrics-collector",
+  "node_ip_collector":"192.168.100.40",
+  "node_ip_fl_client_1":"192.168.100.101",
+  "node_ip_fl_client_2":"192.168.100.102",
+  "node_ip_fl_server":"192.168.100.10",
+  "node_ip_openvswitch":"192.168.100.60",
+  "node_ip_policy_engine":"192.168.100.20",
+  "node_ip_sdn_controller":"192.168.100.41",
+  "policy_engine_url":"http://policy-engine:5000",
+  "client_connection_timeout": 300,
+  "stay_alive_after_training": true,
+  "continue_without_min_clients": true
+}

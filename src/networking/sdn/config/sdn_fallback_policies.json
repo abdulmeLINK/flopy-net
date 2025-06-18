@@ -1,0 +1,175 @@
+{
+  "description": "Fallback policies applied by SDN FlowManager if Policy Engine is unreachable on startup.",
+  "policies": [
+    {
+      "id": "fallback-icmp-allow",
+      "name": "Fallback: Allow All ICMP",
+      "type": "network_security",
+      "enabled": true,
+      "rules": [
+        {
+          "id": "fallback-icmp-rule",
+          "action": "allow",
+          "match": {
+            "protocol": "icmp"
+          },
+          "description": "Allows basic ICMP connectivity (ping, etc.)"
+        }
+      ]
+    },
+    {
+      "id": "fallback-tcp-fl-basic",
+      "name": "Fallback: Allow Basic FL Client/Server TCP",
+      "type": "network_security",
+      "enabled": true,
+      "rules": [
+        {
+          "id": "fallback-client-to-server",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client", 
+            "dst_type": "fl-server"
+          },
+          "description": "Allows FL Clients to connect to the FL Server"
+        },
+        {
+          "id": "fallback-server-to-client",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-server",
+            "dst_type": "fl-client"
+          },
+          "description": "Allows FL Server to communicate back to FL Clients"
+        }
+      ]
+    },
+    {
+      "id": "fallback-collector-access",
+      "name": "Fallback: Allow Collector Access",
+      "type": "network_security",
+      "enabled": true,
+      "rules": [
+        {
+          "id": "fallback-collector-to-server",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "collector", 
+            "dst_type": "fl-server",
+            "destination_port": 8080 
+          },
+          "description": "Allows Collector to connect to FL Server"
+        },
+        {
+          "id": "fallback-collector-to-sdn",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "collector", 
+            "dst_type": "sdn-controller", 
+            "destination_port": 8181 
+          },
+          "description": "Allows Collector to connect to SDN Controller REST API"
+        },
+        {
+          "id": "fallback-server-to-collector",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-server",
+            "dst_type": "collector",
+            "destination_port": 8082
+          },
+          "description": "Allows FL Server to send data to Collector"
+        },
+         {
+          "id": "fallback-policy-engine-to-collector",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "policy-engine",
+            "dst_type": "collector",
+            "destination_port": 8082
+          },
+          "description": "Allows Policy Engine to send data to Collector"
+        },
+        {
+          "id": "fallback-sdn-to-collector",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "sdn-controller",
+            "dst_type": "collector",
+            "destination_port": 8082 
+          },
+          "description": "Allows SDN Controller to send data to Collector"
+        },
+        {
+          "id": "fallback-client-to-collector",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client",
+            "dst_type": "collector",
+            "destination_port": 8082
+          },
+          "description": "Allows FL Clients to send data to Collector"
+        }
+      ]
+    },
+    {
+      "id": "fallback-policy-engine-access",
+      "name": "Fallback: Allow Access to Policy Engine",
+      "type": "network_security",
+      "enabled": true,
+      "rules": [
+         {
+          "id": "fallback-collector-to-policy-engine",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "collector", 
+            "dst_type": "policy-engine",
+            "destination_port": 5000
+          },
+          "description": "Allows Collector to connect to Policy Engine"
+        },
+        {
+          "id": "fallback-fl-server-to-policy-engine",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-server",
+            "dst_type": "policy-engine",
+            "destination_port": 5000
+          },
+          "description": "Allows FL Server to connect to Policy Engine"
+        },
+        {
+          "id": "fallback-fl-client-to-policy-engine",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "fl-client",
+            "dst_type": "policy-engine",
+            "destination_port": 5000
+          },
+          "description": "Allows FL Clients to connect to Policy Engine"
+        },
+        {
+          "id": "fallback-sdn-controller-to-policy-engine",
+          "action": "allow",
+          "match": {
+            "protocol": "tcp",
+            "src_type": "sdn-controller",
+            "dst_type": "policy-engine",
+            "destination_port": 5000
+          },
+          "description": "Allows SDN Controller to connect to Policy Engine"
+        }
+      ]
+    }
+  ]
+} 

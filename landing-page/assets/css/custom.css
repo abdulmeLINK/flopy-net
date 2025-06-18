@@ -1,0 +1,2027 @@
+/* FLOPY-NET Landing Page - Fixed CSS */
+/* Addresses: oversized transforms, !important overrides, duplicate selectors, 
+   navigation issues, accessibility, performance, and maintainability */
+
+/* ===== CSS CUSTOM PROPERTIES (DESIGN TOKENS) ===== */
+:root {
+    /* Color Palette */
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --border-primary: #30363d;
+    --border-secondary: #21262d;
+    --text-primary: #f0f6fc;
+    --text-secondary: #8b949e;
+    --text-muted: #656d76;
+    --accent-blue: #58a6ff;
+    --accent-purple: #a5a6ff;
+    --accent-pink: #f85bb7;
+    --accent-green: #7ce38b;
+    --neon-blue: #79c0ff;
+    --neon-purple: #d2a8ff;
+    --neon-pink: #ffa7c4;
+    --glass-bg: rgba(33, 38, 45, 0.8);
+    --glass-border: rgba(120, 192, 255, 0.2);
+    
+    /* Spacing */
+    --nav-height: 64px;
+    --section-padding: 5rem;
+    --container-padding: 2rem;
+    
+    /* Animation */
+    --transition-fast: 0.2s ease;
+    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Z-index layers */
+    --z-nav: 1000;
+    --z-modal: 2000;
+    --z-tooltip: 3000;
+}
+
+/* Respect user preferences */
+@media (prefers-color-scheme: light) {
+    :root {
+        color-scheme: light dark;
+    }
+}
+
+/* Network animation background */
+#network-animation {
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(121, 192, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(210, 168, 255, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(255, 167, 196, 0.04) 0%, transparent 50%);
+}
+
+/* Glassmorphism effects */
+.backdrop-blur-md {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.backdrop-blur-lg {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* Pulse animation for hero button */
+#pulse-button {
+    background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
+    animation: pulse-glow 2s infinite;
+    box-shadow: 0 0 20px rgba(121, 192, 255, 0.3);
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(121, 192, 255, 0.3), 0 0 40px rgba(210, 168, 255, 0.1);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(121, 192, 255, 0.5), 0 0 60px rgba(210, 168, 255, 0.2);
+        transform: scale(1.02);
+    }
+}
+
+/* Hero section enhancements */
+#hero {
+    position: relative;
+    overflow: hidden;
+}
+
+#hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+        radial-gradient(circle at 25% 25%, rgba(121, 192, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(210, 168, 255, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(255, 167, 196, 0.04) 0%, transparent 50%);
+    animation: hero-bg-float 20s ease-in-out infinite;
+    z-index: 0;
+}
+
+@keyframes hero-bg-float {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    33% { transform: rotate(0.5deg) scale(1.02); }
+    66% { transform: rotate(-0.5deg) scale(0.98); }
+}
+
+/* Enhanced glassy button styling for Live Demo */
+#pulse-button {
+    background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
+    box-shadow: 
+        0 8px 32px rgba(121, 192, 255, 0.3),
+        0 0 40px rgba(210, 168, 255, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(121, 192, 255, 0.3);
+}
+
+#pulse-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.3), 
+        transparent);
+    transition: left 0.6s ease;
+}
+
+#pulse-button:hover::before {
+    left: 100%;
+}
+
+#pulse-button:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 
+        0 12px 40px rgba(121, 192, 255, 0.4),
+        0 0 60px rgba(210, 168, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.feature-card {
+    background: linear-gradient(135deg, 
+        rgba(33, 38, 45, 0.8) 0%, 
+        rgba(48, 54, 61, 0.6) 100%);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--neon-blue), 
+        var(--neon-purple), 
+        transparent);
+    opacity: 0.7;
+}
+
+.feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        0 0 30px rgba(121, 192, 255, 0.15);
+    border-color: rgba(121, 192, 255, 0.4);
+}
+
+.solution-step {
+    background: linear-gradient(135deg, 
+        rgba(33, 38, 45, 0.8) 0%, 
+        rgba(48, 54, 61, 0.6) 100%);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.solution-step::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--neon-purple), 
+        var(--neon-pink), 
+        transparent);
+    opacity: 0.7;
+}
+
+.solution-step:hover {
+    transform: translateY(-8px);
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        0 0 30px rgba(210, 168, 255, 0.15);
+    border-color: rgba(210, 168, 255, 0.4);
+}
+
+/* Mermaid diagram styling - Allow natural positioning */
+.mermaid {
+    background: transparent !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 500px;
+    padding: 1rem;
+    width: 100%;
+    max-width: 100%;
+    /* Allow content to render properly */
+    overflow: visible;
+}
+
+.mermaid svg {
+    background: transparent !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 400px !important;
+    filter: drop-shadow(0 8px 24px rgba(121, 192, 255, 0.1));
+    border-radius: 16px;
+    /* Critical for proper element positioning */
+    overflow: visible !important;
+}
+
+/* Enhanced diagram container styling - Allow element positioning */
+.diagram-container {
+    background: linear-gradient(135deg, 
+        rgba(13, 17, 23, 0.95) 0%, 
+        rgba(22, 27, 34, 0.9) 50%, 
+        rgba(33, 38, 45, 0.85) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 2rem;
+    margin: 2rem 0;
+    box-shadow: 
+        0 16px 64px rgba(0, 0, 0, 0.4),
+        0 0 40px rgba(121, 192, 255, 0.08),
+        inset 0 1px 0 rgba(240, 246, 252, 0.1);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    /* Allow content to position naturally */
+    overflow: visible;
+    width: 100%;
+    max-width: 100%;
+}
+
+.diagram-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--neon-blue), 
+        var(--neon-purple), 
+        var(--neon-pink), 
+        transparent);
+    opacity: 0.6;
+}
+
+.diagram-container:hover {
+    border-color: rgba(121, 192, 255, 0.4);
+    box-shadow: 
+        0 24px 80px rgba(0, 0, 0, 0.5),
+        0 0 60px rgba(121, 192, 255, 0.15),
+        0 0 100px rgba(210, 168, 255, 0.08),
+        inset 0 1px 0 rgba(240, 246, 252, 0.15);
+    transform: translateY(-4px);
+}
+
+/* FIXED: Precise hover control without breaking positioning */
+.mermaid .node:hover {
+    /* Only enhance visual feedback without position changes */
+    filter: brightness(1.1) drop-shadow(0 4px 12px rgba(121, 192, 255, 0.3)) !important;
+}
+
+.mermaid .edgePath:hover {
+    filter: drop-shadow(0 2px 8px rgba(210, 168, 255, 0.4)) !important;
+}
+
+.mermaid .edgeLabel:hover {
+    filter: brightness(1.1) !important;
+}
+
+/* Critical: Allow Mermaid SVG to position elements naturally */
+.mermaid svg {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    /* Do NOT override transform - this breaks positioning */
+}
+
+/* Allow all Mermaid elements to use their natural positioning */
+.mermaid g,
+.mermaid .node,
+.mermaid .cluster,
+.mermaid .edgePath {
+    /* Let Mermaid handle all positioning naturally */
+    transition: filter 0.2s ease;
+}
+
+.mermaid .edgePath {
+    transition: all 0.2s ease-out !important;
+}
+
+.mermaid .edgePath:hover {
+    filter: drop-shadow(0 1px 4px rgba(210, 168, 255, 0.4)) !important;
+    opacity: 0.9 !important;
+}
+
+/* Mermaid node styling enhancements */
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node polygon {
+    stroke-width: 2px !important;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.mermaid .edgeLabel {
+    background: linear-gradient(135deg, 
+        rgba(13, 17, 23, 0.95) 0%, 
+        rgba(22, 27, 34, 0.9) 100%) !important;
+    color: var(--text-primary) !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+    border: 1px solid var(--glass-border) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+.mermaid .cluster rect {
+    stroke: var(--glass-border) !important;
+    stroke-width: 2px !important;
+    fill: rgba(33, 38, 45, 0.3) !important;
+    rx: 12px !important;
+    ry: 12px !important;
+}
+
+.mermaid .cluster text {
+    fill: var(--text-primary) !important;
+    font-weight: 700 !important;
+    font-size: 16px !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Architecture section enhancements */
+#architecture {
+    background: linear-gradient(180deg, 
+        rgba(121, 192, 255, 0.02) 0%, 
+        rgba(210, 168, 255, 0.03) 50%, 
+        rgba(255, 167, 196, 0.02) 100%);
+}
+
+#architecture .diagram-container:first-child {
+    margin-bottom: 4rem;
+}
+
+#architecture h3 {
+    position: relative;
+    overflow: hidden;
+}
+
+#architecture h3:after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--neon-blue), 
+        var(--neon-purple), 
+        transparent);
+    border-radius: 2px;
+}
+
+/* Diagram section headers */
+.diagram-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.diagram-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, 
+        var(--text-primary) 0%, 
+        var(--neon-blue) 30%, 
+        var(--neon-purple) 70%, 
+        var(--neon-pink) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+}
+
+.diagram-description {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    max-width: 900px;
+    margin: 0 auto;
+    line-height: 1.7;
+    font-weight: 400;
+}
+
+/* Enhanced navigation with glass effect and proper spacing */
+nav {
+    background: rgba(13, 17, 23, 0.9) !important;
+    backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid var(--glass-border) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    /* Ensure nav stays on top and provides proper spacing */
+    z-index: 1000 !important;
+    position: fixed !important;
+    top: 0 !important;
+    width: 100% !important;
+}
+
+nav a:hover {
+    color: var(--neon-blue) !important;
+    text-shadow: 0 0 8px rgba(121, 192, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+/* Add padding to body to account for fixed navbar */
+body {
+    padding-top: 64px !important; /* Account for navbar height */
+}
+
+/* Ensure sections have proper scroll margin to account for fixed navbar */
+section {
+    scroll-margin-top: 80px !important; /* Increased from 2rem for fixed navbar */
+    margin-bottom: 5rem;
+}
+
+/* Enhanced comparison table with glass styling */
+#comparison table {
+    background: linear-gradient(135deg, 
+        rgba(13, 17, 23, 0.95) 0%, 
+        rgba(22, 27, 34, 0.9) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 
+        0 16px 64px rgba(0, 0, 0, 0.4),
+        0 0 40px rgba(121, 192, 255, 0.08);
+}
+
+#comparison thead {
+    background: linear-gradient(135deg, 
+        rgba(33, 38, 45, 0.8) 0%, 
+        rgba(48, 54, 61, 0.6) 100%);
+    backdrop-filter: blur(15px);
+}
+
+#comparison tbody tr:hover {
+    background: rgba(121, 192, 255, 0.05);
+    transform: scale(1.01);
+    transition: all 0.3s ease;
+}
+
+/* Enhanced button styling with glass effect */
+button, .btn {
+    background: linear-gradient(135deg, 
+        rgba(121, 192, 255, 0.2) 0%, 
+        rgba(210, 168, 255, 0.15) 100%);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 12px 24px;
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+button:hover, .btn:hover {
+    background: linear-gradient(135deg, 
+        rgba(121, 192, 255, 0.3) 0%, 
+        rgba(210, 168, 255, 0.2) 100%);
+    border-color: rgba(121, 192, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 8px 24px rgba(121, 192, 255, 0.3),
+        0 0 20px rgba(210, 168, 255, 0.2);
+}
+
+/* Final polish: Enhanced section spacing and visual hierarchy */
+/* Section spacing already defined above with navbar consideration */
+
+/* Enhanced typography for better readability */
+h1, h2, h3, h4, h5, h6 {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    line-height: 1.2;
+}
+
+h2 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+h3 {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: var(--neon-blue);
+}
+
+/* Enhanced button styling */
+.btn, button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.btn::before, button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover::before, button:hover::before {
+    left: 100%;
+}
+
+/* Enhanced scrollbar for better UX */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--neon-blue), var(--neon-purple));
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--neon-purple), var(--neon-pink));
+}
+
+/* Performance optimization: will-change for animated elements */
+.mermaid,
+.animation-container,
+.feature-card,
+.solution-step,
+.diagram-container,
+#pulse-button {
+    will-change: transform, opacity, filter;
+}
+
+/* Accessibility improvements - Enhanced for color-blind users */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    /* Keep hover effects but make them instant */
+    .mermaid .node:hover {
+        transition: none !important;
+    }
+}
+
+/* Color-blind friendly enhancements */
+.mermaid .node[data-type="control"] rect,
+.mermaid .node[data-type="control"] circle {
+    /* Add pattern/texture for control components */
+    stroke-dasharray: none !important;
+    stroke-width: 3px !important;
+    stroke: rgba(121, 192, 255, 0.9) !important;
+    /* Add a subtle pattern */
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(121, 192, 255, 0.1) 2px, rgba(121, 192, 255, 0.1) 4px) !important;
+}
+
+.mermaid .node[data-type="data"] rect,
+.mermaid .node[data-type="data"] circle {
+    /* Add different pattern for data components */
+    stroke-dasharray: none !important;
+    stroke-width: 3px !important;
+    stroke: rgba(210, 168, 255, 0.9) !important;
+    /* Add dots pattern */
+    background-image: radial-gradient(circle, rgba(210, 168, 255, 0.2) 1px, transparent 1px) !important;
+    background-size: 8px 8px !important;
+}
+
+/* Add icons or symbols for better differentiation */
+.control-plane-component::before {
+    content: "⚙️";
+    font-size: 12px;
+    margin-right: 4px;
+}
+
+.data-plane-component::before {
+    content: "📊";
+    font-size: 12px;
+    margin-right: 4px;
+}
+
+/* Final responsive touch-ups - COMPLETELY FIXED FOR MOBILE */
+@media (max-width: 768px) {
+    /* Adjust body padding for mobile navbar */
+    body {
+        padding-top: 56px !important; /* Smaller navbar on mobile */
+    }
+    
+    /* Remove all scaling transforms on mobile to prevent overflow */
+    #control-plane-diagram {
+        transform: none !important;
+        margin: 1rem 0 !important;
+    }
+    
+    #deployment-diagram {
+        transform: none !important;
+        margin: 1rem 0 !important;
+    }
+    
+    /* Ensure diagrams fit in mobile containers with readable text */
+    .diagram-container {
+        padding: 1rem;
+        margin: 1rem 0;
+        overflow: hidden;
+    }
+    
+    .mermaid {
+        min-height: 300px !important; /* Increased from 250px for better readability */
+        padding: 1rem 0.5rem !important;
+        font-size: 14px !important; /* Increased base font size for mobile */
+    }
+    
+    .mermaid svg {
+        min-height: 280px !important; /* Increased from 200px */
+        max-width: 100% !important;
+        width: 100% !important;
+        font-size: 14px !important; /* Ensure readable font size */
+    }
+    
+    h2 {
+        font-size: 2rem;
+    }      /* Mobile-specific diagram adjustments - UPDATED FOR BIGGER NODES */
+    #control-plane-diagram .mermaid .node text {
+        font-size: 18px !important; /* Increased from 14px to match bigger nodes */
+        font-weight: 700 !important; /* Bolder for mobile screens */
+    }
+    
+    #control-plane-diagram .mermaid .cluster text {
+        font-size: 20px !important; /* Increased from 16px to match bigger desktop nodes */
+        font-weight: 800 !important;
+    }
+    
+    #control-plane-diagram .mermaid .node rect,
+    #control-plane-diagram .mermaid .node polygon,
+    #control-plane-diagram .mermaid .node circle {
+        transform: scale(1.5) !important; /* Increased from 1.2 for better readability */
+        min-width: 200px !important; /* Increased from 150px */
+        min-height: 80px !important; /* Increased from 50px */
+        stroke-width: 2px !important; /* Thicker borders for mobile */
+    }
+    
+    #control-plane-diagram .mermaid .cluster rect {
+        min-width: 350px !important; /* Reduced from 400px for mobile fit */
+        min-height: 120px !important; /* Reduced from 150px for mobile fit */
+        stroke-width: 3px !important; /* Thicker cluster borders */
+    }
+    
+    #control-plane-diagram .mermaid svg {
+        transform: scale(1.0) !important; /* Remove scaling on mobile */
+        padding: 10px !important; /* Reduce padding on mobile */
+    }
+      /* Deployment diagram mobile improvements */
+    #deployment-diagram .mermaid .node text {
+        font-size: 10px !important; /* Increased from 10px for better readability */
+        font-weight: 700 !important;
+    }
+    
+    #deployment-diagram .mermaid .cluster text {
+        font-size: 15px !important; /* Increased from 12px for better visibility */
+        font-weight: 800 !important;
+    }
+    
+    #deployment-diagram .mermaid .node rect,
+    #deployment-diagram .mermaid .node polygon,
+    #deployment-diagram .mermaid .node circle {
+        transform: scale(1.4) !important; /* Increased from 1.1 for better readability */
+        stroke-width: 2px !important;
+    }
+    
+    #deployment-diagram .mermaid svg {
+        transform: translateX(0px) !important; /* Remove horizontal offset on mobile */
+        padding: 20px !important; /* Reduce padding on mobile */
+    }
+    
+    /* Better edge visibility on mobile */
+    .mermaid .edgePath path {
+        stroke-width: 2px !important; /* Ensure edges are visible on mobile */
+    }
+    
+    .mermaid .arrowheadPath {
+        stroke-width: 2px !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .diagram-container {
+        padding: 1.5rem;
+    }
+    
+    .mermaid {
+        min-height: 350px;
+    }
+    
+    .diagram-title {
+        font-size: 1.75rem;
+    }
+    
+    .diagram-description {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .diagram-container {
+        padding: 1rem;
+        margin: 1rem -1rem;
+        border-radius: 12px;
+    }
+    
+    .mermaid {
+        min-height: 280px;
+        padding: 1rem 0.5rem;
+    }
+    
+    .diagram-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .mermaid svg {
+        image-rendering: crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+    }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+    }
+}
+
+/* Print-friendly version for accessibility and documentation */
+@media print {
+    :root {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8f9fa;
+        --text-primary: #000000;
+        --text-secondary: #666666;
+        --neon-blue: #0066cc;
+        --neon-purple: #7c3aed;
+        --glass-border: #cccccc;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .mermaid svg {
+        background: white !important;
+        filter: none !important;
+    }
+    
+    .mermaid .node rect,
+    .mermaid .node circle,
+    .mermaid .node polygon {
+        fill: white !important;
+        stroke: #333333 !important;
+        stroke-width: 2px !important;
+    }
+    
+    .mermaid .node text {
+        fill: #000000 !important;
+        font-weight: bold !important;
+    }
+    
+    .mermaid .cluster rect {
+        fill: #f0f0f0 !important;
+        stroke: #666666 !important;
+        stroke-width: 2px !important;
+    }
+    
+    .mermaid .cluster text {
+        fill: #000000 !important;
+        font-weight: bold !important;
+    }
+    
+    .mermaid .edgePath path {
+        stroke: #333333 !important;
+        stroke-width: 2px !important;
+    }
+    
+    .mermaid .arrowheadPath {
+        fill: #333333 !important;
+        stroke: #333333 !important;
+    }
+    
+    /* Hide interactive elements in print */
+    nav,
+    .animation-container,
+    button {
+        display: none !important;
+    }
+    
+    /* Ensure text is readable */
+    h1, h2, h3, h4, h5, h6 {
+        color: #000000 !important;
+        text-shadow: none !important;
+    }
+    
+    p, span, div {
+        color: #333333 !important;
+    }
+}
+#architecture {
+    background: linear-gradient(180deg, rgba(0, 212, 255, 0.02) 0%, rgba(45, 55, 72, 0.05) 100%);
+}
+
+#architecture .diagram-container:first-child {
+    margin-bottom: 3rem;
+}
+
+#architecture h3 {
+    position: relative;
+    overflow: hidden;
+}
+
+#architecture h3:after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #00D4FF, transparent);
+    border-radius: 2px;
+}
+
+/* Diagram section headers */
+.diagram-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.diagram-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #FFFFFF 0%, #00D4FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.diagram-description {
+    font-size: 1.125rem;
+    color: #A0AEC0;
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Diagram loading state */
+.diagram-container .mermaid {
+    position: relative;
+    min-height: 600px;
+}
+
+.diagram-container .mermaid:empty::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(121, 192, 255, 0.2);
+    border-top: 4px solid var(--neon-blue);
+    border-radius: 50%;
+    animation: diagram-loading 1.2s linear infinite;
+}
+
+.diagram-container .mermaid:empty::after {
+    content: 'Rendering diagram...';
+    position: absolute;
+    top: calc(50% + 40px);
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+@keyframes diagram-loading {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Smooth reveal animation for rendered diagrams - 60% faster */
+.diagram-container .mermaid:not(:empty) {
+    animation: diagram-reveal 0.32s ease-out forwards;
+}
+
+@keyframes diagram-reveal {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+        filter: blur(5px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+    }
+}
+
+/* Hide loading animation once diagram is rendered */
+.diagram-container .mermaid:not(:empty)::before,
+.diagram-container .mermaid:not(:empty)::after {
+    display: none;
+}
+@media (max-width: 1024px) {
+    .diagram-container {
+        padding: 1.5rem;
+    }
+    
+    .mermaid {
+        min-height: 350px;
+    }
+    
+    .diagram-title {
+        font-size: 1.75rem;
+    }
+    
+    .diagram-description {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .diagram-container {
+        padding: 1rem;
+        margin: 1rem -1rem;
+        border-radius: 12px;
+    }
+    
+    .mermaid {
+        min-height: 280px;
+        padding: 1rem 0.5rem;
+    }
+    
+    .diagram-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 212, 255, 0.5);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 212, 255, 0.7);
+}
+
+/* Animation containers */
+.animation-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Roadmap item scroll animations */
+#roadmap .relative {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease-out;
+}
+
+#roadmap .relative.animate-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
+
+.flopy-architecture-chart.animate-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.flopy-architecture-chart.animate-in .arch-layer {
+    animation: layer-slide-in 0.6s ease-out forwards;
+}
+
+.flopy-architecture-chart.animate-in .arch-layer:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.flopy-architecture-chart.animate-in .arch-layer:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.flopy-architecture-chart.animate-in .arch-layer:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.flopy-architecture-chart.animate-in .arch-layer:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+@keyframes layer-slide-in {
+    0% {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Enhanced styling for the Control vs Data separation diagram - FULL WIDTH */
+#control-plane-diagram {
+    /* Remove transform scaling that causes overflow */
+    transform: none !important;
+    margin: 2rem 0 !important;
+    padding: 1rem !important;
+    overflow: visible !important;
+    /* Ensure container doesn't clip text */
+    position: relative !important;
+    width: 100% !important;
+    /* Center the entire diagram container */
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+#control-plane-diagram .mermaid {
+    font-size: 20px !important; /* Increased from 18px for much better readability */
+    min-height: 1200px !important; /* Now this will work since inline styles are removed */
+    max-height: 1200px !important; /* Set max height to prevent excessive space */
+    padding: 1rem !important; /* Reduced padding for better fit */
+    overflow: visible !important;
+    width: 100% !important;
+    /* Center content but allow full width */
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* Specific styling for control plane diagram text readability */
+#control-plane-diagram .mermaid svg {
+    min-height: 1150px !important; /* Matches the container height better */
+    max-height: 1150px !important; /* Set max height to properly fill container */
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+    padding: 20px 40px !important; /* Increased horizontal padding for better centering */
+    /* Allow SVG to use full width and center content */
+    transform: scale(1.0) translateX(0px) !important; /* Removed scaling and translation for better fit */
+    transform-origin: center !important;
+    margin: 0 auto !important;
+    display: block !important;
+}
+
+#control-plane-diagram .mermaid .node text {
+    font-size: 18px !important; /* Increased from 16px for better readability */
+    font-weight: 600 !important;
+    fill: var(--text-primary) !important;
+}
+
+/* Make individual nodes much bigger for readability */
+#control-plane-diagram .mermaid .node rect,
+#control-plane-diagram .mermaid .node polygon,
+#control-plane-diagram .mermaid .node circle {
+    stroke-width: 3px !important;
+    /* Optimized scaling for better text fit */
+    transform: scale(4.0) !important; /* Reduced from 5.0 for better balance */
+    transform-origin: center !important;
+    /* Increase minimum dimensions to properly contain text */
+    min-width: 400px !important; /* Reduced from 450px for better balance */
+    min-height: 160px !important; /* Reduced from 180px for better balance */
+}
+
+/* Scale up text to match nodes with proper overflow handling */
+#control-plane-diagram .mermaid .node text {
+    font-size: 26px !important; /* Reduced from 32px for better fit */
+    font-weight: 700 !important;
+    fill: var(--text-primary) !important;
+    text-anchor: middle !important;
+    dominant-baseline: middle !important;
+    /* Better text wrapping and overflow handling */
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    overflow: visible !important;
+    max-width: 320px !important; /* Reduced from 350px for better fit */
+}
+
+/* Specific fix for Mermaid nodeLabel overflow - CRITICAL FIX */
+#control-plane-diagram .mermaid .nodeLabel {
+    text-anchor: middle !important;
+    dominant-baseline: central !important;
+    font-size: 22px !important; /* Reduced from 28px for better fit */
+    font-weight: 700 !important;
+    fill: var(--text-primary) !important;
+    /* CRITICAL: Proper text containment without overflow */
+    max-width: 280px !important; /* Reduced from 320px for better containment */
+    word-wrap: break-word !important;
+    white-space: pre-wrap !important;
+    overflow: visible !important; /* Changed from hidden to visible */
+    /* Remove ellipsis that was causing character cutoff */
+    text-overflow: none !important;
+    /* Better text positioning to prevent edge cutoff */
+    x: 50% !important;
+    y: 50% !important;
+}
+
+#control-plane-diagram .mermaid .cluster text {
+    font-size: 24px !important; /* Increased from 20px for much better visibility */
+    font-weight: 800 !important; /* Increased from 700 for better visibility */
+    fill: var(--neon-blue) !important;
+    text-anchor: middle !important;
+    dominant-baseline: middle !important; /* Better vertical alignment */
+}
+
+/* Make clusters larger to accommodate text and fill width */
+#control-plane-diagram .mermaid .cluster rect {
+    stroke-width: 4px !important;
+    rx: 16px !important;
+    ry: 16px !important;
+    /* Adjusted for optimized node scaling (scale 4.0) */
+    min-width: 1100px !important; /* Reduced from 1300px for better fit */
+    min-height: 450px !important; /* Reduced from 550px for better balance */
+}
+
+/* Control Plane cluster - Blue outline with better contrast */
+#control-plane-diagram .mermaid .cluster:nth-child(1) rect {
+    stroke: rgba(121, 192, 255, 0.9) !important; /* Increased opacity from 0.x for better contrast */
+    fill: rgba(121, 192, 255, 0.15) !important; /* Increased from 0.08 for better visibility */
+}
+
+/* Data Plane cluster - Purple outline with better contrast */
+#control-plane-diagram .mermaid .cluster:nth-child(2) rect {
+    stroke: rgba(210, 168, 255, 0.9) !important; /* Increased opacity for better contrast */
+    fill: rgba(210, 168, 255, 0.15) !important; /* Increased from 0.08 for better visibility */
+}
+
+/* Additional text positioning fixes to prevent cutoff */
+#control-plane-diagram .mermaid .cluster text {
+    white-space: nowrap !important;
+    overflow: visible !important;
+}
+
+/* Enhanced text overflow prevention for all text elements in control plane diagram */
+#control-plane-diagram .mermaid text {
+    text-rendering: optimizeLegibility !important;
+    font-smooth: always !important;
+    -webkit-font-smoothing: antialiased !important;
+    /* Critical: Prevent text overflow */
+    overflow: visible !important;
+    word-wrap: break-word !important;
+    white-space: pre-wrap !important;
+}
+
+/* Specific handling for tspan elements that might cause overflow */
+#control-plane-diagram .mermaid tspan {
+    text-anchor: middle !important;
+    dominant-baseline: central !important;
+    overflow: visible !important;
+}
+
+/* Ensure all text elements are properly positioned */
+#control-plane-diagram .mermaid text {
+    text-rendering: optimizeLegibility !important;
+    font-smooth: always !important;
+    -webkit-font-smoothing: antialiased !important;
+    /* Critical: Prevent text overflow */
+    overflow: visible !important;
+    word-wrap: break-word !important;
+    white-space: pre-wrap !important;
+}
+
+/* Additional text overflow prevention for deployment diagram */
+#deployment-diagram .mermaid text {
+    text-rendering: optimizeLegibility !important;
+    font-smooth: always !important;
+    -webkit-font-smoothing: antialiased !important;
+    /* Critical: Prevent text overflow */
+    overflow: visible !important;
+    word-wrap: break-word !important;
+    white-space: pre-wrap !important;
+}
+
+/* Mobile responsive improvements */
+@media (max-width: 768px) {
+    #control-plane-diagram .mermaid {
+        min-height: 1000px !important;
+        padding: 2rem 1rem !important;
+    }
+    
+    #control-plane-diagram .mermaid .cluster text {
+        font-size: 16px !important;
+    }
+    
+    #control-plane-diagram .mermaid .node text {
+        font-size: 13px !important;
+    }
+    
+    #control-plane-diagram .mermaid .node rect,
+    #control-plane-diagram .mermaid .node polygon,
+    #control-plane-diagram .mermaid .node circle {
+        transform: scale(1.2) !important; /* Slightly smaller on mobile */
+        min-width: 150px !important;
+        min-height: 50px !important;
+    }
+    
+    #control-plane-diagram .mermaid .cluster rect {
+        min-width: 300px !important;
+        min-height: 100px !important;
+    }
+      /* Deployment diagram mobile adjustments */
+    #deployment-diagram .mermaid {
+        font-size: 13px !important;
+        min-height: 600px !important;
+        padding: 2rem 1rem !important;
+    }
+    
+    #deployment-diagram .mermaid .node rect,
+    #deployment-diagram .mermaid .node polygon,
+    #deployment-diagram .mermaid .node circle {
+        transform: scale(1.1) !important; /* Slightly smaller on mobile */
+    }
+    
+    #deployment-diagram .mermaid .node text {
+        font-size: 12px !important;
+        /* CRITICAL: Ensure text doesn't get cut off on mobile */
+        padding: 2px 4px !important;
+        overflow: visible !important;
+        white-space: nowrap !important;
+        max-width: none !important;
+    }
+    
+    #deployment-diagram .mermaid .cluster text {
+        font-size: 14px !important;
+        /* CRITICAL: Prevent cluster text cutoff on mobile */
+        overflow: visible !important;
+        padding: 2px 4px !important;
+        max-width: none !important;
+    }
+}
+
+/* Enhanced styling for deployment diagram - NATURAL CENTERING */
+#deployment-diagram {
+    margin: 2rem auto !important;
+    padding: 1rem !important;
+    width: 100% !important;
+    max-width: 1200px !important;
+    text-align: center !important;
+}
+
+#deployment-diagram .mermaid {
+    font-size: 20px !important;
+    min-height: 900px !important;
+    padding: 2rem !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+}
+
+#deployment-diagram .mermaid svg {
+    min-height: 850px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    display: block !important;
+}
+
+#deployment-diagram .mermaid .node text {
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    fill: var(--text-primary) !important;
+    text-anchor: middle !important;
+    dominant-baseline: middle !important;
+    /* CRITICAL: Prevent text overflow and character cutoff */
+    overflow: visible !important;
+    white-space: nowrap !important;
+    word-wrap: normal !important;
+    /* Add padding to prevent edge cutoff */
+    padding: 2px 4px !important;
+    /* Ensure text has enough space */
+    max-width: none !important;
+    width: auto !important;
+}
+
+#deployment-diagram .mermaid .cluster text {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    fill: var(--neon-blue) !important;
+    dominant-baseline: middle !important;
+    text-anchor: middle !important;
+    /* CRITICAL: Prevent cluster text cutoff */
+    overflow: visible !important;
+    white-space: nowrap !important;
+    padding: 2px 6px !important;
+    max-width: none !important;
+}
+
+/* SIMPLIFIED: Natural cluster positioning */
+#deployment-diagram .mermaid .cluster {
+    text-align: center !important;
+}
+
+#deployment-diagram .mermaid .cluster rect {
+    stroke-width: 3px !important;
+    rx: 14px !important;
+    ry: 14px !important;
+    /* Ensure adequate width for text */
+    min-width: 200px !important;
+    min-height: 80px !important;
+}
+
+/* Make individual nodes bigger */
+#deployment-diagram .mermaid .node rect,
+#deployment-diagram .mermaid .node polygon,
+#deployment-diagram .mermaid .node circle {
+    stroke-width: 2px !important;
+    /* Increase node size even more dramatically to prevent text overflow */
+    transform: scale(3.6) !important; /* Increased from 3.2 for even bigger nodes */
+    transform-origin: center !important;
+}
+
+/* CRITICAL: Ensure nodes are wide enough for text after scaling */
+#deployment-diagram .mermaid .node {
+    /* Override any width constraints */
+    min-width: auto !important;
+    max-width: none !important;
+    width: auto !important;
+}
+
+/* Scale up node text to match bigger nodes */
+#deployment-diagram .mermaid .node text {
+    font-size: 16px !important; /* Reduced from 19px since nodes are bigger now */
+    font-weight: 600 !important;
+    fill: var(--text-primary) !important;
+    text-anchor: middle !important;
+    dominant-baseline: middle !important;
+    /* CRITICAL: Ensure text doesn't overflow or get cut off */
+    white-space: nowrap !important;
+    word-wrap: normal !important;
+    overflow: visible !important;
+    /* Add sufficient padding to prevent character cutoff */
+    padding: 4px 12px !important; /* Increased padding */
+    /* Ensure text container has adequate width */
+    max-width: none !important;
+    min-width: 140px !important; /* Increased from 120px */
+    /* Remove any clipping */
+    clip-path: none !important;
+    mask: none !important;
+}
+
+/* Ensure cluster rectangles accommodate bigger nodes */
+#deployment-diagram .mermaid .cluster rect {
+    stroke-width: 3px !important;
+    rx: 14px !important;
+    ry: 14px !important;
+    /* Increase minimum size for much bigger nodes */
+    min-width: 550px !important; /* Increased from 500px for bigger nodes */
+    min-height: 220px !important; /* Increased from 200px for bigger nodes */
+}
+
+/* CRITICAL: Fix text overflow in deployment diagram */
+#deployment-diagram .mermaid text {
+    overflow: visible !important;
+    text-rendering: optimizeLegibility !important;
+    font-smooth: always !important;
+    -webkit-font-smoothing: antialiased !important;
+}
+
+/* CRITICAL: Ensure SVG text elements have proper bounds */
+#deployment-diagram .mermaid .nodeLabel,
+#deployment-diagram .mermaid .node .label,
+#deployment-diagram .mermaid .node text {
+    max-width: none !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    padding: 4px 8px !important;
+    text-overflow: none !important;
+    /* Force proper text positioning */
+    text-anchor: middle !important;
+    dominant-baseline: middle !important;
+    /* Ensure text doesn't get clipped */
+    clip-path: none !important;
+    mask: none !important;
+}
+
+/* CRITICAL: Fix tspan elements that might cause character cutoff */
+#deployment-diagram .mermaid tspan {
+    text-anchor: middle !important;
+    dominant-baseline: central !important;
+    overflow: visible !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    text-overflow: none !important;
+}
+
+/* CRITICAL: Ensure node containers are large enough */
+#deployment-diagram .mermaid .node rect {
+    min-width: 180px !important;
+    min-height: 60px !important;
+    /* Ensure rect doesn't clip text */
+    overflow: visible !important;
+}
+
+/* CRITICAL: Fix cluster text overflow */
+#deployment-diagram .mermaid .cluster text {
+    overflow: visible !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    padding: 4px 8px !important;
+}
+
+#deployment-diagram .mermaid .cluster text {
+    font-size: 18px !important; /* Increased from 17px */
+    font-weight: 700 !important;
+    fill: var(--neon-blue) !important;
+    dominant-baseline: middle !important;
+    text-anchor: middle !important;
+}
+
+/* Different colored outlines for each deployment layer */
+#deployment-diagram .mermaid .cluster:nth-child(1) rect {
+    stroke: var(--neon-green) !important;
+    fill: rgba(124, 227, 139, 0.08) !important;
+}
+
+#deployment-diagram .mermaid .cluster:nth-child(2) rect {
+    stroke: var(--neon-pink) !important;
+    fill: rgba(255, 167, 196, 0.08) !important;
+}
+
+#deployment-diagram .mermaid .cluster:nth-child(3) rect {
+    stroke: var(--neon-purple) !important;
+    fill: rgba(210, 168, 255, 0.08) !important;
+}
+
+/* Enhanced node styling with layer-specific colors */
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node polygon {
+    stroke-width: 2px !important;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4)) !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Layer-specific node colors */
+.mermaid .node[data-layer="control"] rect,
+.mermaid .node[data-layer="control"] circle {
+    stroke: var(--neon-blue) !important;
+    fill: rgba(121, 192, 255, 0.15) !important;
+}
+
+.mermaid .node[data-layer="data"] rect,
+.mermaid .node[data-layer="data"] circle {
+    stroke: var(--neon-purple) !important;
+    fill: rgba(210, 168, 255, 0.15) !important;
+}
+
+.mermaid .node[data-layer="edge"] rect,
+.mermaid .node[data-layer="edge"] circle {
+    stroke: var(--neon-green) !important;
+    fill: rgba(124, 227, 139, 0.15) !important;
+}
+
+/* Enhanced edge styling with smooth gradients and better arrows */
+.mermaid .edgePath path {
+    stroke-width: 3px !important; /* Increased from 2px for better visibility */
+    stroke: var(--glass-border) !important;
+    filter: drop-shadow(0 2px 4px rgba(121, 192, 255, 0.2)) !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Enhanced arrow-heads for better visibility */
+.mermaid .arrowheadPath {
+    fill: var(--glass-border) !important;
+    stroke: var(--glass-border) !important;
+    stroke-width: 2px !important;
+    filter: drop-shadow(0 1px 2px rgba(121, 192, 255, 0.3)) !important;
+}
+
+/* Specific styling for different connection types */
+.mermaid .flowchart-link {
+    stroke-width: 3px !important; /* Increased for better visibility */
+    stroke: rgba(121, 192, 255, 0.7) !important; /* Better contrast */
+}
+
+/* Hover effects for interactive elements */
+.mermaid .edgePath:hover path {
+    stroke-width: 4px !important;
+    stroke: rgba(121, 192, 255, 0.9) !important;
+    filter: drop-shadow(0 3px 8px rgba(121, 192, 255, 0.4)) !important;
+}
+
+.mermaid .arrowheadPath:hover {
+    fill: rgba(121, 192, 255, 0.9) !important;
+    stroke: rgba(121, 192, 255, 0.9) !important;
+}
+
+/* Colorized edges for Control vs Data diagram - Base styling */
+#control-plane-diagram .mermaid .edgePath path {
+    stroke-width: 2px !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Chaos animation section enhancements - make animations more obvious */
+#primer-animations .animation-container {
+    background: linear-gradient(135deg, 
+        rgba(255, 34, 34, 0.05) 0%, 
+        rgba(255, 107, 107, 0.08) 50%, 
+        rgba(255, 34, 34, 0.05) 100%);
+    border: 2px solid rgba(255, 34, 34, 0.2);
+    border-radius: 16px;
+    padding: 2rem;
+    margin: 1rem 0;
+    position: relative;
+    overflow: hidden;
+}
+
+#primer-animations .animation-container::before {
+    content: '⚠️ CHAOS MODE ACTIVE';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: rgba(255, 34, 34, 0.9);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    animation: chaos-pulse 1s infinite;
+}
+
+@keyframes chaos-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+/* Make failure states more dramatic and visible */
+.animation-node.failed {
+    background: #ff2222 !important;
+    color: white !important;
+    transform: scale(1.3) !important; /* Reduced from 2.2 to make 60% smaller (2.2 * 0.6 ≈ 1.3) */
+    animation: failure-shake 0.3s ease-in-out !important;
+    box-shadow: 0 0 25px rgba(255, 34, 34, 0.9) !important; /* Increased glow */
+    border: 3px solid #ff0000 !important; /* Thicker border */
+    z-index: 1000 !important; /* Ensure it appears above other elements */
+}
+
+@keyframes failure-shake {
+    0%, 100% { transform: scale(1.3) rotate(0deg); } /* Updated scale from 2.2 to 1.3 */
+    25% { transform: scale(1.3) rotate(-3deg); } /* Updated scale from 2.2 to 1.3 */
+    75% { transform: scale(1.3) rotate(3deg); } /* Updated scale from 2.2 to 1.3 */
+}
+
+.animation-node.recovering {
+    animation: recovery-pulse 0.5s ease-in-out !important;
+    border: 2px solid var(--neon-green) !important;
+    box-shadow: 0 0 15px rgba(124, 227, 139, 0.6) !important;
+}
+
+@keyframes recovery-pulse {
+    0% { transform: scale(1.2); opacity: 0.8; }
+    50% { transform: scale(1.4); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Critical fix for mermaid element positioning during render - ALLOW NATURAL POSITIONING */
+.mermaid .node,
+.mermaid .cluster,
+.mermaid .edgePath {
+    /* Allow natural positioning and enhance visual feedback only */
+    transition: filter 0.3s ease;
+}
+
+/* Specific fix for deployment diagram element alignment - REMOVED OVERRIDE */
+#deployment-diagram .mermaid .node {
+    /* Allow nodes to maintain their calculated positions */
+    transition: filter 0.3s ease;
+}
+
+#deployment-diagram .mermaid .cluster {
+    /* Allow clusters to position correctly */
+    transition: filter 0.3s ease;
+}
+
+/* Force mermaid to recalculate positions after render */
+.mermaid svg[data-processed="true"] {
+    animation: mermaid-stabilize 0.1s ease-out;
+}
+
+@keyframes mermaid-stabilize {
+    0% { opacity: 0.9; }
+    100% { opacity: 1; }
+}
+
+/* Roadmap current position - subtle pulsating animation */
+.roadmap-current-pulse {
+    animation: roadmap-current-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes roadmap-current-pulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 0 0 rgba(121, 192, 255, 0.7);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        box-shadow: 0 0 0 8px rgba(121, 192, 255, 0);
+    }
+}
+
+/* FLOPY-NET Layered Architecture Chart */
+.flopy-architecture-chart {
+    max-width: 900px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, 
+        rgba(13, 17, 23, 0.95) 0%, 
+        rgba(22, 27, 34, 0.9) 100%);
+    border: 2px solid var(--neon-blue);
+    border-radius: 20px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    /* Animation properties */
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.8s ease-out;
+}
+
+.flopy-architecture-chart::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+        rgba(121, 192, 255, 0.03) 0%, 
+        rgba(210, 168, 255, 0.03) 50%, 
+        rgba(124, 227, 139, 0.03) 100%);
+    pointer-events: none;
+}
+
+.arch-layer {
+    margin-bottom: 1.5rem;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+}
+
+.arch-layer:last-child {
+    margin-bottom: 0;
+}
+
+.layer-header {
+    padding: 1rem 1.5rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-align: center;
+    color: white;
+    position: relative;
+}
+
+.layer-components {
+    padding: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.arch-component {
+    background: rgba(33, 38, 45, 0.8);
+    border: 1px solid rgba(121, 192, 255, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    min-width: 120px;
+}
+
+.arch-component:hover {
+    border-color: var(--neon-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(121, 192, 255, 0.2);
+}
+
+.arch-component-group {
+    background: rgba(33, 38, 45, 0.6);
+    border: 1px solid rgba(121, 192, 255, 0.2);
+    border-radius: 10px;
+    padding: 1rem;
+    min-width: 180px;
+}
+
+.group-header {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--neon-blue);
+    text-align: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(121, 192, 255, 0.2);
+}
+
+.group-subcomponents {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.arch-subcomponent {
+    background: rgba(22, 27, 34, 0.8);
+    border: 1px solid rgba(210, 168, 255, 0.2);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.arch-subcomponent:hover {
+    border-color: var(--neon-purple);
+    color: var(--text-primary);
+}
+
+/* Layer-specific colors */
+.management-layer .layer-header {
+    background: linear-gradient(135deg, var(--neon-green) 0%, #4ade80 100%);
+}
+
+.management-layer .arch-component {
+    border-color: rgba(124, 227, 139, 0.4);
+}
+
+.management-layer .arch-component:hover {
+    border-color: var(--neon-green);
+    box-shadow: 0 4px 12px rgba(124, 227, 139, 0.2);
+}
+
+.fl-runtime-layer .layer-header {
+    background: linear-gradient(135deg, var(--neon-blue) 0%, #3b82f6 100%);
+}
+
+.fl-runtime-layer .arch-component-group {
+    border-color: rgba(121, 192, 255, 0.4);
+}
+
+.network-layer .layer-header {
+    background: linear-gradient(135deg, var(--neon-purple) 0%, #8b5cf6 100%);
+}
+
+.network-layer .arch-component {
+    border-color: rgba(210, 168, 255, 0.4);
+}
+
+.network-layer .arch-component:hover {
+    border-color: var(--neon-purple);
+    box-shadow: 0 4px 12px rgba(210, 168, 255, 0.2);
+}
+
+.infrastructure-layer .layer-header {
+    background: linear-gradient(135deg, var(--neon-pink) 0%, #ec4899 100%);
+}
+
+.infrastructure-layer .arch-component {
+    border-color: rgba(255, 167, 196, 0.4);
+}
+
+.infrastructure-layer .arch-component:hover {
+    border-color: var(--neon-pink);
+    box-shadow: 0 4px 12px rgba(255, 167, 196, 0.2);
+}
+
+/* Responsive architecture chart */
+@media (max-width: 768px) {
+    .flopy-architecture-chart {
+        padding: 1.5rem;
+    }
+    
+    .layer-components {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .arch-component,
+    .arch-component-group {
+        min-width: auto;
+        width: 100%;
+        max-width: 280px;
+    }
+}
+
+/* Additional centering and text positioning fixes for the bigger nodes */
+#deployment-diagram .mermaid svg g {
+    /* Ensure SVG groups are properly centered */
+    transform-origin: center center !important;
+}
+
+#control-plane-diagram .mermaid svg g {
+    /* Ensure SVG groups are properly centered */
+    transform-origin: center center !important;
+}
+
+/* Force proper text positioning in bigger nodes */
+#deployment-diagram .mermaid .node text,
+#control-plane-diagram .mermaid .node text {
+    /* Enhanced text positioning for bigger nodes */
+    text-anchor: middle !important;
+    dominant-baseline: central !important;
+    alignment-baseline: middle !important;
+    /* Prevent text from being cut off */
+    overflow: visible !important;
+    white-space: nowrap !important;
+    max-width: none !important;
+}
+
+/* Ensure cluster text is properly positioned */
+#deployment-diagram .mermaid .cluster text,
+#control-plane-diagram .mermaid .cluster text {
+    /* Enhanced cluster text positioning */
+    text-anchor: middle !important;
+    dominant-baseline: hanging !important;
+    overflow: visible !important;
+}
+
+/* Additional spacing adjustments for much bigger nodes */
+#deployment-diagram .mermaid .flowchart-link,
+#control-plane-diagram .mermaid .flowchart-link {
+    /* Adjust link positioning for bigger nodes */
+    stroke-width: 2px !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Responsive adjustments for bigger nodes */
+@media (max-width: 1200px) {
+    #control-plane-diagram .mermaid .node rect,
+    #control-plane-diagram .mermaid .node polygon,
+    #control-plane-diagram .mermaid .node circle {
+        transform: scale(4.0) !important; /* Proportionally smaller on medium screens but still very big */
+    }
+    
+    #deployment-diagram .mermaid .node rect,
+    #deployment-diagram .mermaid .node polygon,
+    #deployment-diagram .mermaid .node circle {
+        transform: scale(2.8) !important; /* Slightly smaller on medium screens */
+    }
+    
+    #control-plane-diagram .mermaid .cluster rect {
+        min-width: 1000px !important; /* Adjusted for bigger nodes */
+        min-height: 450px !important; /* Adjusted for bigger nodes */
+    }
+    
+    #deployment-diagram .mermaid .cluster rect {
+        min-width: 480px !important;
+        min-height: 180px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    #control-plane-diagram .mermaid .node rect,
+    #control-plane-diagram .mermaid .node polygon,
+    #control-plane-diagram .mermaid .node circle {
+        transform: scale(2.5) !important; /* Increased from 2.0 to be proportional to desktop change */
+    }
+    
+    #deployment-diagram .mermaid .node rect,
+    #deployment-diagram .mermaid .node polygon,
+    #deployment-diagram .mermaid .node circle {
+        transform: scale(2.2) !important; /* Bigger than before on mobile for better readability */
+    }
+    
+    #control-plane-diagram .mermaid .cluster rect {
+        min-width: 700px !important; /* Increased from 600px to accommodate bigger nodes */
+        min-height: 320px !important; /* Increased from 280px to accommodate bigger nodes */
+    }
+    
+    #deployment-diagram .mermaid .cluster rect {
+        min-width: 400px !important;
+        min-height: 160px !important;
+    }
+    
+    /* Adjust diagram containers for mobile */
+    #control-plane-diagram .mermaid svg {
+        transform: scale(1.0) translateX(0px) !important; /* Remove extra transforms on mobile */
+        padding: 15px 20px !important;
+        min-height: 800px !important; /* Reduced height for mobile */
+        max-height: 800px !important;
+    }
+      #deployment-diagram .mermaid svg {
+        transform: translateX(0px) !important; /* Center properly on mobile */
+        padding: 20px 30px !important;
+        min-height: 500px !important; /* Consistent height for mobile */
+        min-width: 350px !important; /* Single consistent width */
+    }
+}
+
+/* Additional fixes for text visibility and overflow prevention */
+#control-plane-diagram .mermaid .node tspan {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    fill: var(--text-primary) !important;
+    text-anchor: middle !important;
+    dominant-baseline: central !important;
+}
+
+#deployment-diagram .mermaid .node tspan {
+    font-size: 19px !important;
+    font-weight: 600 !important;
+    fill: var(--text-primary) !important;
+    text-anchor: middle !important;
+    dominant-baseline: central !important;
+}
+
+/* Ensure all diagram containers have proper overflow handling */
+.diagram-container {
+    overflow: visible !important;
+    padding: 20px !important;
+    margin: 20px 0 !important;
+}
+
+/* Better responsive text sizing for both diagrams */
+@media (max-width: 768px) {
+    #control-plane-diagram .mermaid .node text,
+    #control-plane-diagram .mermaid .nodeLabel,
+    #control-plane-diagram .mermaid .node tspan {
+        font-size: 14px !important;
+    }
+    
+    #deployment-diagram .mermaid .node text,
+    #deployment-diagram .mermaid .node tspan {
+        font-size: 13px !important;
+    }
+    
+    #control-plane-diagram .mermaid .node rect,
+    #control-plane-diagram .mermaid .node polygon,
+    #control-plane-diagram .mermaid .node circle {
+        transform: scale(2.5) !important;
+    }
+    
+    #deployment-diagram .mermaid .node rect,
+    #deployment-diagram .mermaid .node polygon,
+    #deployment-diagram .mermaid .node circle {
+        transform: scale(2.0) !important;
+    }
+}

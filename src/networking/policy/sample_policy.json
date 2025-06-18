@@ -1,0 +1,63 @@
+{
+    "security": {
+        "blocklist": [
+            "192.168.141.100",
+            "10.0.0.5"
+        ],
+        "allowlist": [
+            "192.168.141.10",
+            "192.168.141.11",
+            "192.168.141.12"
+        ],
+        "flows": [
+            {
+                "src": "192.168.2.0/24",
+                "dst": "192.168.141.0/24",
+                "protocol": "tcp",
+                "port": 22,
+                "action": "deny",
+                "description": "Block SSH access from subnet 2 to subnet 1"
+            },
+            {
+                "src": "*",
+                "dst": "192.168.141.15",
+                "protocol": "tcp",
+                "port": 8080,
+                "action": "allow",
+                "description": "Allow web traffic to the dashboard server"
+            }
+        ]
+    },
+    "qos": {
+        "client1": {
+            "priority": "high",
+            "description": "High-priority training client"
+        },
+        "client2": {
+            "priority": "medium",
+            "description": "Medium-priority client"
+        },
+        "client3": {
+            "priority": "medium",
+            "description": "Another medium-priority client"
+        },
+        "*": {
+            "priority": "low",
+            "description": "Default priority for all other clients"
+        }
+    },
+    "bandwidth": {
+        "client1": {
+            "max_mbps": 50,
+            "description": "Limited to 50 Mbps"
+        },
+        "client2": {
+            "max_mbps": 20,
+            "description": "Limited to 20 Mbps"
+        },
+        "*": {
+            "max_mbps": 10,
+            "description": "Default limit of 10 Mbps for all other clients"
+        }
+    }
+} 

@@ -1,0 +1,24 @@
+{
+  "id": "api/dashboard-api",
+  "title": "Dashboard API Reference",
+  "description": "The Dashboard API provides programmatic access to FLOPY-NET's web interface backend, enabling automation of experiment management, real-time monitoring, and system configuration.",
+  "source": "@site/docs/api/dashboard-api.md",
+  "sourceDirName": "api",
+  "slug": "/api/dashboard-api",
+  "permalink": "/flopy-net/docs/api/dashboard-api",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/api/dashboard-api.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Collector API Reference",
+    "permalink": "/flopy-net/docs/api/collector-api"
+  },
+  "next": {
+    "title": "Networking API Reference",
+    "permalink": "/flopy-net/docs/api/networking-api"
+  }
+}

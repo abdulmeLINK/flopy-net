@@ -1,0 +1,15 @@
+{
+  "id": "api/collector",
+  "title": "Collector API",
+  "description": "The Collector service provides REST APIs for retrieving metrics, events, and system monitoring data from all FLOPY-NET components.",
+  "source": "@site/docs/api/collector.md",
+  "sourceDirName": "api",
+  "slug": "/api/collector",
+  "permalink": "/flopy-net/docs/api/collector",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/api/collector.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

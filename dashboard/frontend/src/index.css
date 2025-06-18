@@ -1,0 +1,223 @@
+/* Enhanced global styles for FL dashboard */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Enhanced card animations and shadows */
+.MuiCard-root {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.MuiCard-root:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+}
+
+/* Enhanced progress bars */
+.MuiLinearProgress-root {
+  border-radius: 10px !important;
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.MuiLinearProgress-bar {
+  border-radius: 10px !important;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+/* Enhanced chips */
+.MuiChip-root {
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+}
+
+/* Metric value animations */
+@keyframes metricPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.metric-value-updated {
+  animation: metricPulse 0.6s ease-in-out;
+}
+
+/* Training status indicators */
+.training-status-active {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Enhanced table styles */
+.MuiTable-root {
+  border-collapse: separate !important;
+  border-spacing: 0 4px !important;
+}
+
+.MuiTableRow-root {
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.MuiTableRow-root:hover {
+  background-color: rgba(25, 118, 210, 0.04) !important;
+  transform: translateX(4px) !important;
+}
+
+/* Gradient text for important metrics */
+.gradient-text-primary {
+  background: linear-gradient(45deg, #2196f3, #21cbf3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+}
+
+.gradient-text-success {
+  background: linear-gradient(45deg, #4caf50, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+}
+
+.gradient-text-warning {
+  background: linear-gradient(45deg, #ff9800, #ffb74d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+}
+
+/* Loading indicators */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Chart container enhancements */
+.recharts-wrapper {
+  border-radius: 8px !important;
+}
+
+/* Enhanced scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.3);
+}
+
+/* Improved metric cards */
+.metric-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid rgba(0,0,0,0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.metric-card:hover {
+  border-color: rgba(25, 118, 210, 0.2);
+  background: linear-gradient(145deg, #ffffff 0%, #f0f7ff 100%);
+}
+
+/* Better typography for config tables */
+.config-table .MuiTableCell-root {
+  padding: 12px 16px !important;
+  border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+}
+
+.config-table .MuiTableHead-root .MuiTableCell-root {
+  background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+}
+
+/* Enhanced progress indicators */
+.MuiLinearProgress-bar1Determinate {
+  background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%) !important;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Better tooltips */
+.MuiTooltip-tooltip {
+  background: rgba(33, 33, 33, 0.95) !important;
+  font-size: 0.875rem !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25) !important;
+}
+
+/* Informative chip styles */
+.MuiChip-colorSuccess {
+  background: linear-gradient(45deg, #4caf50, #66bb6a) !important;
+  color: white !important;
+}
+
+.MuiChip-colorError {
+  background: linear-gradient(45deg, #f44336, #ef5350) !important;
+  color: white !important;
+}
+
+.MuiChip-colorWarning {
+  background: linear-gradient(45deg, #ff9800, #ffb74d) !important;
+  color: white !important;
+}
+
+/* Better accordion styling */
+.MuiAccordion-root {
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  border-radius: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.MuiAccordion-root:before {
+  display: none !important;
+}
+
+/* Chart container improvements */
+.recharts-cartesian-axis-tick-value {
+  font-size: 12px !important;
+  fill: #666 !important;
+}
+
+.recharts-legend-wrapper {
+  padding-top: 10px !important;
+} 

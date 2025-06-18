@@ -1,0 +1,12 @@
+{
+    "scenario_id": "basic-scenario-287c1312",
+    "config_file": "config/scenarios/basic_main.json",
+    "topology_file": "config\\topology\\basic_topology.json",
+    "start_time": 1746291767.0010896,
+    "end_time": 1746291769.1899724,
+    "duration_seconds": 2.19,
+    "status": "failed",
+    "error": "Exception during setup: 'TopologyManager' object has no attribute 'get_topology_summary'",
+    "fl_results": null,
+    "topology_summary": null
+}

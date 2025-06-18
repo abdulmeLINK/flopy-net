@@ -1,0 +1,24 @@
+{
+  "id": "api/overview",
+  "title": "API Reference Overview",
+  "description": "FLOPY-NET provides REST APIs for its core components, enabling programmatic access to federated learning orchestration, network management, policy enforcement, and real-time monitoring.",
+  "source": "@site/docs/api/overview.md",
+  "sourceDirName": "api",
+  "slug": "/api/overview",
+  "permalink": "/flopy-net/docs/api/overview",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/api/overview.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Troubleshooting Guide",
+    "permalink": "/flopy-net/docs/user-guide/troubleshooting"
+  },
+  "next": {
+    "title": "FL Framework API",
+    "permalink": "/flopy-net/docs/api/fl-framework"
+  }
+}

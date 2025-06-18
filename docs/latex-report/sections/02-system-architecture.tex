@@ -1,0 +1,264 @@
+%============================================================================
+% SECTION 2: SYSTEM ARCHITECTURE
+%============================================================================
+\section{System Architecture}
+\label{sec:system-architecture}
+
+FLOPY-NET is architected as a modular, policy-driven platform that integrates federated learning capabilities with comprehensive network simulation and monitoring. The system follows a layered architecture approach, enabling researchers to conduct realistic federated learning experiments while maintaining strict policy compliance and comprehensive observability.
+
+\subsection{High-Level Architecture Overview}
+
+The FLOPY-NET platform consists of five primary layers, each serving distinct functional responsibilities while maintaining loose coupling through well-defined interfaces.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,
+    every node/.style={align=center},
+    layer/.style={rectangle, rounded corners, minimum width=12cm, minimum height=1.5cm, text centered, draw, thick, text width=11.5cm}, % Added text width
+    arrow/.style={->, thick, >=stealth}
+]
+    % Layers from top to bottom
+    \node[layer, fill=primary!20] (ui) at (0,8) {%
+        \begin{tabular}{c}\textbf{User Interface Layer}\end{tabular}%
+        Dashboard Frontend (Port 8085) | Dashboard API (Port 8001) | CLI Interface%
+    };
+    
+    \node[layer, fill=secondary!20] (services) at (0,6) {%
+        \begin{tabular}{c}\textbf{Core Services Layer}\end{tabular}%
+        Policy Engine (Port 5000) | Collector Service (Port 8000) | FL Server (Port 8080)%
+    };
+    
+    \node[layer, fill=success!20] (fl) at (0,4) {%
+        \begin{tabular}{c}\textbf{Federated Learning Layer}\end{tabular}%
+        FL Clients (IPs 192.168.100.101-255) | Training Coordination | Model Aggregation%
+    };
+    
+    \node[layer, fill=accent!20] (network) at (0,2) {%
+        \begin{tabular}{c}\textbf{Network Simulation Layer}\end{tabular}%
+        GNS3 Integration (Port 3080) | SDN Controller (Port 6633/8181) | OpenVSwitch (IPs 60-99)%
+    };
+    
+    \node[layer, fill=warning!20] (storage) at (0,0) {%
+        \begin{tabular}{c}\textbf{Data \& Storage Layer}\end{tabular}%
+        SQLite Metrics DB | Policy Storage | Event Logs | Configuration Store%
+    };
+    
+    % Connections between layers
+    \draw[arrow, color=primary] (ui) -- (services);
+    \draw[arrow, color=secondary] (services) -- (fl);
+    \draw[arrow, color=success] (fl) -- (network);
+    \draw[arrow, color=accent] (network) -- (storage);
+    
+    % Bidirectional connections
+    \draw[arrow, color=dark] (services) -- (storage);
+    \draw[arrow, color=dark] (services) -- (network);
+    
+\end{tikzpicture}
+\caption{FLOPY-NET High-Level Architecture Layers}
+\label{fig:high-level-architecture}
+\end{figure}
+
+\subsection{Component Interaction Diagram}
+
+The following diagram illustrates the detailed interactions between core components, including data flows, control signals, and monitoring channels.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=6cm,
+    component/.style={rectangle, rounded corners, minimum width=2.8cm, minimum height=1.8cm, text centered, draw, thick, align=center, text width=2.8cm},
+    dataflow/.style={->, thick, >=stealth, color=primary},
+    control/.style={->, thick, >=stealth, color=secondary, dashed},
+    monitor/.style={->, thick, >=stealth, color=success, dotted}
+]
+    % Core Components
+    \node[component, fill=primary!20] (dashboard) at (0,7) {Dashboard\\8085/8001};
+    \node[component, fill=secondary!20] (policy) at (-4.5,4) {Policy Engine\\5000};
+    \node[component, fill=accent!20] (flserver) at (0,4) {FL Server\\8080};
+    \node[component, fill=success!20] (collector) at (4.5,4) {Collector\\8000};
+    
+    % FL Clients and Network Components
+    \node[component, fill=accent!30] (client1) at (-6.5,1) {FL Client 1\\101};
+    \node[component, fill=warning!20] (sdn) at (-3,1) {SDN Controller\\6633/8181};
+    \node[component, fill=accent!30] (client2) at (0,1) {FL Client 2\\102};
+    \node[component, fill=danger!20] (gns3) at (3,1) {GNS3\\3080};
+    \node[component, fill=accent!30] (clientn) at (6.5,1) {FL Client N\\100-255};
+    
+    % Data flows
+    \draw[dataflow] (dashboard) -- (policy);
+    \draw[dataflow] (dashboard) -- (flserver);
+    \draw[dataflow] (dashboard) -- (collector);
+    \draw[dataflow] (flserver) -- (client1);
+    \draw[dataflow] (flserver) -- (client2);
+    \draw[dataflow] (flserver) -- (clientn);
+    
+    % Control flows
+    \draw[control] (policy) -- (flserver);
+    \draw[control] (policy) -- (sdn);
+    \draw[control] (policy) -- (client1);
+    \draw[control] (policy) -- (client2);
+    \draw[control] (policy) -- (clientn);
+    \draw[control] (sdn) -- (gns3);
+    
+    % Monitor flows
+    \draw[monitor] (collector) -- (dashboard);
+    \draw[monitor] (client1) -- (collector);
+    \draw[monitor] (client2) -- (collector);
+    \draw[monitor] (clientn) -- (collector);
+    \draw[monitor] (sdn) -- (collector);
+    \draw[monitor] (gns3) -- (collector);
+    
+    % Legend
+    \node[draw, rectangle, fill=white] at (6.5,5.5) {
+        \begin{minipage}{2.5cm}
+        \centering
+        \textbf{Legend:}\\
+        \textcolor{primary}{--- Data Flow}\\
+        \textcolor{secondary}{- - Control}\\
+        \textcolor{success}{··· Monitor}
+        \end{minipage}
+    };
+\end{tikzpicture}
+\caption{Component Interaction and Data Flow Diagram}
+\label{fig:component-interactions}
+\end{figure}
+
+\subsection{Network Architecture}
+
+FLOPY-NET allows users to implement sophisticated network architectures that combines container networking with SDN capabilities for realistic network simulation. With routers, switches and internal external choices of SDN controllers you can create any topology you want. The scenario topology configuration is the choice of the user. That is one of the objectives of the FLOPY-NET.
+Here is a high-level overview of an example network architecture to broaden you perspective to the FLOPY-NET, including segmentation and key components.:
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=4cm,
+    network/.style={rectangle, rounded corners, minimum width=5cm, minimum height=1.2cm, text centered, draw, thick, align=center, text width=2.8cm}, % Added text width
+    switch/.style={diamond, minimum width=1.5cm, minimum height=1.5cm, text centered, draw, thick, fill=accent!30, align=center, text width=1.3cm}, % Added text width
+    link/.style={-, thick, color=dark}
+]
+    % Network segments
+    \node[network, fill=primary!20] (mgmt) at (0,7) {\begin{tabular}{c}Management Network\\172.20.0.0/16\end{tabular}};
+    \node[network, fill=secondary!20] (fl) at (-5.5,3) {\begin{tabular}{c}FL Network\\\texttt{192.168.100.0/24}\end{tabular}};
+    \node[network, fill=success!20] (sdn) at (6.5,3) {\begin{tabular}{c}SDN Network\\\texttt{192.168.100.0/24}\end{tabular}};
+    \node[network, fill=accent!20] (gns3) at (0,-0.8) {\begin{tabular}{c}GNS3 Network\\x.x.x.x/8\end{tabular}};
+    
+    % Switches
+    \node[switch] (sw1) at (-2,4.5) {OVS1\\60};
+    \node[switch] (sw2) at (2,4.5) {OVS2\\61};
+    \node[switch] (sw3) at (0,1.5) {Border\\OVS};
+    
+    % Components in networks
+    \node[rectangle, fill=white, draw, align=center] at (-5.5,2) {FL Server\\100.10}; % Added align=center
+    \node[rectangle, fill=white, draw, align=center] at (-5.5,1) {FL Clients\\100.101-255}; % Added align=center
+    \node[rectangle, fill=white, draw, align=center] at (6.5,2) {SDN Controller\\200.41}; % Added align=center
+    \node[rectangle, fill=white, draw, align=center] at (6.5,1) {Network Monitor\\200.42}; % Added align=center
+    \node[rectangle, fill=white, draw, align=center] at (0,-1.5) {External\\x.x.x.x}; % Added align=center
+    
+    % Links
+    \draw[link] (mgmt) -- (sw1);
+    \draw[link] (mgmt) -- (sw2);
+    \draw[link] (sw1) -- (fl);
+    \draw[link] (sw2) -- (sdn);
+    \draw[link] (sw1) -- (sw3);
+    \draw[link] (sw2) -- (sw3);
+    \draw[link] (sw3) -- (gns3);
+\end{tikzpicture}
+\caption{Network Architecture and Segmentation}
+\label{fig:network-architecture}
+\end{figure}
+
+\subsection{Design Principles}
+
+FLOPY-NET is built upon several key architectural principles that ensure scalability, maintainability, and research utility:
+
+\subsubsection{Policy-Driven Architecture}
+
+The Policy Engine serves as the central nervous system of FLOPY-NET, ensuring that all components operate according to defined security, performance, and governance rules.
+
+\begin{itemize}
+    \item \textbf{Centralized Policy Definition}: All policies are defined in a centralized location with version control
+    \item \textbf{Real-time Enforcement}: Policies are enforced in real-time across all system components
+    \item \textbf{Dynamic Updates}: Policy changes can be applied without system restart
+    \item \textbf{Audit Trail}: Complete audit trail of policy applications and violations
+\end{itemize}
+
+\subsubsection{Microservices Architecture}
+
+Each major component is implemented as an independent service with well-defined interfaces:
+
+\begin{itemize}
+    \item \textbf{Service Independence}: Components can be developed, deployed, and scaled independently
+    \item \textbf{Technology Diversity}: Different components can use optimal technology stacks
+    \item \textbf{Fault Isolation}: Failures in one component don't cascade to others
+    \item \textbf{Interface Contracts}: Well-defined APIs ensure component interoperability
+\end{itemize}
+
+\subsubsection{Observable Systems}
+
+Every component exposes comprehensive metrics, logs, and control interfaces:
+
+\begin{itemize}
+    \item \textbf{Metrics Collection}: Performance, health, and business metrics from all components
+    \item \textbf{Event Streaming}: Real-time event streams for system state changes
+    \item \textbf{Distributed Tracing}: Request tracing across component boundaries
+    \item \textbf{Health Monitoring}: Liveness and readiness probes for all services
+\end{itemize}
+
+\subsubsection{Research-First Design}
+
+The platform is optimized for research workflows and reproducibility:
+
+\begin{itemize}
+    \item \textbf{Experiment Reproducibility}: Deterministic seeding and configuration management
+    \item \textbf{Data Export}: Comprehensive data export capabilities for analysis
+    \item \textbf{Scenario Management}: Pre-defined and custom experimental scenarios
+    \item \textbf{Extension Points}: Plugin architecture for custom algorithms and policies
+\end{itemize}
+
+\subsection{Scalability and Performance Considerations}
+
+FLOPY-NET is designed to scale from small research experiments to large-scale simulations:
+
+\begin{table}[H]
+\centering
+\caption{Scalability Specifications}
+\label{tab:scalability-specs}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Component} & \textbf{Minimum Scale} & \textbf{Maximum Scale} \\
+\midrule
+FL Clients & 2 clients & 255 clients per subnet \\
+Network Nodes & 10 nodes & 1000+ nodes (GNS3) \\
+Policy Rules & 10 rules & 10,000+ rules \\
+Metrics Points & 1K/sec & 100K/sec \\
+Concurrent Users & 1 user & 50+ users \\
+Data Storage & 1 GB & 1+ TB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Security Architecture}
+
+Security is implemented through multiple layers:
+
+\subsubsection{Network Security}
+\begin{itemize}
+    \item Network segmentation through SDN
+    \item Traffic filtering and monitoring
+    \item Encrypted inter-service communication
+\end{itemize}
+
+\subsubsection{Application Security}
+\begin{itemize}
+    \item Role-based access control (RBAC)
+    \item API authentication and authorization
+    \item Input validation and sanitization
+\end{itemize}
+
+\subsubsection{Data Security}
+\begin{itemize}
+    \item Encryption at rest and in transit
+    \item Secure key management
+    \item Data anonymization capabilities
+\end{itemize}
+
+The following sections provide detailed documentation of each major component, including implementation details, configuration options, and integration patterns.

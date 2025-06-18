@@ -1,0 +1,664 @@
+%============================================================================
+% SECTION 7: NETWORKING LAYER
+%============================================================================
+\section{Networking Layer}
+\label{sec:networking-layer}
+
+The Networking Layer represents one of FLOPY-NET's most innovative features, providing realistic network simulation capabilities through the integration of GNS3 \cite{gns3}, Software-Defined Networking (SDN) \cite{kreutz2015software}, and containerized network functions. This layer enables researchers to study federated learning performance under various network conditions, including latency, bandwidth constraints, packet loss, and dynamic topology changes.
+
+\subsection{Architecture Overview}
+
+The Networking Layer implements a multi-tier architecture that combines network simulation with real container networking:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=5cm,    layer/.style={rectangle, rounded corners, minimum width=12cm, minimum height=1.5cm, text centered, draw, thick, align=center},
+    component/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, align=center},
+    flow/.style={->, thick, >=stealth}
+]
+    % Control Plane
+    \node[layer, fill=primary!20] (control) at (0,8) {%
+        \begin{tabular}{c}\textbf{Control Plane}\end{tabular}%
+        SDN Controller (Ryu) | Network Policies | Topology Management%
+    };
+      % Management Plane
+    \node[layer, fill=secondary!20] (management) at (0,6) {Management Plane: GNS3 Server | Template Management | Container Orchestration};
+    
+    % Data Plane
+    \node[layer, fill=success!20] (data) at (0,4) {Data Plane: OpenVSwitch | Docker Bridges | Network Namespaces};
+    
+    % Physical/Virtual Infrastructure
+    \node[layer, fill=accent!20] (infrastructure) at (0,2) {Infrastructure Layer: Docker Engine | Virtual Networks | Container Runtime};
+    
+    % Components
+    \node[component, fill=primary!30] (ryu) at (-5,7.2) {Ryu Controller 6633/8181};
+    \node[component, fill=primary!30] (policies) at (-2,7.2) {Network Policies};
+    \node[component, fill=primary!30] (monitor) at (1,7.2) {Network Monitor};
+    \node[component, fill=primary!30] (api) at (4,7.2) {REST API Management};
+    
+    \node[component, fill=secondary!30] (gns3) at (-4,5.2) {GNS3 Server 3080};
+    \node[component, fill=secondary!30] (templates) at (-1,5.2) {Container Templates};
+    \node[component, fill=secondary!30] (topology) at (2,5.2) {Topology Engine};
+    
+    \node[component, fill=success!30] (ovs1) at (-4,3.2) {OVS Switch 192.168.100.60-100};
+    \node[component, fill=success!30] (bridge) at (2,3.2) {Docker Bridges};
+    
+    % Flows
+    \draw[flow, color=primary] (control) -- (management);
+    \draw[flow, color=secondary] (management) -- (data);
+    \draw[flow, color=success] (data) -- (infrastructure);
+    
+    % Control connections
+    \draw[flow, color=dark, dashed] (ryu) -- (ovs1);
+    \draw[flow, color=dark, dashed] (ryu) -- (ovs2);
+    \draw[flow, color=dark, dotted] (gns3) -- (templates);
+    \draw[flow, color=dark, dotted] (topology) -- (ovs1);
+    \draw[flow, color=dark, dotted] (topology) -- (bridge);
+\end{tikzpicture}
+\caption{Networking Layer Architecture}
+\label{fig:networking-architecture}
+\end{figure}
+
+\subsection{GNS3 Integration}
+
+\subsubsection{GNS3 Container Architecture}
+
+FLOPY-NET leverages GNS3's container capabilities to create realistic network environments where each component runs in its own Docker container within a simulated network topology.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2.2cm,
+    gns3box/.style={rectangle, rounded corners, minimum width=12cm, minimum height=8cm, text centered, draw, very thick, fill=primary!5, align=center},
+    container/.style={rectangle, rounded corners, minimum width=2.2cm, minimum height=1.2cm, text centered, draw, thick, align=center},
+    switch/.style={diamond, minimum width=1.8cm, minimum height=1.8cm, text centered, draw, thick, fill=accent!30, align=center},
+    registry/.style={ellipse, minimum width=2.5cm, minimum height=1.5cm, text centered, draw, thick, fill=warning!20, align=center},
+    network/.style={ellipse, minimum width=2.5cm, minimum height=1cm, text centered, draw, thick, fill=info!20, align=center},
+    flow/.style={->, thick, >=stealth},
+    data/.style={<->, thick, >=stealth, dashed}
+]
+    % GNS3 Environment Box
+    \node[gns3box] (gns3_env) at (0,0) {};
+    \node[text width=11cm, align=center] at (0,3.5) {\begin{tabular}{c}\textbf{GNS3 Network Simulation Environment}\\VM: Ubuntu 20.04, Docker Runtime, 8GB RAM\end{tabular}};
+      % Registry external to GNS3
+    \node[registry] (registry) at (-8,2) {\begin{tabular}{c}Docker Hub\\abdulmelink/*\end{tabular}};
+    
+    % FL Components
+    \node[container, fill=primary!30] (fl_server) at (-3,2) {\begin{tabular}{c}FL Server\\192.168.100.10\\:8080\end{tabular}};
+    \node[container, fill=primary!30] (fl_client1) at (-3,0.5) {\begin{tabular}{c}FL Client 1\\192.168.100.101\end{tabular}};
+    \node[container, fill=primary!30] (fl_client2) at (-3,-1) {\begin{tabular}{c}FL Client 2\\192.168.100.102\end{tabular}};
+      % Core Services
+    \node[container, fill=secondary!30] (policy) at (0,2) {\begin{tabular}{c}Policy Engine\\192.168.100.20\\:5000\end{tabular}};
+    \node[container, fill=success!30] (collector) at (0,0.5) {\begin{tabular}{c}Collector\\192.168.100.40\\:8000\end{tabular}};
+    
+    % Network Components
+    \node[container, fill=warning!30] (sdn) at (3,2) {\begin{tabular}{c}SDN Controller\\192.168.100.41\\:6633\end{tabular}};
+    \node[switch] (ovs1) at (3,0) {\begin{tabular}{c}OVS1\\:6640\end{tabular}};
+  
+    
+    % Virtual Networks
+    \node[network] (fl_net) at (-5.5,0.5) {\begin{tabular}{c}FL Network\\Segment\end{tabular}};
+    \node[network] (mgmt_net) at (0,-2.8) {\begin{tabular}{c}Management\\Network\\&\\Bridge\end{tabular}};
+    \node[network] (sdn_net) at (5.5,0.5) {\begin{tabular}{c}SDN Control\\Network\end{tabular}};
+    
+    % Image pull flows
+    \draw[flow, color=warning, very thick] (registry) -- (-6,2) -- (-6,0) -- (fl_server) node[near start, above] {Pull Images};
+    \draw[flow, color=warning, very thick] (-6,0) -- (policy);
+    \draw[flow, color=warning, very thick] (-6,0) -- (sdn);
+    
+    % FL Communication flows
+    \draw[data, color=primary] (fl_server) -- (fl_client1);
+    \draw[data, color=primary] (fl_server) -- (fl_client2);
+    \draw[data, color=primary] (fl_client1) -- (policy);
+    \draw[data, color=primary] (fl_client2) -- (policy);
+    
+    % Network connections
+    \draw[flow, color=info] (fl_net) -- (fl_server);
+    \draw[flow, color=info] (fl_net) -- (fl_client1);
+    \draw[flow, color=info] (fl_net) -- (fl_client2);
+    
+    \draw[flow, color=info] (mgmt_net) -- (policy);
+    \draw[flow, color=info] (mgmt_net) -- (collector);
+    
+    \draw[flow, color=info] (sdn_net) -- (sdn);
+    \draw[flow, color=info] (sdn_net) -- (ovs1);
+
+    
+    % SDN Control flows
+    \draw[data, color=accent] (sdn) -- (ovs1);
+
+    
+    % Monitoring flows
+    \draw[data, color=success, dotted] (collector) -- (fl_server);
+    \draw[data, color=success, dotted] (collector) -- (policy);
+    \draw[data, color=success, dotted] (collector) -- (sdn);
+\end{tikzpicture}
+\caption{GNS3 Container Integration with FLOPY-NET Components}
+\label{fig:gns3-container-integration}
+\end{figure}
+
+\subsubsection{GNS3 Server Configuration}
+
+GNS3 serves as the network simulation backbone, providing container orchestration and network topology management:
+
+\begin{lstlisting}[style=pythoncode, caption=GNS3 Integration Client]
+class GNS3API:
+    """Wrapper for the GNS3 REST API."""
+    
+    def __init__(self, server_url: str = "http://localhost:3080", api_version: str = "v2", username: str = None, password: str = None):
+        """Initialize the GNS3 API."""
+        self.server_url = server_url.rstrip("/")
+        self.api_version = api_version
+        self.base_url = f"{self.server_url}/{self.api_version}"
+        self.auth = None
+        
+        # Configure authentication if provided
+        if username and password:
+            self.auth = (username, password)
+            logger.info(f"Initialized GNS3API with authentication for user: {username}")
+        else:
+            logger.info(f"Initialized GNS3API without authentication")
+        
+        logger.info(f"Initialized GNS3API with server URL: {server_url}")
+    
+    def _make_request(self, method: str, endpoint: str, data=None, params=None, timeout=10) -> Tuple[bool, Any]:
+        """Make a request to the GNS3 API."""
+        url = f"{self.base_url}/{endpoint}"
+        
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                json=data,
+                params=params,
+                timeout=timeout,
+                auth=self.auth
+            )
+            
+            if response.status_code in [200, 201, 204]:
+                try:
+                    return True, response.json()
+                except json.JSONDecodeError:
+                    return True, {}
+            elif response.status_code == 401:
+                logger.error(f"Authentication failed: {response.status_code} - {response.text}")
+                return False, f"Authentication failed: {response.status_code} - {response.text}"
+            else:
+                logger.error(f"API request failed: {response.status_code} - {response.text}")
+                return False, f"API request failed: {response.status_code} - {response.text}"
+                
+        except Exception as e:
+            logger.error(f"Error making request: {e}")
+            return False, f"Error making request: {e}"
+    
+    def create_project(self, name: str) -> Tuple[bool, Dict]:
+        """Create a new project."""
+        data = {'name': name}
+        return self._make_request('POST', 'projects', data=data)
+    
+    def get_nodes(self, project_id: str) -> Tuple[bool, List[Dict]]:
+        """Get all nodes in a project."""
+        return self._make_request('GET', f'projects/{project_id}/nodes')
+    
+    def get_project_topology(self, project_id: str) -> Tuple[bool, Dict]:
+        """Get complete project topology."""
+        success, nodes = self.get_nodes(project_id)
+        if not success:
+            return False, nodes
+        
+        success, links = self.get_links(project_id)
+        if not success:
+            return False, links        
+        return True, {"nodes": nodes, "links": links}
+        """Get complete project topology."""
+        async with self.session.get(
+            f"{self.base_url}/v2/projects/{project_id}"
+        ) as response:
+            project = await response.json()
+        
+        # Get nodes
+        async with self.session.get(
+            f"{self.base_url}/v2/projects/{project_id}/nodes"
+        ) as response:
+            nodes = await response.json()
+        
+        # Get links
+        async with self.session.get(
+            f"{self.base_url}/v2/projects/{project_id}/links"
+        ) as response:
+            links = await response.json()
+        
+        return {
+            "project": project,
+            "nodes": nodes,
+            "links": links
+        }
+\end{lstlisting}
+
+\subsubsection{Container Template Management}
+
+FLOPY-NET components are deployed as Docker containers within GNS3:
+
+\begin{table}[H]
+\centering
+\caption{v1.0.0-alpha.8 GNS3 Container Templates Recommended Allocations}
+\label{tab:gns3-templates}
+\begin{tabular}{@{}llp{5cm}@{}}
+\toprule
+\textbf{Component} & \textbf{Docker Image} & \textbf{Configuration} \\
+\midrule
+FL Server & abdulmelink/flopynet-server & 2 CPU, 4GB RAM, Port 8080 \\
+FL Client & abdulmelink/flopynet-client & 1 CPU, 2GB RAM, Dynamic IPs \\
+Policy Engine & abdulmelink/flopynet-policy & 1 CPU, 1GB RAM, Port 5000 \\
+Collector & abdulmelink/flopynet-collector & 1 CPU, 2GB RAM, Port 8000 \\
+SDN Controller & abdulmelink/flopynet-controller & 1 CPU, 1GB RAM, Port 6633 \\
+OpenVSwitch & abdulmelink/flopynet-openvswitch & 0.5 CPU, 512MB RAM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Software-Defined Networking (SDN)}
+
+\subsubsection{Ryu Controller Implementation}
+
+The Ryu-based SDN controller \cite{ryu} provides centralized network control and policy enforcement:
+
+\begin{lstlisting}[style=pythoncode, caption=SDN Controller Implementation]
+import abc
+from typing import Dict, List, Optional, Any, Union
+from src.core.common.logger import LoggerMixin
+
+class ISDNController(abc.ABC, LoggerMixin):
+    """Interface for SDN controllers in federated learning environment."""
+    
+    def __init__(self, host: str, port: int):
+        """
+        Initialize the SDN controller interface.
+        
+        Args:
+            host: Controller host address
+            port: Controller port
+        """
+        super().__init__()
+        self.host = host
+        self.port = port
+        self.connected = False
+        
+    @abc.abstractmethod
+    def connect(self) -> bool:
+        """Establish connection to the SDN controller."""
+        pass
+        
+    @abc.abstractmethod
+    def get_topology(self) -> Dict[str, Any]:
+        """Get the current network topology from the controller."""
+        pass
+        
+    @abc.abstractmethod
+    def add_flow(self, switch: str, priority: int, match: Dict[str, Any], 
+                 actions: List[Dict[str, Any]], idle_timeout: int = 0, 
+                 hard_timeout: int = 0) -> bool:
+        """Add a flow rule to a switch."""
+        pass
+
+class SDNController(ISDNController):
+    """Base implementation of SDN controller."""
+    
+    def __init__(self, host: str = "localhost", port: int = 6653):
+        super().__init__(host, port)
+        self.logger.info(f"Initialized SDN controller at {host}:{port}")
+    
+    def connect(self) -> bool:
+        """Establish connection to the SDN controller."""
+        self.logger.warning("Base SDN controller does not implement actual connection")
+        self.connected = True
+        return True
+        
+    def get_topology(self) -> Dict[str, Any]:
+        """Get the current network topology from the controller."""
+        return {
+            "switches": [],
+            "hosts": [],
+            "links": []
+        }
+        
+    def add_flow(self, switch: str, priority: int, match: Dict[str, Any], 
+                actions: List[Dict[str, Any]], idle_timeout: int = 0, 
+                hard_timeout: int = 0) -> bool:
+        """Add a flow rule to a switch."""
+        self.logger.warning("Base SDN controller does not implement flow management")
+        return False
+        
+    def get_switches(self) -> List[Dict[str, Any]]:
+        """Get all switches managed by the controller."""
+        return []
+        
+    def get_flow_stats(self, switch: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get flow statistics from switches."""
+        return []
+\end{lstlisting}
+
+\subsection{Network Topology Management}
+
+\subsubsection{GNS3 Template Management}
+
+The system uses predefined Docker templates for deploying FLOPY-NET components in GNS3:
+
+\begin{lstlisting}[style=pythoncode, caption=GNS3 Template Utilities]
+# Default FL-SDN template definitions
+DEFAULT_TEMPLATES = {
+    "flopynet-server": {
+        "name": "flopynet-Server",
+        "template_type": "docker", 
+        "image": "abdulmelink/flopynet_fl_server:latest",
+        "adapters": 1,
+        "console_type": "telnet",
+        "console_auto_start": True,
+        "start_command": "/bin/sh",
+        "environment": "PYTHONUNBUFFERED=1\nPYTHONIOENCODING=UTF-8\nLANG=C.UTF-8",
+        "category": "guest"
+    },
+    "flopynet-client": {
+        "name": "flopynet-Client",
+        "template_type": "docker",
+        "image": "abdulmelink/flopynet_fl_client:latest",
+        "adapters": 1,
+        "console_type": "telnet",
+        "console_auto_start": True,
+        "start_command": "/bin/sh",
+        "environment": "PYTHONUNBUFFERED=1\nPYTHONIOENCODING=UTF-8\nLANG=C.UTF-8",
+        "category": "guest"
+    },
+    "flopynet-policy": {
+        "name": "flopynet-PolicyEngine",
+        "template_type": "docker",
+        "image": "abdulmelink/flopynet_policy_engine:latest",
+        "adapters": 1,
+        "console_type": "telnet",
+        "console_auto_start": True,
+        "start_command": "/bin/sh",
+        "environment": "PYTHONUNBUFFERED=1\nPYTHONIOENCODING=UTF-8\nLANG=C.UTF-8",
+        "category": "guest"
+    },
+    "flopynet-collector": {
+        "name": "flopynet-Collector",
+        "template_type": "docker",
+        "image": "abdulmelink/flopynet_collector:latest",
+        "adapters": 1,
+        "console_type": "telnet",
+        "console_auto_start": True,
+        "start_command": "/bin/sh",
+        "environment": "PYTHONUNBUFFERED=1\nPYTHONIOENCODING=UTF-8\nLANG=C.UTF-8",
+        "category": "guest"
+    }
+}
+
+def register_flopynet_templates(api_url: str, registry: str = "abdulmelink") -> bool:
+    """Register FLOPY-NET templates in GNS3."""
+    try:
+        gns3_api = GNS3API(api_url)
+        
+        for template_key, template_config in DEFAULT_TEMPLATES.items():
+            # Update image with registry prefix
+            template_config["image"] = f"{registry}/{template_config['image'].split('/')[-1]}"
+            
+            # Register template
+            response = gns3_api.create_template(template_config)
+            if response:
+                logger.info(f"Successfully registered template: {template_config['name']}")
+            else:
+                logger.error(f"Failed to register template: {template_config['name']}")
+                return False
+                
+        return True
+    except Exception as e:
+        logger.error(f"Error registering templates: {e}")
+        return False
+        
+        # Connect components
+        await self._connect_components(
+            project_id, fl_server, clients, switch, 
+            sdn_controller, policy_engine, collector
+        )
+        
+        # Apply network conditions if specified
+        if network_conditions:
+            await self._apply_network_conditions(project_id, network_conditions)
+        
+        return project_id
+    
+    async def _create_fl_server_node(self, project_id: str) -> Dict[str, Any]:
+        """Create FL Server node."""
+        node_config = {
+            "name": "FL_Server",
+            "node_type": "docker",
+            "compute_id": "local",
+            "properties": {
+                "image": "abdulmelink/flopynet-server:latest",
+                "adapters": 1,
+                "start_command": "python -m src.fl.server",
+                "environment": "FL_SERVER_HOST=0.0.0.0\nFL_SERVER_PORT=8080",
+                "extra_hosts": "policy-engine:192.168.100.5",
+                "console_type": "telnet"
+            },
+            "x": -100,
+            "y": 0,
+            "z": 1
+        }
+        
+        return await self.gns3_client.create_node(project_id, node_config)
+    th}{@{\extracolsep{\fill}}llp{5cm}@{}}
+    async def _create_fl_client_node(self, project_id: str, client_id: int) -> Dict[str, Any]:
+        """Create FL Client node."""
+        node_config = {
+            "name": f"FL_Client_{client_id}",
+            "node_type": "docker",
+            "compute_id": "local",
+            "properties": {
+                "image": "abdulmelink/flopynet-client:latest",
+                "adapters": 1,                "start_command": f"python -m src.fl.client \\
+                    --client-id {client_id}",}
+                "environment": f"CLIENT_ID={client_id}\\n\\
+                    FL_SERVER_URL=http://192.168.100.10:8080",
+                "console_type": "telnet"
+            },
+            "x": 100 + (client_id * 50),
+            "y": 100 + (client_id * 30),
+            "z": 1
+        }
+        
+        return await self.gns3_client.create_node(project_id, node_config)
+    
+    async def _apply_network_conditions(self, project_id: str, 
+                                      conditions: Dict[str, Any]):
+        """Apply network conditions like latency, bandwidth limits, packet loss."""
+        
+        # Create network impairment node (tc-based)
+        impairment_config = {
+            "name": "Network_Impairment",
+            "node_type": "docker",
+            "compute_id": "local",
+            "properties": {
+                "image": "abdulmelink/flopynet-impairment:latest",
+                "adapters": 2,
+                "start_command": self._generate_tc_commands(conditions),
+                "console_type": "telnet"
+            },
+            "x": 0,
+            "y": -100,
+            "z": 1
+        }
+        
+        impairment_node = await self.gns3_client.create_node(project_id, impairment_config)
+        
+        # Insert impairment node into network path
+        # This would require reconnecting existing links through the impairment node
+    
+    def _generate_tc_commands(self, conditions: Dict[str, Any]) -> str:
+        """Generate traffic control commands for network conditions."""
+        commands = []
+        
+        if "latency" in conditions:
+            latency = conditions["latency"]
+            commands.append(f"tc qdisc add dev eth0 root netem delay {latency}ms")
+        
+        if "bandwidth" in conditions:
+            bandwidth = conditions["bandwidth"]
+            commands.append(f"tc qdisc add dev eth0 root handle 1: tbf rate {bandwidth}mbit burst 32kbit latency 400ms")
+        
+        if "packet_loss" in conditions:
+            loss_rate = conditions["packet_loss"]
+            commands.append(f"tc qdisc add dev eth0 root netem loss {loss_rate}%")
+        
+        if "jitter" in conditions:
+            jitter = conditions["jitter"]
+            commands.append(f"tc qdisc add dev eth0 root netem delay 100ms {jitter}ms")
+        
+        return " && ".join(commands) if commands else "sleep infinity"
+\end{lstlisting}
+
+\subsection{Network Monitoring and Analytics}
+
+\subsubsection{Real-Time Network Metrics}
+
+The networking layer provides comprehensive monitoring capabilities:
+
+\begin{table}[H]
+\centering
+\caption{Network Monitoring Metrics}
+\label{tab:network-metrics}
+\begin{tabular}{llp{5cm}}
+\toprule
+\textbf{Metric Category} & \textbf{Metrics} & \textbf{Description} \\
+\midrule
+Flow Statistics & packets\_sent, packets\_received, bytes\_transferred & Per-flow traffic statistics \\
+Link Quality & latency, jitter, packet\_loss, bandwidth\_utilization & Link performance metrics \\
+Switch Performance & flow\_table\_size, cpu\_usage, memory\_usage & OpenVSwitch performance \\
+Topology Changes & link\_up, link\_down, node\_join, node\_leave & Network topology events \\
+Policy Enforcement & flows\_blocked, policies\_applied, violations & Security and policy metrics \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Network Performance Analysis}
+
+Advanced analytics for network behavior analysis:
+
+\begin{lstlisting}[style=pythoncode, caption=Network Performance Analysis]
+class CollectorApiClient:
+    """Client for interacting with the Collector API with network analysis capabilities."""
+
+    async def get_performance_metrics(self) -> Dict[str, Any]:
+        """
+        Get comprehensive network performance metrics with health scoring.
+        
+        Returns:
+            Performance metrics response from collector including:
+            - Real-time bandwidth, latency, and packet statistics  
+            - Network health score (0-100)
+            - Port statistics with error rates
+            - Performance trends and aggregations
+        """
+        try:
+            logger.info("CollectorApiClient: Fetching performance metrics")
+            return await self._make_request("GET", "/api/performance/metrics")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error getting performance metrics: {e.response.status_code}")
+            return {
+                "error": f"HTTP {e.response.status_code}",
+                "network_health": {
+                    "score": 0,
+                    "status": "error"
+                },
+                "latency": {"average": 0, "minimum": 0, "maximum": 0},
+                "bandwidth": {"average": 0, "minimum": 0, "maximum": 0},
+                "port_statistics": {}
+            }
+
+    async def get_flow_statistics(self) -> Dict[str, Any]:
+        """
+        Get comprehensive flow statistics with efficiency calculations.
+        
+        Returns:
+            Flow statistics response from collector including:
+            - Flow distribution by priority, table, and type
+            - Match criteria and action statistics  
+            - Flow efficiency metrics
+            - Bandwidth utilization per flow
+        """
+        try:
+            logger.info("CollectorApiClient: Fetching flow statistics")
+            return await self._make_request("GET", "/api/flows/statistics")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error getting flow statistics: {e.response.status_code}")
+            return {
+                "error": f"HTTP {e.response.status_code}",
+                "flow_statistics": {
+                    "total_flows": 0,
+                    "active_flows": 0,
+                    "flows_per_switch": {},
+                    "priority_distribution": {},
+                    "table_distribution": {}
+                },
+                "utilization_metrics": {
+                    "efficiency_percentage": 0,
+                    "efficiency_rating": "poor"
+                }
+            }
+
+    async def get_network_metrics(
+        self,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        limit: int = 100
+    ) -> MetricsResponse:
+        """Get network metrics for performance analysis."""
+        params = {
+            "start": start_time,
+            "end": end_time,
+            "limit": limit,
+            "type": "network"
+        }
+        params = {k: v for k, v in params.items() if v is not None}
+        
+        data = await self._make_request("GET", "/api/metrics", params=params)        return MetricsResponse(**data)
+\end{lstlisting}
+
+\subsection{Network Scenarios and Testing}
+
+\subsubsection{Example Network Scenarios}
+
+The system allow researchers to define and test various network scenarios to evaluate federated learning performance under different conditions. The following table lists some network scenarios that can be predefined and used in experiments:
+Current version comes with only a basic scenario that have 2 clients and a server, but more scenarios will be added as their tests are confirmed in the future.
+\begin{table}[H]
+\centering
+\caption{Predefined Network Scenarios}  
+\label{tab:network-scenarios}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Scenario} & \textbf{Conditions} & \textbf{Purpose} \\
+\midrule
+High Latency & 500ms latency, 1\% packet loss & Simulate satellite/\\long-distance connections \\
+Bandwidth Limited & 1 Mbps bandwidth limit & Test model compression effectiveness \\
+Intermittent Connectivity & Random 30s disconnections & Test fault tolerance and recovery \\
+Asymmetric Network & Different up/down speeds & Simulate real-world internet conditions \\
+Congested Network & Variable latency and bandwidth & Test performance under load \\
+Edge Computing & Low latency, limited bandwidth & Simulate IoT/edge deployment \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Integration with FL Framework}
+
+The networking layer tightly integrates with the FL framework to enable network-aware federated learning:
+
+\begin{itemize}
+    \item \textbf{Network-Aware Client Selection}: Select clients based on network conditions
+    \item \textbf{Adaptive Communication}: Adjust communication patterns based on network state
+    \item \textbf{Quality of Service}: Prioritize FL traffic over other network traffic
+    \item \textbf{Fault Tolerance}: Handle network failures gracefully
+    \item \textbf{Performance Optimization}: Optimize training schedules based on network capacity
+\end{itemize}
+
+The Networking Layer provides FLOPY-NET with unique capabilities for realistic federated learning experimentation, enabling researchers to study the complex interactions between distributed learning algorithms and network infrastructure under various conditions.

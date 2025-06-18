@@ -1,0 +1,27 @@
+{
+  "id": "architecture/overview",
+  "title": "System Overview",
+  "description": "FLOPY-NET is designed as a modular, policy-driven platform for studying federated learning in realistic network environments. This document provides a comprehensive overview of the system architecture, component interactions, and design principles.",
+  "source": "@site/docs/architecture/overview.md",
+  "sourceDirName": "architecture",
+  "slug": "/architecture/overview",
+  "permalink": "/flopy-net/docs/architecture/overview",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/architecture/overview.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Quick Start",
+    "permalink": "/flopy-net/docs/getting-started/quick-start"
+  },
+  "next": {
+    "title": "Dashboard Component",
+    "permalink": "/flopy-net/docs/components/dashboard"
+  }
+}

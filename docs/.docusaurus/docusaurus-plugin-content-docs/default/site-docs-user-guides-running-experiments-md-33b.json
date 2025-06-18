@@ -1,0 +1,15 @@
+{
+  "id": "user-guides/running-experiments",
+  "title": "Running Experiments",
+  "description": "This guide walks you through setting up, running, and monitoring federated learning experiments in FLOPY-NET. You'll learn how to configure experiments, manage clients, and analyze results.",
+  "source": "@site/docs/user-guides/running-experiments.md",
+  "sourceDirName": "user-guides",
+  "slug": "/user-guides/running-experiments",
+  "permalink": "/flopy-net/docs/user-guides/running-experiments",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/abdulmelink/flopy-net/tree/main/docs/docs/user-guides/running-experiments.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

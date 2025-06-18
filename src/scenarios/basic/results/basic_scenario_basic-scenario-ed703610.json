@@ -1,0 +1,12 @@
+{
+    "scenario_id": "basic-scenario-ed703610",
+    "config_file": "config/scenarios/basic_main.json",
+    "topology_file": "config\\topology\\basic_topology.json",
+    "start_time": 1746291370.5010855,
+    "end_time": 1746291372.6727407,
+    "duration_seconds": 2.17,
+    "status": "failed",
+    "error": "Exception during setup: 'GNS3API' object has no attribute '_debug_log_templates'",
+    "fl_results": null,
+    "topology_summary": null
+}

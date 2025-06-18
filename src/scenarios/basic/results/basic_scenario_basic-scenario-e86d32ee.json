@@ -1,0 +1,15 @@
+{
+    "scenario_id": "basic-scenario-e86d32ee",
+    "config_file": ".\\config\\scenarios\\basic_main.json",
+    "topology_file": ".\\config\\topology\\basic_topology.json",
+    "start_time": 1746979550.2903037,
+    "end_time": 1746979623.0730534,
+    "duration_seconds": 72.78,
+    "status": "failed",
+    "error": "Exception during setup: 'DeploymentManager' object has no attribute 'deploy_topology'",
+    "fl_results": null,
+    "topology_summary": {
+        "nodes": 9,
+        "links": 9
+    }
+}

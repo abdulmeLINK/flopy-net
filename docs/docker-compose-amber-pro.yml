@@ -1,0 +1,31 @@
+version: '3.8'
+
+# FLOPY-NET: Federated Learning and SDN Observatory Platform  
+# Documentation Services - System Version: v1.0.0-alpha.8
+# Build Date: 2025-06-18
+
+services:
+  docs:
+    image: abdulmelink/flopynet-docs:v1.0.0-alpha.8
+    container_name: flopynet-docs
+    ports:
+      - "3000:80"
+    environment:
+      - NGINX_PORT=80
+      - DOCS_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-18
+      - ENVIRONMENT=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - docs-network
+
+networks:
+  docs-network:
+    driver: bridge
+    name: docs-network
