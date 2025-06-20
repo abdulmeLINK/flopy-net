@@ -4,18 +4,45 @@ sidebar_position: 4
 
 # Policy Engine
 
-The **Policy Engine** is the heart of FLOPY-NET's security, governance, and compliance system. It enforces rules across all components, monitors compliance, detects anomalies, and ensures that federated learning operations adhere to defined policies.
+The **Policy Engine** is the heart of FLOPY-NET's security, governance, and compliance system. It operates as a centralized Flask-based REST API service (Port 5000, IP 192.168.100.20) that enforces rules across all components, monitors compliance, detects anomalies, and ensures that Flower-based federated learning operations adhere to defined policies.
 
 ## Overview
 
-As stated in the project rules: "*Policy Engine is the hearth: If anything related to the Policy Engine needs fix first try to match the component architecture with policy engine architecture instead of trying to modify Policy Engine.*"
+As stated in the project architecture: "*Policy Engine is the heart: If anything related to the Policy Engine needs fix first try to match the component architecture with policy engine architecture instead of trying to modify Policy Engine.*"
 
-The Policy Engine operates as a centralized service that:
-- Defines and enforces security policies
-- Monitors component compliance
-- Detects and responds to anomalies
-- Manages trust scores and reputation
-- Controls access and permissions
+The Policy Engine operates as a centralized Docker container service (`abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8`) that:
+- Defines and enforces security, privacy, and performance policies
+- Monitors federated learning component compliance in real-time
+- Detects and responds to anomalies and policy violations
+- Manages client trust scores and reputation systems
+- Controls FL client access and participation permissions
+- Integrates with SDN Controller for network-level policy enforcement
+
+## Container Architecture
+
+### Docker Service Configuration
+```yaml
+policy-engine:
+  image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8
+  container_name: policy-engine
+  networks:
+    flopynet_network:
+      ipv4_address: 192.168.100.20
+  ports:
+    - "5000:5000"
+  environment:
+    - SERVICE_TYPE=policy-engine
+    - POLICY_PORT=5000
+    - POLICY_CONFIG=/app/config/policies/policy_config.json
+    - POLICY_FUNCTIONS_DIR=/app/config/policy_functions
+```
+
+### Service Dependencies
+- **Health Check**: Curl-based health monitoring on `/health` endpoint
+- **FL Server**: Depends on Policy Engine health check before startup
+- **FL Clients**: Query Policy Engine for participation authorization
+- **Collector**: Monitors Policy Engine events and compliance metrics
+- **SDN Controller**: Receives network policy enforcement directives
 
 ## Architecture
 
@@ -488,6 +515,35 @@ curl http://localhost:5000/events
   "total": 2
 }
 ```
+
+## Flask REST API Endpoints
+
+The Policy Engine provides a comprehensive REST API using Flask (not FastAPI, so no automatic `/docs` endpoint). Key endpoints include:
+
+### Core Policy Management
+- `GET /api/v1/policies` - List all policies
+- `GET /api/v1/policies/<policy_id>` - Get specific policy
+- `POST /api/v1/policies` - Create new policy
+- `PUT /api/v1/policies/<policy_id>` - Update policy
+- `DELETE /api/v1/policies/<policy_id>` - Delete policy
+- `POST /api/v1/policies/<policy_id>/enable` - Enable policy
+- `POST /api/v1/policies/<policy_id>/disable` - Disable policy
+
+### Policy Evaluation and Enforcement
+- `POST /api/v1/check` - Check policy compliance for a given context
+- `POST /api/check_policy` - Legacy policy check endpoint
+- `GET /events` - Get policy enforcement events
+
+### Policy Functions Management
+- `GET /api/v1/functions` - List custom policy functions
+- `POST /api/v1/functions` - Register new policy function
+- `PUT /api/v1/functions/<function_id>` - Update policy function
+- `DELETE /api/v1/functions/<function_id>` - Remove policy function
+- `POST /api/v1/functions/validate` - Validate policy function syntax
+- `POST /api/v1/functions/test` - Test policy function execution
+
+### Health and Status
+- `GET /health` - Health check endpoint for container monitoring
 
 ## Integration with Components
 

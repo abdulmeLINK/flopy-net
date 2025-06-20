@@ -1,34 +1,62 @@
 # FLOPY-NET Configuration
 
-This directory contains all configuration files for the FLOPY-NET system components.
+This directory contains all configuration files for the FLOPY-NET v1.0.0-alpha.8 system components. With the containerized architecture, most configuration is handled through Docker Compose environment variables, with JSON files providing additional customization options.
 
 ## Configuration Hierarchy
 
 FLOPY-NET uses a layered configuration approach with the following precedence (highest to lowest):
 
 1. **Command-Line Arguments** (highest priority)
-2. **Environment Variables** (Docker containers, docker-compose.yml)
-3. **JSON Configuration Files** (this directory)
+2. **Docker Environment Variables** (docker-compose.yml, primary method)
+3. **JSON Configuration Files** (this directory, secondary customization)
 4. **Hardcoded Defaults** (in source code)
 
-## Core Configuration Files
+## Primary Configuration: Docker Compose
+
+The main configuration for FLOPY-NET v1.0.0-alpha.8 is through `docker-compose.yml` environment variables:
+
+### Network Configuration (All Services)
+```yaml
+- USE_STATIC_IP=true                    # Enable static IP assignment
+- SUBNET_PREFIX=192.168.100             # Base network: 192.168.100.0/24
+- NODE_IP_FL_SERVER=192.168.100.10      # FL Server IP
+- NODE_IP_POLICY_ENGINE=192.168.100.20  # Policy Engine IP
+- NODE_IP_COLLECTOR=192.168.100.40      # Collector Service IP
+- NODE_IP_SDN_CONTROLLER=192.168.100.41 # SDN Controller IP
+- NODE_IP_OPENVSWITCH=192.168.100.60    # OpenVSwitch IP
+```
+
+### Service Ports
+```yaml
+- POLICY_PORT=5000                      # Policy Engine REST API
+- FL_SERVER_PORT=8080                   # FL Server coordination
+- COLLECTOR_PORT=8000                   # Collector metrics API
+- SDN_CONTROLLER_PORT=6633              # OpenFlow protocol
+- SDN_REST_PORT=8181                    # SDN REST API
+```
+
+## JSON Configuration Files (Secondary)
 
 ### Federated Learning
-- **`server_config.json`**: FL Server configuration (FLServer)
-- **`client_config.json`**: FL Client base configuration (FLClient)
-- **`fl_client/`**: Individual client configurations (client_1, client_2, etc.)
-- **`fl_server/`**: Server-specific configurations
+- **`server_config.json`**: FL Server configuration (Flower server parameters)
+- **`client_config.json`**: FL Client base configuration (PyTorch model settings)
+- **`fl_client/`**: Individual client configurations (client_1_config.json, client_2_config.json)
+- **`fl_server/server_config.json`**: Server-specific configurations
 
-### System Services
-- **`collector_config.json`**: Collector service configuration
-- **`policy_engine/policy_config.json`**: Policy Engine master configuration
+### Policy System
 - **`policies/policies.json`**: Active policy rules and definitions
+- **`policies/default_policies.json`**: Default policy set
+- **`policy_engine/policy_config.json`**: Policy Engine configuration
+- **`policy_functions/`**: Custom policy function definitions
 
 ### Network and Simulation
-- **`gns3/gns3_connection.json`**: GNS3 server connection settings
-- **`gns3/templates/`**: GNS3 node template definitions
-- **`topology/`**: Network topology configurations
-- **`scenarios/`**: Experimental scenario definitions
+- **`gns3_connection.json`**: GNS3 server connection settings (default: localhost:3080)
+- **`topology/basic_topology.json`**: Basic network topology definition
+- **`scenarios/basic_main.json`**: Basic federated learning scenario configuration
+
+### System Services
+- **`collector_config.json`**: Collector service configuration (metrics collection intervals)
+- **`version.json`**: System version and build information
 
 ## Directory Structure
 

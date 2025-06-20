@@ -1,16 +1,34 @@
 # GNS3 Integration
 
-This guide covers integrating FLOPY-NET with GNS3 for realistic network simulation, enabling comprehensive testing of federated learning systems under various network conditions and topologies.
+This guide covers integrating FLOPY-NET with GNS3 for realistic network simulation, enabling comprehensive testing of Flower-based federated learning systems under various network conditions and topologies using the FLOPY-NET container architecture.
 
 ## Overview
 
 GNS3 (Graphical Network Simulator-3) integration provides:
 
-- **Realistic Network Topologies**: Complex multi-hop networks, WAN links, different access technologies
-- **Dynamic Network Conditions**: Latency injection, bandwidth limitations, packet loss simulation
-- **Network Device Simulation**: Routers, switches, firewalls, load balancers
-- **Topology Management**: Programmatic network configuration and control
-- **Condition Injection**: Real-time network impairment simulation
+- **Realistic Network Topologies**: Complex multi-hop networks, WAN links, cellular networks, edge computing scenarios
+- **Dynamic Network Conditions**: Real-time latency injection, bandwidth limitations, packet loss simulation, and jitter
+- **Container Integration**: Deploy FLOPY-NET Docker containers as GNS3 nodes with full service functionality
+- **SDN Integration**: OpenVSwitch and Ryu controller integration for programmable network behavior
+- **Topology Management**: Programmatic network configuration and control via GNS3 API
+- **FL-Specific Scenarios**: Pre-built templates for federated learning network research
+
+## Architecture Integration
+
+FLOPY-NET integrates with GNS3 through multiple layers:
+
+### Container Deployment in GNS3
+- **FL Server Container**: Deploy `abdulmelink/flopynet-server:v1.0.0-alpha.8` as GNS3 Docker node
+- **FL Client Containers**: Deploy `abdulmelink/flopynet-client:v1.0.0-alpha.8` with unique client IDs
+- **Policy Engine**: Deploy `abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8` for centralized governance
+- **SDN Controller**: Deploy `abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.8` for network control
+- **Network Switches**: Use OpenVSwitch containers for programmable switching
+
+### GNS3 API Integration
+- **Project Management**: Automated project creation, configuration, and cleanup
+- **Node Control**: Dynamic container instantiation and network interface configuration
+- **Link Management**: Runtime network link modification and condition injection
+- **Template Management**: Pre-configured node templates for FLOPY-NET services
 
 ## Prerequisites
 

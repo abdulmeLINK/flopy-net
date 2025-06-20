@@ -1,8 +1,10 @@
 # Networking and SDN Integration
 
-The FLOPY-NET networking layer provides a comprehensive Software-Defined Network (SDN) infrastructure for realistic federated learning experimentation. It combines SDN controllers, OpenFlow switches, and GNS3 network simulation to create controlled, repeatable network environments that mirror real-world distributed learning scenarios.
+The FLOPY-NET networking layer provides a comprehensive Software-Defined Network (SDN) infrastructure for realistic federated learning experimentation. It combines Ryu-based SDN controllers, OpenVSwitch instances, and GNS3 network simulation to create controlled, repeatable network environments that mirror real-world distributed learning scenarios.
 
 ## Architecture Overview
+
+The networking layer is implemented as containerized services with static IP assignment in the 192.168.100.0/24 subnet:
 
 ```mermaid
 graph TB

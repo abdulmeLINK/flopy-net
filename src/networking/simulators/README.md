@@ -1,31 +1,38 @@
 # Network Simulators
 
-This directory contains network simulation components for the FLOPY-NET federated learning system.
+This directory contains network simulation components for the FLOPY-NET federated learning system, providing realistic network environment emulation for FL experiments.
 
 ## Overview
 
-The network simulators provide abstraction layers for different network simulation environments, primarily focusing on GNS3 integration with SDN capabilities.
+The network simulators provide abstraction layers for different network simulation environments, primarily focusing on GNS3 integration with SDN capabilities and federated learning-specific network scenarios.
 
 ## Components
 
 ### GNS3 Simulator (`gns3_simulator.py`)
-- **Primary simulator implementation** for GNS3 network emulation
-- **Automatic cleanup functionality** to manage VPCS node limits
-- **Docker container integration** with custom node templates
-- **OpenFlow switch support** for SDN scenarios
+- **Primary simulator implementation** for GNS3 network emulation with Docker container support
+- **Automatic cleanup functionality** to manage VPCS node limits and resource constraints
+- **Docker container integration** with custom node templates for FLOPY-NET services
+- **OpenFlow switch support** for SDN scenarios with Ryu controller integration
+- **Federated learning simulation** via `simulate_federated_learning_round()` method
+- **Dynamic topology management** with runtime link and node manipulation capabilities
 
-### Network Simulator Interface (`network_simulator.py`)
-- **Abstract interface** for network simulation implementations
-- **Facade pattern** for different concrete simulators
-- **Standardized API** for scenario deployment and management
+### Network Simulator Interface (`network_simulator.py`)  
+- **Abstract interface** for network simulation implementations using facade pattern
+- **Facade pattern** for different concrete simulators (GNS3, future simulators)
+- **Standardized API** for scenario deployment, management, and FL-specific operations
+- **Error handling** for simulator-specific capabilities and graceful fallbacks
+- **FL round simulation** with model size and client count parameters
 
 ## Key Features
 
-- **GNS3 Integration**: Programmatic control of GNS3 projects, nodes, and links
-- **SDN Support**: OpenFlow switches and SDN controller integration
-- **Automatic Resource Management**: VPCS cleanup and capacity monitoring
-- **Docker Node Templates**: Custom containerized network components
-- **Scenario Support**: Network topology creation for federated learning experiments
+- **GNS3 Integration**: Programmatic control of GNS3 projects, nodes, and links with API communication
+- **SDN Support**: OpenFlow switches and Ryu SDN controller integration for policy enforcement
+- **Automatic Resource Management**: VPCS cleanup, capacity monitoring, and container lifecycle management
+- **Docker Node Templates**: Custom containerized network components with FLOPY-NET service deployment
+- **Scenario Support**: Network topology creation specifically designed for federated learning experiments
+- **FL-Aware Simulation**: `simulate_federated_learning_round()` method for model distribution simulation
+- **Dynamic Network Control**: Runtime network condition modification (latency, packet loss, bandwidth)
+- **Error Resilience**: Graceful handling of simulator limitations and capability differences
 
 ## Usage
 

@@ -4,11 +4,11 @@ sidebar_position: 3
 
 # FL Framework Component
 
-The **FL Framework** is the core federated learning implementation that enables distributed machine learning across multiple clients while maintaining data privacy. It provides a scalable server-client architecture built with custom enhancements for network integration and policy compliance.
+The **FL Framework** is the core federated learning implementation built on the **Flower framework** that enables distributed machine learning across multiple clients while maintaining data privacy. It provides a scalable server-client architecture with custom enhancements for network integration, policy compliance, and comprehensive metrics collection.
 
 ## Architecture
 
-The FL Framework consists of multiple interconnected components that work together to facilitate federated learning:
+The FL Framework consists of multiple interconnected components that work together to facilitate federated learning using the Flower framework with PyTorch backend:
 
 ```mermaid
 graph TB
