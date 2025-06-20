@@ -1,112 +1,131 @@
 # FLOPY-NET Future Roadmap
 
-This document outlines the planned future work and potential improvements for the FLOPY-NET platform.
+This document outlines the planned future work and potential improvements for the FLOPY-NET platform based on the current v1.0.0-alpha.8 implementation status.
 
 ---
 
+## Current State Assessment
+
+FLOPY-NET v1.0.0-alpha.8 provides a solid foundation with:
+- **Flower Framework Integration**: Full Flower-based FL server and client implementation
+- **Container Architecture**: Docker Compose with static IP assignment (192.168.100.0/24)
+- **Core Services**: Policy Engine, Collector, SDN Controller, OpenVSwitch all operational
+- **GNS3 Integration**: Functional network simulation with programmable topology control
+- **Dashboard System**: React frontend with FastAPI backend for real-time monitoring
+- **Model Support**: PyTorch-based CNN/MLP models for MNIST, CIFAR-10, and financial datasets
+
 ## Prioritized Next Steps (Immediate Focus)
 
-Based on the latest review, the following high-impact features should be prioritized to deliver the most value to the platform's core mission.
+Based on the current implementation, the following high-impact features should be prioritized:
 
-1.  **Implement Real Training FL Client:** The highest priority is to replace simulated clients with a client capable of performing genuine PyTorch training on real datasets (e.g., CIFAR-10). This is a prerequisite for all scientifically valid research on model performance and convergence.
+1. **Enhanced Real Dataset Training**: Expand the current model implementations to support more realistic datasets and improve training performance with the existing PyTorch + Flower integration.
 
-2.  **Evolve to Declarative Scenarios (JSON):** Architecturally, the most important next step is to migrate from Python-class-based scenario definitions to a single, declarative JSON or YAML file per experiment. A generic "Scenario Runner" will interpret this file, which will define the network topology, FL parameters, policies, and a timeline of chaos events. This will dramatically improve reproducibility and accessibility.
+2. **Advanced Network Scenario Library**: Leverage the existing GNS3 and SDN integration to create a comprehensive library of network scenarios with pre-configured topologies for common FL research patterns.
 
-3.  **Implement Dual-Path Network Control:** Solidify the two primary methods for creating network challenges. The system should support both **Direct GNS3 Manipulation** (for simulating raw network failures like a cut cable) and **Policy-Driven SDN Control** (for simulating intelligent governance actions like quarantining a node).
+3. **Policy Engine Enhancement**: Extend the current Flask-based Policy Engine with more sophisticated policy types, including dynamic client selection, security policies, and automated network response policies.
 
-4.  **Enhance Observability with Host Discovery:** The `fl-client` should report its host characteristics (OS, hardware, e.g., Raspberry Pi vs. x86) to the `Collector`. This adds crucial context to performance metrics.
+4. **Dashboard Interactivity**: Enhance the React dashboard to provide interactive control over the GNS3 topology, allowing researchers to modify network conditions in real-time during experiments.
 
-5.  **Introduce Interactive Topology Control:** The dashboard should evolve from a passive observatory to an interactive control panel, allowing users to modify the GNS3 topology live.
+5. **Metrics Analysis Tools**: Build upon the existing SQLite-based metrics collection to provide automated analysis, comparison tools, and research-ready data export capabilities.
 
 ---
 
 ## Thematic Roadmap Details
 
-The following sections provide a detailed breakdown of all planned features, incorporating the priorities listed above.
+The following sections provide a detailed breakdown of planned features based on the current implementation.
 
-### 1. Deepen Research Capabilities & Network Control
+### 1. Enhanced Federated Learning Capabilities
 
-This theme focuses on enhancing the core strength of FLOPY-NET: its integrated network observatory.
+Building upon the existing Flower framework integration and PyTorch model support.
 
-#### 1.1. Dynamic Network Chaos Engine
-- **Current State:** The `GNS3Manager` is primarily used for setting up and tearing down topologies.
-- **Next Step:** Extend `gns3_manager.py` with methods to manipulate a *running* network.
-  - **Action:** Implement `update_link_properties(link_id, latency, packet_loss, jitter)`.
-  - **Action:** Implement `stop_link(link_id)` and `start_link(link_id)` to simulate network partitions.
+#### 1.1. Advanced Model Architectures
+- **Current State:** Basic CNN and MLP models for MNIST/CIFAR-10
+- **Next Step:** Expand model support for state-of-the-art architectures
+  - **Action:** Implement ResNet, VGG, and Transformer architectures within the existing model handler system
+  - **Action:** Add support for natural language processing models using Hugging Face integration
+  - **Action:** Create scenario-specific models for computer vision, NLP, and time-series forecasting
 
-#### 1.2. Policy-Driven SDN Control
-- **Current State:** The SDN controller (Ryu) is used for basic topology discovery.
-- **Next Step:** Leverage the *programmable* nature of the SDN controller for governance.
-  - **Action:** Develop a `PolicyEngine` function that can push dynamic flow rules to the Ryu controller via its API. This enables policies that can, for example, automatically quarantine a misbehaving client by instructing Ryu to drop its traffic.
+#### 1.2. Advanced Aggregation Algorithms
+- **Current State:** FedAvg implementation through Flower framework
+- **Next Step:** Implement robust aggregation methods to handle non-IID data and Byzantine clients
+  - **Action:** Extend the FL Server with FedProx, FedNova, and SCAFFOLD algorithms
+  - **Action:** Add Byzantine-robust aggregation (Krum, Trimmed Mean, Byzantine-robust FedAvg)
+  - **Action:** Implement adaptive aggregation based on network conditions and client reliability
 
-#### 1.3. Advanced Scenario Library
-- **Current State:** The system supports a `BasicScenario` which can be extended.
-- **Next Step:** Create a rich, pre-built library of challenging scenarios in a new `src/scenarios/library/` directory.
-  - **Scenario Idea (Network Attack):** A "Man-in-the-Middle" scenario where a malicious node alters FL traffic.
-  - **Scenario Idea (Client Behavior):** A "Byzantine Client" scenario where specific clients are instructed to send garbage data or delayed updates.
-  - **Scenario Idea (Network Failure):** A "Cascading Failure" scenario where stopping one link triggers a script to systematically degrade other parts of the network.
+#### 1.3. Privacy-Preserving Mechanisms
+- **Current State:** Basic FL client with data locality
+- **Next Step:** Implement advanced privacy protection mechanisms
+  - **Action:** Integrate differential privacy using PyTorch Opacus within FL clients
+  - **Action:** Add secure aggregation protocols for parameter encryption
+  - **Action:** Implement homomorphic encryption for sensitive data scenarios
 
-### 2. Enhance Architecture & Data Flow
+### 2. Network Simulation Enhancement
 
-This theme focuses on modernizing the backend architecture for better performance, scalability, and maintainability.
+Leveraging the existing GNS3 and SDN integration for more sophisticated network scenarios.
 
-#### 2.1. Migrate to Declarative, JSON-based Scenarios
-- **Current State:** Scenarios are defined by inheriting from a `BaseScenario` Python class.
-- **Next Step:** This is a top architectural priority. Refactor the system to be driven by a single, declarative experiment file (JSON/YAML).
-  - **Action:** Create a generic "Scenario Runner" engine in Python.
-  - **Action:** This engine will parse the experiment file which defines:
-    - The full network topology.
-    - The FL model, dataset, and hyperparameters.
-    - A timeline of events (e.g., "at T+60s, introduce 30% packet loss on link X for 120s").
-    - The policies to be enforced.
-  - **Benefit:** This makes experiments fully reproducible from a single file and accessible to non-programmers.
+#### 2.1. Advanced Network Scenario Library
+- **Current State:** Basic GNS3 integration with topology creation
+- **Next Step:** Create comprehensive pre-built network scenarios
+  - **Action:** Develop scenario templates for edge computing, IoT networks, and cellular environments
+  - **Action:** Implement hierarchical network topologies with multi-tier federated learning
+  - **Action:** Add support for dynamic client join/leave scenarios during training
 
-#### 2.2. Transition from Polling to Event-Driven Architecture
-- **Current State:** The `Collector` uses `APScheduler` to poll other services for data.
-- **Next Step:** Integrate a lightweight message bus (e.g., RabbitMQ, Redis Pub/Sub) to create a real-time, push-based system.
-  - **Action:** Refactor the `Collector` to be a subscriber that listens for events.
-  - **Action:** Refactor components like the `PolicyEngine` and `fl-server` to become publishers that push events to the message bus as they happen.
+#### 2.2. Enhanced SDN Control
+- **Current State:** Ryu controller with basic OpenFlow support
+- **Next Step:** Advanced programmable network behavior
+  - **Action:** Implement QoS policies for differentiated FL traffic handling
+  - **Action:** Add adaptive routing based on FL training progress and network conditions
+  - **Action:** Develop network security policies that respond to detected anomalies
 
-#### 2.3. Improve Data Persistence
-- **Current State:** The `Collector` uses SQLite, which is good but has limitations for high-frequency time-series data.
-- **Next Step:** Abstract the storage layer and add support for a proper time-series database.
-  - **Action:** Refactor `collector/storage.py` to use a base `Storage` class (interface).
-  - **Action:** Create implementations for `SQLiteStorage` (current) and `InfluxDBStorage` or `PrometheusStorage` for more scalable and query-friendly metrics storage.
+#### 2.3. Real-time Network Condition Simulation
+- **Current State:** Static network condition configuration
+- **Next Step:** Dynamic network condition changes during experiments
+  - **Action:** Implement time-based network condition scenarios (e.g., daily traffic patterns)
+  - **Action:** Add event-driven network failures and recovery scenarios
+  - **Action:** Create realistic mobility patterns for mobile federated learning scenarios
 
-### 3. Bridge to Real-World Security & Deployment
+### 3. Enhanced Policy and Security Framework
 
-This theme focuses on adding features necessary for a secure, production-ready system.
+Building upon the existing Flask-based Policy Engine.
 
-#### 3.1. Implement Authentic FL Training
-- **Current State:** Clients may be using simulated or dummy data.
-- **Next Step:** This is the **top priority** for scientific validity.
-  - **Action:** Develop a new version of the `flopynet_fl_client` container that includes common datasets (e.g., CIFAR-10) and performs a genuine PyTorch training loop.
-  - **Action:** Ensure this client can be configured to leverage a GPU if it's passed through to the container by the GNS3 node.
+#### 3.1. Advanced Policy Types
+- **Current State:** Basic policy definitions and enforcement
+- **Next Step:** Sophisticated policy management and enforcement
+  - **Action:** Implement client reputation systems with trust scoring
+  - **Action:** Add dynamic client selection policies based on performance and reliability
+  - **Action:** Create security policies that automatically respond to detected threats
 
-#### 3.2. Implement Application-Layer Security Defenses
-- **Current State:** Security is focused on network-level policies.
-- **Next Step:** Add defenses against FL-specific attacks that bypass network security.
-  - **Action (Privacy):** Integrate a Differential Privacy library (e.g., PyTorch Opacus) into the `fl-client`.
-  - **Action (Robustness):** Implement robust aggregation algorithms on the `fl-server` (e.g., Krum, Trimmed Mean).
+#### 3.2. Compliance and Audit Framework
+- **Current State:** Basic policy logging and event tracking
+- **Next Step:** Comprehensive compliance monitoring and reporting
+  - **Action:** Implement regulatory compliance policies (GDPR, HIPAA)
+  - **Action:** Add automated audit trail generation and reporting
+  - **Action:** Create policy impact analysis and performance correlation tools
 
-#### 3.3. Hardware-Level Security via Remote Attestation
-- **Current State:** Clients are trusted based on their network identity.
-- **Next Step:** Implement a mechanism to verify the integrity of the software running on the edge.
-  - **Action:** Design an experimental `fl-client` capable of running within a Trusted Execution Environment (TEE).
-  - **Action:** Extend the `PolicyEngine` with a new `check_attestation(quote)` endpoint.
+### 4. Dashboard and User Experience Improvements
 
-### 4. Improve User Experience & Usability
+Enhancing the existing React + FastAPI dashboard architecture.
 
-This theme focuses on making the platform easier for other researchers and users to adopt and operate.
+#### 4.1. Interactive Network Control
+- **Current State:** Read-only network topology visualization
+- **Next Step:** Interactive network topology management
+  - **Action:** Add drag-and-drop network topology editor
+  - **Action:** Implement real-time network condition adjustment controls
+  - **Action:** Create scenario recording and playback functionality
 
-#### 4.1. Interactive Dashboard for Network & Topology Control
-- **Current State:** The dashboard is for observation only.
-- **Next Step:** Add controls to the dashboard to make it an interactive control panel for the live simulation.
-  - **Action:** Create API endpoints on the `dashboard-backend` that can proxy commands to the `GNS3Manager`.
-  - **Action:** Add UI elements to the frontend to allow users to add/remove nodes, stop/start links, and change link properties, and see the results reflected immediately.
+#### 4.2. Advanced Analytics and Visualization
+- **Current State:** Basic metrics visualization with charts
+- **Next Step:** Comprehensive research analytics platform
+  - **Action:** Implement comparative analysis tools for multiple experiments
+  - **Action:** Add statistical significance testing and visualization
+  - **Action:** Create automated report generation for research publications
 
-#### 4.2. Host & Device Observability
-- **Current State:** All clients are treated as generic nodes.
+#### 4.3. Experiment Management
+- **Current State:** Manual experiment configuration and execution
+- **Next Step:** Comprehensive experiment lifecycle management
+  - **Action:** Implement experiment templating and versioning system
+  - **Action:** Add collaborative features for multi-researcher environments
+  - **Action:** Create experiment reproducibility verification tools
 - **Next Step:** Provide context on the environment where each client is running.
   - **Action:** Modify the `fl-client` entrypoint script or application to collect system information (e.g., OS, CPU architecture, memory) using libraries like `platform` or `psutil`.
   - **Action:** Report this static information to the `Collector` upon startup.

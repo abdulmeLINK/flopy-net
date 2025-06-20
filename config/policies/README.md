@@ -1,14 +1,52 @@
 # FLOPY-NET Policy Definitions
 
-This directory contains policy definitions for the FLOPY-NET Policy Engine, which enforces rules and security policies across all system components.
+This directory contains policy definitions for the FLOPY-NET Policy Engine (Flask service at 192.168.100.20:5000), which enforces rules and security policies across all federated learning and network components in the containerized architecture.
+
+## Policy Engine Integration
+
+The Policy Engine operates as a centralized Docker container (`abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8`) that:
+- Loads policies from JSON files in this directory
+- Provides REST API endpoints for policy queries and enforcement
+- Maintains real-time event buffers for policy evaluation
+- Integrates with FL Server, FL Clients, SDN Controller, and Collector services
 
 ## Active Policy Configuration
 
 **Primary Policy File**: `policies.json`
 
-This is the main active policy file used by the Policy Engine in the default Docker Compose setup. The Policy Engine service is configured via `config/policy_engine/policy_config.json`, which points to this file through its `"policy_file"` key.
+This is the main active policy file used by the Policy Engine in the Docker Compose setup. The Policy Engine container is configured via environment variables:
+
+```yaml
+environment:
+  - POLICY_CONFIG=/app/config/policies/policy_config.json
+  - POLICY_FUNCTIONS_DIR=/app/config/policy_functions
+```
 
 **To modify system-wide policies, edit `policies.json`.**
+
+## Container Integration
+
+The Policy Engine integrates with FLOPY-NET services as follows:
+
+### FL Server Integration (192.168.100.10:8080)
+- **Client Authorization**: Validates FL client participation requests
+- **Model Aggregation Policies**: Controls which client updates are accepted
+- **Training Round Policies**: Manages training round progression and client selection
+
+### FL Client Integration (192.168.100.101-102)
+- **Participation Policies**: Determines client eligibility for training rounds
+- **Data Privacy Policies**: Enforces data protection and sharing restrictions
+- **Resource Usage Policies**: Controls computational resource allocation
+
+### SDN Controller Integration (192.168.100.41:6633/8181)
+- **Network Policies**: Controls traffic flow and QoS through OpenFlow rules
+- **Security Policies**: Implements network-level access control and isolation
+- **Performance Policies**: Manages bandwidth allocation and latency requirements
+
+### Collector Integration (192.168.100.40:8000)
+- **Monitoring Policies**: Defines metrics collection frequency and retention
+- **Alert Policies**: Triggers notifications based on system conditions
+- **Compliance Policies**: Ensures regulatory adherence and audit trail creation
 
 ## Policy File Structure
 
@@ -16,38 +54,33 @@ This is the main active policy file used by the Policy Engine in the default Doc
 {
   "policies": [
     {
-      "name": "policy_name",
-      "type": "policy_type",
-      "conditions": {...},
-      "actions": {...},
+      "name": "fl_client_participation_policy",
+      "type": "federated_learning",
+      "conditions": {
+        "client_trust_score": "> 0.7",
+        "network_latency": "< 100ms"
+      },
+      "actions": {
+        "allow_participation": true,
+        "log_decision": true
+      },
+      "enabled": true
+    },
+    {
+      "name": "network_qos_policy", 
+      "type": "network",
+      "conditions": {
+        "fl_training_active": true
+      },
+      "actions": {
+        "set_priority": "high",
+        "reserve_bandwidth": "50%"
+      },
       "enabled": true
     }
   ]
 }
 ```
-
-## Additional Policy Files
-
-Other JSON files in this directory serve different purposes:
-
-- **`default_policies.json`**: Backup/reference set of default policies
-- **Other policy files**: Alternative policy sets, examples, or archived configurations
-
-### Policy File Management
-
-For clarity and to avoid confusion:
-
-1. **Active Policies**: Always use `policies.json` for active system policies
-2. **Alternatives**: Consider moving alternative policy files to `examples/` or `archived/` subdirectories
-3. **Swapping Policies**: To use different policy sets, modify `config/policy_engine/policy_config.json` to point to the desired policy file
-
-## Policy Types
-
-The Policy Engine supports various policy types:
-
-### Security Policies
-- **Authentication**: Client authentication and authorization rules
-- **Trust Management**: Trust score calculations and thresholds
 - **Anomaly Detection**: Behavioral anomaly detection rules
 - **Access Control**: Resource access permissions
 

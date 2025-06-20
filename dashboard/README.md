@@ -1,49 +1,54 @@
 # FLOPY-NET Dashboard
 
-The FLOPY-NET Dashboard is a comprehensive web-based monitoring and control interface for the Federated Learning and SDN Observatory Platform. It provides real-time visualization of federated learning training progress, network topology, system metrics, and policy compliance.
+The FLOPY-NET Dashboard is a comprehensive web-based monitoring and control interface for the Federated Learning and SDN Observatory Platform. It provides real-time visualization of Flower-based federated learning training progress, network topology, system metrics, and policy compliance across the entire FLOPY-NET ecosystem.
 
 ## Architecture Overview
 
-The dashboard consists of three main components:
+The dashboard consists of three main components integrated with the FLOPY-NET microservices:
 
 ### 1. Frontend (React + TypeScript)
 - **Location**: `dashboard/frontend/`
 - **Technology Stack**: React 18, TypeScript, Vite, Material-UI, Recharts, ReactFlow
-- **Purpose**: Client-side application for data visualization and user interaction
+- **Purpose**: Client-side application for data visualization, user interaction, and real-time monitoring
 - **Port**: 8085 (default)
+- **Features**: Interactive network topology visualization, FL training progress charts, system health monitoring
 
 ### 2. Backend (FastAPI)
 - **Location**: `dashboard/backend/`
-- **Technology Stack**: FastAPI, Python 3.8+
-- **Purpose**: REST API server that aggregates data from Collector, GNS3, and Policy Engine services
+- **Technology Stack**: FastAPI, Python 3.8+, SQLite integration
+- **Purpose**: REST API server that aggregates data from Collector (Port 8000), Policy Engine (Port 5000), and SDN Controller (Port 8181)
 - **Port**: 8001 (default)
-- **API Documentation**: Available at `/docs` endpoint
+- **API Documentation**: Custom endpoint documentation (not automatic OpenAPI/Swagger)
+- **Integration**: Direct communication with all FLOPY-NET microservices via static IP addresses
 
 ### 3. Standalone Dashboard (Dash)
 - **Location**: `dashboard/app.py`, `dashboard/api.py`, `dashboard/utils.py`
 - **Technology Stack**: Dash, Plotly, FastAPI
-- **Purpose**: Alternative dashboard implementation with real-time charts and metrics
+- **Purpose**: Alternative dashboard implementation with real-time charts and metrics for development/testing
 - **Port**: 8050 (Dash), 8051 (API)
 
 ## Key Features
 
-### Federated Learning Monitoring
-- **Training Progress**: Real-time accuracy and loss curves across training rounds
-- **Client Management**: Monitor participating clients, their status, and contributions
-- **Model Metrics**: Track model performance, convergence, and distribution statistics
-- **Round Analytics**: Detailed analysis of each federated learning round
+### Flower-based Federated Learning Monitoring
+- **Training Progress**: Real-time accuracy and loss curves across Flower FL training rounds
+- **Client Management**: Monitor participating FL clients (192.168.100.101-102), their status, and training contributions
+- **Model Metrics**: Track PyTorch model performance, convergence statistics, and parameter distribution
+- **Round Analytics**: Detailed analysis of each federated learning round with Flower framework integration
+- **Training Orchestration**: Monitor FL server coordination and client selection policies
 
-### Network Visualization
-- **Topology Mapping**: Interactive network topology visualization using ReactFlow
-- **SDN Controller Integration**: Real-time network device and link status
-- **Traffic Analysis**: Network latency, bandwidth utilization, and performance metrics
-- **GNS3 Integration**: Live status of GNS3 nodes and network simulation environment
+### Network Visualization & SDN Integration
+- **Topology Mapping**: Interactive network topology visualization using ReactFlow with real-time updates
+- **SDN Controller Integration**: Live status of Ryu OpenFlow controller (192.168.100.41) and flow rule monitoring
+- **Traffic Analysis**: Network latency, bandwidth utilization, and performance metrics from OpenVSwitch (192.168.100.60)
+- **GNS3 Integration**: Live status of GNS3 nodes, links, and network simulation environment
+- **Network Policy Visualization**: Flow rules, QoS policies, and traffic shaping status
 
-### Policy Engine Dashboard
-- **Policy Status**: Real-time policy compliance and enforcement status
-- **Security Metrics**: Trust scores, anomaly detection, and security events
-- **Policy Management**: View and monitor active policies and their effects
-- **Compliance Reports**: Historical policy compliance and violation tracking
+### Policy Engine Dashboard  
+- **Policy Status**: Real-time policy compliance and enforcement status from Policy Engine (192.168.100.20)
+- **Security Metrics**: Trust scores, anomaly detection, and security events with detailed event logs
+- **Policy Management**: View and monitor active policies, policy decisions, and enforcement actions
+- **Compliance Reports**: Historical policy compliance tracking and violation analysis with audit trails
+- **Real-time Events**: Live policy evaluation results and decision logging
 
 ### System Monitoring
 - **Component Health**: Status monitoring of all system components

@@ -86,10 +86,9 @@ def handle_run_command(args):
         
         services.append(f"API server on {args.host}:{args.api_port}")
         
-        # Print helpful information for testing
-        if args.debug:
+        # Print helpful information for testing        if args.debug:
             logger.info("API Debug Info:")
-            logger.info("- API Docs: http://localhost:5000/docs")
+            logger.info("- API Endpoints: http://localhost:5000 (Flask routes, no automatic docs)")
             logger.info("- Health Check: http://localhost:5000/health")
             logger.info("- Metrics: http://localhost:5000/api/metrics")
             logger.info("- Generate Test Metrics: POST http://localhost:5000/api/metrics/generate-test")

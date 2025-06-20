@@ -2,102 +2,170 @@
 sidebar_position: 1
 ---
 
-# System Overview
+# System Architecture Overview
 
-FLOPY-NET is designed as a modular, policy-driven platform for studying federated learning in realistic network environments. This document provides a comprehensive overview of the system architecture, component interactions, and design principles.
+FLOPY-NET is architected as a modular, policy-driven platform that integrates the Flower federated learning framework with comprehensive network simulation and monitoring. The system follows a layered microservices architecture approach, enabling researchers to conduct realistic federated learning experiments while maintaining strict policy compliance and comprehensive observability.
 
 ## High-Level Architecture
+
+FLOPY-NET consists of five primary layers deployed as Docker containers with static IP assignment (192.168.100.0/24 network), each serving distinct functional responsibilities while maintaining loose coupling through well-defined interfaces:
 
 ```mermaid
 graph TB
     subgraph "User Interface Layer"
-        A[Dashboard Frontend<br/>Port 8085]
-        B[Dashboard API<br/>Port 8001]
-        C[CLI Interface<br/>main.py]
+        A[Dashboard Frontend<br/>React + TypeScript<br/>Port 8085]
+        B[Dashboard API<br/>FastAPI Backend<br/>Port 8001]
+        C[CLI Interface<br/>Python main.py]
     end
     
-    subgraph "Core Services"
-        D[Policy Engine<br/>Port 5000]
-        E[Collector Service<br/>Port 8000]
-        F[FL Server<br/>Port 8080]
+    subgraph "Core Services Layer"
+        D[Policy Engine<br/>Flask REST API<br/>Port 5000]
+        E[Collector Service<br/>Metrics & Analytics<br/>Port 8000]
+        F[FL Server<br/>Training Coordination<br/>Port 8080]
     end
     
     subgraph "Federated Learning Layer"
-        G[FL Client 1<br/>IP 192.168.100.101]
-        H[FL Client 2<br/>IP 192.168.100.102]
-        I[FL Client N<br/>IP Range 100-255]
+        G[FL Client 1<br/>192.168.100.101]
+        H[FL Client 2<br/>192.168.100.102]
+        I[FL Client N<br/>192.168.100.101-255]
+        J[Model Aggregation]
+        K[Privacy Mechanisms]
     end
     
     subgraph "Network Simulation Layer"
-        J[GNS3 Integration<br/>Port 3080]
-        K[SDN Controller<br/>Port 6633/8181]
-        L[OpenVSwitch<br/>IP Range 60-99]
-        M[Network Monitor]
+        L[GNS3 Integration<br/>Network Topology<br/>Port 3080]
+        M[SDN Controller<br/>Ryu OpenFlow<br/>Port 6633/8181]
+        N[OpenVSwitch<br/>Programmable Switches<br/>192.168.100.60-99]
+        O[Network Monitoring]
     end
     
-    subgraph "Data & Storage"
-        N[SQLite Metrics DB]
-        O[Policy Storage]
-        P[Event Logs<br/>events.jsonl]
-        Q[Configuration Store<br/>config/]
+    subgraph "Data & Storage Layer"
+        P[SQLite Metrics DB<br/>Time-series Data]
+        Q[Policy Storage<br/>JSON + SQLite]
+        R[Event Logs<br/>Structured Events]
+        S[Configuration Store<br/>Hierarchical Config]
     end
     
+    %% Data flows
     A --> B
     B --> D
     B --> E
     B --> F
+    C --> D
+    C --> E
+    C --> F
+    
+    %% Control flows
     D --> F
     D --> G
     D --> H
     D --> I
-    E --> M
+    D --> M
+    
+    %% FL flows
     F --> G
     F --> H
     F --> I
-    J --> K
-    K --> L
-    E --> N
-    D --> O
+    G --> J
+    H --> J
+    I --> J
+    
+    %% Network flows
+    L --> M
+    M --> N
+    
+    %% Storage flows
     E --> P
     D --> Q
+    E --> R
+    D --> S
     
-    style D fill:#d2a8ff,stroke:#333,stroke-width:2px,color:#000
-    style A fill:#79c0ff,stroke:#333,stroke-width:2px,color:#000
-    style E fill:#7ce38b,stroke:#333,stroke-width:2px,color:#000
-    style F fill:#ffa7c4,stroke:#333,stroke-width:2px,color:#000
+    %% Monitoring flows
+    G --> E
+    H --> E
+    I --> E
+    M --> E
+    N --> E
+    
+    style D fill:#d2a8ff,stroke:#8b5cf6,color:#000
+    style A fill:#79c0ff,stroke:#1f6feb,color:#000
+    style E fill:#7ce38b,stroke:#1a7f37,color:#000
+    style F fill:#ffa7c4,stroke:#bf8700,color:#000
 ```
 
-## Design Principles
+## Architectural Design Principles
 
 ### 1. Policy-Driven Architecture
 
-The **Policy Engine** is the central nervous system of FLOPY-NET, ensuring that all components operate according to defined security, performance, and governance rules.
+The **Policy Engine** serves as the central nervous system of FLOPY-NET, ensuring that all components operate according to defined security, performance, and governance rules.
 
-**Key Features:**
-- Centralized policy definition and enforcement (Flask REST API on port 5000)
-- Real-time compliance monitoring with event buffer system
-- Dynamic policy updates without system restart
-- SQLite and in-memory storage backends
+**Core Principles:**
+- **Centralized Decision Making**: All system components query the Policy Engine before taking actions
+- **Real-time Enforcement**: Policies are enforced in real-time across all system operations
+- **Dynamic Updates**: Policy changes can be applied without system restart
+- **Audit Trail**: Complete logging of policy decisions and enforcement actions
+- **Event-Driven Compliance**: Continuous monitoring with event buffer system
+
+**Implementation:**
+- Flask-based REST API service on port 5000
+- SQLite and JSON storage backends for policies and events
 - Custom policy functions in `config/policy_functions/`
+- Real-time event buffer with configurable retention
 
-### 2. Modular Component Design
+### 2. Microservices Architecture
 
-Each component is designed as an independent service with well-defined interfaces:
+Each major component is implemented as an independent service with well-defined interfaces, enabling independent development, deployment, and scaling.
+
+**Service Independence:**
+- Components can be developed and deployed independently
+- Different technology stacks optimized for each service
+- Fault isolation prevents cascading failures
+- Horizontal scaling of individual components
+
+**Interface Contracts:**
+- RESTful APIs with comprehensive documentation
+- Standardized error handling and status codes
+- Event-driven communication patterns
+- Consistent authentication and authorization
 
 ```mermaid
 graph LR
-    subgraph "Component Architecture"
-        A[Policy Engine<br/>Port 5000] <--> B[Collector<br/>Port 8000]
-        A <--> C[FL Server<br/>Port 8080]
-        A <--> D[SDN Controller<br/>Port 6633]
+    subgraph "Service Communication"
+        A[Policy Engine<br/>Flask REST<br/>Port 5000] <--> B[Collector<br/>FastAPI<br/>Port 8000]
+        A <--> C[FL Server<br/>Custom HTTP<br/>Port 8080]
+        A <--> D[SDN Controller<br/>OpenFlow<br/>Port 6633]
         B <--> C
         B <--> D
-        C <--> E[FL Clients<br/>100-255 range]
-        D <--> F[OpenVSwitch<br/>60-99 range]
+        C <--> E[FL Clients<br/>gRPC/HTTP<br/>Port range]
+        D <--> F[OpenVSwitch<br/>OpenFlow<br/>Network]
     end
     
-    style A fill:#d2a8ff,stroke:#333,stroke-width:2px,color:#000
+    style A fill:#d2a8ff,stroke:#8b5cf6,color:#000
+    style B fill:#7ce38b,stroke:#1a7f37,color:#000
+    style C fill:#ffa7c4,stroke:#bf8700,color:#000
 ```
+
+### 3. Observable Systems
+
+Every component exposes comprehensive metrics, logs, and control interfaces to ensure complete system visibility.
+
+**Metrics Collection:**
+- Performance metrics from all components
+- Business metrics for federated learning research
+- Infrastructure metrics for system health
+- Custom metrics for experimental analysis
+
+**Structured Logging:**
+- JSON-formatted structured logs
+- Centralized log aggregation in Collector
+- Configurable log levels and retention
+- Event correlation across components
+
+**Health Monitoring:**
+- Component health endpoints
+- Dependency health checking
+- Resource utilization monitoring
+- Automated alerting and remediation
 
 ### 3. Observable and Controllable Systems
 

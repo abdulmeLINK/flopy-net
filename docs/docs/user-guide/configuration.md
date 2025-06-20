@@ -4,50 +4,118 @@ sidebar_position: 1
 
 # Configuration Guide
 
-FLOPY-NET uses a hierarchical configuration system that allows for flexible customization of all system components. This guide covers the configuration structure, files, and best practices.
+FLOPY-NET uses a hierarchical configuration system that allows for flexible customization of all system components through Docker Compose environment variables, JSON configuration files, and runtime parameters. This guide covers the configuration structure, files, and best practices for the v1.0.0-alpha.8 container architecture.
 
 ## Configuration Hierarchy
 
 FLOPY-NET follows a layered configuration approach with the following precedence (highest to lowest):
 
 1. **Command-Line Arguments** (highest priority)
-2. **Environment Variables** (Docker containers, docker-compose.yml)
+2. **Docker Environment Variables** (docker-compose.yml, container environment)
 3. **JSON Configuration Files** (config/ directory)
 4. **Hardcoded Defaults** (in source code)
 
-## Configuration Structure
+## Container Configuration
 
-The configuration system is organized in the `config/` directory:
+### Docker Compose Environment Variables
 
+The primary configuration method for FLOPY-NET v1.0.0-alpha.8 is through Docker Compose environment variables:
+
+#### Network Configuration (All Services)
+```yaml
+- USE_STATIC_IP=true
+- SUBNET_PREFIX=192.168.100
+- CLIENT_IP_RANGE=100-255          # FL Clients: 192.168.100.101-255
+- SERVER_IP_RANGE=10-19            # FL Server: 192.168.100.10-19
+- POLICY_IP_RANGE=20-29            # Policy Engine: 192.168.100.20-29
+- CONTROLLER_IP_RANGE=30-49        # SDN Controller: 192.168.100.30-49
+- OVS_IP_RANGE=60-99              # OpenVSwitch: 192.168.100.60-99
+- NORTHBOUND_IP_RANGE=50-59        # Dashboard/APIs: 192.168.100.50-59
+- COLLECTOR_IP=40                  # Collector Service: 192.168.100.40
 ```
-config/
-├── version.json                 # System version and component information
-├── client_config.json           # FL Client base configuration
-├── server_config.json           # FL Server main configuration
-├── collector_config.json        # Collector service configuration
-├── gns3_connection.json         # GNS3 server connection settings
-├── collector/                   # Collector-specific configurations
-│   └── collector_config.json
-├── fl_client/                   # Individual client configurations
-│   ├── client_1_config.json
-│   └── client_2_config.json
-├── fl_server/                   # Server-specific configurations
-│   └── server_config.json
-├── gns3/                        # GNS3 and network configurations
-│   └── templates/               # Node template definitions
-├── policies/                    # Policy definitions and management
-│   ├── policies.json            # Active policy rules
-│   ├── default_policies.json    # Default policy set
-│   └── README.md               # Policy documentation
-├── policy_engine/               # Policy Engine configuration
-│   └── policy_config.json
-├── policy_functions/            # Custom policy functions
-│   ├── __init__.py
-│   └── model_size_policy.json
-├── scenarios/                   # Scenario configurations
-│   └── basic_main.json
-└── topology/                    # Network topology definitions
-    └── basic_topology.json
+
+#### Service-Specific Static IP Assignments
+```yaml
+- NODE_IP_FL_SERVER=192.168.100.10
+- NODE_IP_POLICY_ENGINE=192.168.100.20
+- NODE_IP_SDN_CONTROLLER=192.168.100.41
+- NODE_IP_COLLECTOR=192.168.100.40
+- NODE_IP_OPENVSWITCH=192.168.100.60
+- NODE_IP_FL_CLIENT_1=192.168.100.101
+- NODE_IP_FL_CLIENT_2=192.168.100.102
+```
+
+### Container Service Configuration
+
+#### Policy Engine (Port 5000, IP 192.168.100.20)
+```yaml
+environment:
+  - SERVICE_TYPE=policy-engine
+  - POLICY_PORT=5000
+  - LOG_LEVEL=INFO
+  - POLICY_CONFIG=/app/config/policies/policy_config.json
+  - POLICY_FUNCTIONS_DIR=/app/config/policy_functions
+```
+
+#### FL Server (Port 8080, IP 192.168.100.10)  
+```yaml
+environment:
+  - SERVICE_TYPE=fl-server
+  - FL_SERVER_PORT=8080
+  - METRICS_PORT=9091
+  - MIN_CLIENTS=1
+  - MIN_AVAILABLE_CLIENTS=1
+  - POLICY_ENGINE_HOST=policy-engine
+  - POLICY_ENGINE_PORT=5000
+```
+
+#### FL Clients (IPs 192.168.100.101-102)
+```yaml
+environment:
+  - SERVICE_TYPE=fl-client
+  - CLIENT_ID=client-1                    # Unique client identifier
+  - SERVER_HOST=fl-server                 # FL Server hostname
+  - POLICY_ENGINE_HOST=policy-engine      # Policy Engine hostname
+  - MAX_RECONNECT_ATTEMPTS=-1             # Infinite reconnection attempts
+  - RETRY_INTERVAL=5                      # Retry interval in seconds
+```
+
+#### Collector Service (Port 8000, IP 192.168.100.40)
+```yaml
+environment:
+  - SERVICE_TYPE=collector
+  - NETWORK_MONITOR_ENABLED=true
+  - FL_SERVER_HOST=fl-server
+  - FL_SERVER_PORT=8081
+  - POLICY_ENGINE_URL=http://policy-engine:5000
+  - SDN_CONTROLLER_URL=http://sdn-controller:8181
+  - POLICY_INTERVAL_SEC=5                 # Policy check interval
+  - FL_INTERVAL_SEC=5                     # FL metrics collection interval
+  - NETWORK_INTERVAL_SEC=5                # Network monitoring interval
+```
+
+**Note**: The Collector API provides custom endpoint documentation at `http://localhost:8000/api` (not automatic OpenAPI docs).
+
+#### SDN Controller (Ports 6633/8181, IP 192.168.100.41)
+```yaml
+environment:
+  - SERVICE_TYPE=sdn-controller
+  - CONTROLLER_HOST=0.0.0.0
+  - CONTROLLER_PORT=6633                  # OpenFlow protocol port
+  - REST_PORT=8181                        # Ryu REST API port
+  - POLICY_ENGINE_HOST=policy-engine
+```
+
+#### OpenVSwitch (IP 192.168.100.60)
+```yaml
+environment:
+  - SERVICE_TYPE=openvswitch
+  - OVS_NUM_PORTS=16                      # Number of switch ports
+  - OVS_BRIDGE_NAME=br0                   # Bridge name
+  - SDN_CONTROLLER_HOST=sdn-controller
+  - SDN_CONTROLLER_PORT=6633
+  - OVS_PROTOCOL=OpenFlow13               # OpenFlow version
+  - OVS_FAIL_MODE=standalone             # Failover mode
 ```
 
 ## Core Configuration Files
