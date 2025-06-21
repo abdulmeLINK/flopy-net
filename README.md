@@ -2,7 +2,14 @@
 
 **Current Version**: v1.0.0-alpha.8
 
+> ⚠️ **ALPHA VERSION WARNING**  
+> This is an **alpha development version** of FLOPY-NET. Many features are **not fully tested** and may contain bugs or incomplete implementations. The **Policy Engine** in particular has **untrusted policy types** and enforcement mechanisms that are still under development. Use this platform for research and development purposes only - **NOT for production environments**.
+
 FLOPY-NET is a comprehensive research platform for evaluating federated learning algorithms under realistic network conditions. It provides a complete testing environment that bridges the gap between theoretical federated learning research and real-world network dynamics by integrating network emulation, performance monitoring, and policy enforcement capabilities.
+
+**Author's note**: Please prioratize the contributions on the modularity and itegratibility of the components for FL Client and FL Server in the means of the parameter injection through the environment variables and the derivability of the python modules so researches can implement their domain specific and custom FL systems. 
+
+I highly recommend using AI tools and agents to understand the system components and their interactions. The initial learning curve for you will be more smooth.
 
 ## Key Features
 
@@ -105,6 +112,8 @@ FLOPY-NET follows a layered, microservices architecture with five primary layers
 
 ### 1. Policy Engine (Port 5000)
 **The Heart of FLOPY-NET's Governance System**
+
+> ⚠️ **DEVELOPMENT WARNING**: The Policy Engine contains **untested and potentially unreliable policy types**. Many enforcement mechanisms are experimental and may not function as expected. Use with caution in research environments.
 
 The Policy Engine serves as the centralized authority for all system decisions, enforcing security, performance, and compliance rules across all components.
 
@@ -244,7 +253,9 @@ flopy-net/
 ## Version Information
 
 - **Current Version**: v1.0.0-alpha.8
-- **Stability**: Alpha - Active development, breaking changes possible
+- **Stability**: **Alpha - Active development, breaking changes expected**
+- **Testing Status**: **Limited testing - many features are experimental**
+- **Production Readiness**: **NOT suitable for production use**
 - **Python Version**: 3.8+
 - **Container Runtime**: Docker 20.10+
 - **Supported Platforms**: Linux, Windows, macOS
@@ -278,10 +289,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you use FLOPY-NET in your research, please cite:
 
 ```bibtex
-@misc{flopynet2024,
-  title={FLOPY-NET: Federated Learning Observatory Platform for Network-Aware Research},
-  author={FLOPY-NET Development Team},
-  year={2024},
+@misc{flopynet2025,
+  title={FLOPY-NET: A Modular Policy-Driven Architecture and Platform for Network-Aware Federated Learning Analysis},
+  author={Abdulmelik Saylan},
+  year={2025},
   version={v1.0.0-alpha.8},
   url={https://github.com/abdulmelink/flopy-net}
 }
