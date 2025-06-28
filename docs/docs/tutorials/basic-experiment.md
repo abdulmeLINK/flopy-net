@@ -51,10 +51,12 @@ docker-compose logs -f policy-engine collector
 ### Verify Dashboard Access
 
 Open your browser and navigate to:
-- **Dashboard**: http://localhost:8085
-- **API Documentation**: http://localhost:8001/docs
+- **Dashboard**: http://localhost:8085 (Main web interface)
+- **Dashboard API**: http://localhost:8001/docs (Backend API documentation) 
+- **Policy Engine API**: http://localhost:5000/health (Core system status)
+- **Collector API**: http://localhost:8083/health (Metrics service status)
 
-You should see the FLOPY-NET dashboard with system status indicators.
+You should see the FLOPY-NET dashboard with system status indicators showing all services as "healthy".
 
 ## Step 2: Configure the Experiment
 
@@ -65,14 +67,16 @@ Create a new experiment configuration file:
 ```json
 {
   "experiment_id": "tutorial_basic_001",
-  "name": "Basic FL Tutorial Experiment",
+  "name": "Basic FL Tutorial Experiment", 
   "description": "First federated learning experiment with 3 clients",
   "fl_config": {
     "algorithm": "FedAvg",
     "rounds": 10,
     "clients_per_round": 3,
+    "min_clients": 2,
     "local_epochs": 5,
     "learning_rate": 0.01,
+    "batch_size": 32,
     "dataset": "mnist",
     "model": "simple_cnn"
   },
@@ -80,7 +84,19 @@ Create a new experiment configuration file:
     "simulation_enabled": false,
     "latency_ms": 50,
     "bandwidth_mbps": 100,
-    "packet_loss": 0.001
+    "packet_loss": 0.001,
+    "use_static_ip": true,
+    "subnet": "192.168.100.0/24"
+  },
+  "client_config": {
+    "total_clients": 3,
+    "client_ips": [
+      "192.168.100.101",
+      "192.168.100.102", 
+      "192.168.100.103"
+    ],
+    "data_distribution": "iid",
+    "samples_per_client": 1000
   },
   "policies": [
     {
@@ -88,7 +104,7 @@ Create a new experiment configuration file:
       "enabled": true,
       "rules": [
         {
-          "condition": "client_count < 3",
+          "condition": "client_count < 2",
           "action": "wait_for_clients",
           "timeout": 300
         },
@@ -96,6 +112,11 @@ Create a new experiment configuration file:
           "condition": "accuracy < 0.1",
           "action": "log_warning",
           "message": "Low accuracy detected"
+        },
+        {
+          "condition": "round_duration > 600",
+          "action": "abort_round",
+          "message": "Round timeout"
         }
       ]
     }
@@ -103,7 +124,7 @@ Create a new experiment configuration file:
 }
 ```
 
-Save this as `configs/experiments/tutorial_basic_001.json`.
+Save this as `config/experiments/tutorial_basic_001.json`.
 
 ### Load Dataset
 
@@ -128,25 +149,35 @@ Create the FL server configuration:
   "server_id": "fl-server-tutorial",
   "host": "0.0.0.0",
   "port": 8080,
-  "experiment_config": "./configs/experiments/tutorial_basic_001.json",
+  "metrics_port": 8081,
+  "experiment_config": "./config/experiments/tutorial_basic_001.json",
   "model_config": {
     "architecture": "simple_cnn",
     "input_shape": [28, 28, 1],
-    "num_classes": 10
+    "num_classes": 10,
+    "optimizer": "adam",
+    "loss_function": "categorical_crossentropy"
   },
   "aggregation": {
     "strategy": "fedavg",
-    "min_clients": 3,
-    "max_wait_time": 300
+    "min_clients": 2,
+    "max_wait_time": 300,
+    "client_timeout": 120
   },
   "policy_engine": {
-    "url": "http://localhost:5000",
-    "check_interval": 10
+    "url": "http://policy-engine:5000",
+    "check_interval": 10,
+    "enforce_policies": true
+  },
+  "networking": {
+    "use_static_ip": true,
+    "ip_address": "192.168.100.10",
+    "subnet": "192.168.100.0/24"
   }
 }
 ```
 
-Save as `configs/fl_server/tutorial_server_config.json`.
+Save as `config/fl_server/tutorial_server_config.json`.
 
 ### Start FL Server
 
@@ -163,7 +194,7 @@ You should see output indicating the server is waiting for clients:
 ```
 [INFO] FL Server started on 0.0.0.0:8080
 [INFO] Waiting for 3 clients to connect...
-[INFO] Policy Engine connected: http://localhost:5000
+[INFO] Policy Engine connected: http://policy-engine:5000
 ```
 
 ## Step 4: Start FL Clients
@@ -176,7 +207,7 @@ Create configurations for 3 clients with different data distributions:
 ```json
 {
   "client_id": "client-1",
-  "server_url": "http://localhost:8080",
+  "server_url": "http://fl-server:8080",
   "data_config": {
     "dataset": "mnist",
     "data_split": "iid",
@@ -203,7 +234,7 @@ Create configurations for 3 clients with different data distributions:
 ```json
 {
   "client_id": "client-2",
-  "server_url": "http://localhost:8080",
+  "server_url": "http://fl-server:8080",
   "data_config": {
     "dataset": "mnist",
     "data_split": "non_iid",
@@ -230,7 +261,7 @@ Create configurations for 3 clients with different data distributions:
 ```json
 {
   "client_id": "client-3",
-  "server_url": "http://localhost:8080",
+  "server_url": "http://fl-server:8080",
   "data_config": {
     "dataset": "mnist",
     "data_split": "non_iid",
@@ -254,9 +285,9 @@ Create configurations for 3 clients with different data distributions:
 ```
 
 Save these as:
-- `configs/fl_client/tutorial_client_1.json`
-- `configs/fl_client/tutorial_client_2.json`
-- `configs/fl_client/tutorial_client_3.json`
+- `config/fl_client/tutorial_client_1.json`
+- `config/fl_client/tutorial_client_2.json`
+- `config/fl_client/tutorial_client_3.json`
 
 ### Start FL Clients
 
@@ -304,13 +335,15 @@ Monitor the experiment progress via command line:
 
 ```bash
 # Check experiment status
-python -m src.main scenario --list-running
+python -m src.scenarios.run_scenario --list-running
 
 # Get current round information
-curl http://localhost:8080/api/v1/status
+# Note: FL Server doesn't expose external port by default in docker-compose
+# Use docker exec to check status inside container
+docker exec fl-server curl http://localhost:8080/health
 
 # Monitor policy compliance
-curl http://localhost:5000/api/v1/compliance/status
+curl http://localhost:5000/health
 ```
 
 ### Log Analysis
@@ -368,8 +401,8 @@ curl "http://localhost:8083/api/v1/export" \
     "format": "json"
   }'
 
-# Download the export
-wget http://localhost:8083/api/v1/downloads/{export_id}
+# Download the export (replace {export_id} with actual ID from previous response)
+curl http://localhost:8083/api/v1/downloads/{export_id} -o tutorial_basic_001_export.json
 ```
 
 ### Analyze with Python
@@ -429,7 +462,7 @@ docker-compose down
 rm -rf results/tutorial_basic_001/
 
 # View experiment summary
-python -m src.main scenario --show-results tutorial_basic_001
+python -m src.scenarios.run_scenario --results tutorial_basic_001
 ```
 
 ## Expected Output
@@ -460,8 +493,11 @@ Now that you've completed your first experiment:
    # Check FL server logs
    docker-compose logs fl-server
    
-   # Verify server is accessible
-   curl http://localhost:8080/health
+   # Verify server is accessible from within the network
+   docker exec fl-server curl http://localhost:8080/health
+   
+   # Check client logs for connection issues
+   docker-compose logs fl-client-1
    ```
 
 2. **Low Accuracy**:
@@ -472,7 +508,7 @@ Now that you've completed your first experiment:
 3. **Policy Violations**:
    ```bash
    # Check policy status
-   curl http://localhost:5000/api/v1/policies/violations
+   curl http://localhost:5000/health
    
    # Review policy logs
    docker-compose logs policy-engine

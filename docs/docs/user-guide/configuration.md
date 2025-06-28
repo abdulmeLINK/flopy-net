@@ -4,16 +4,26 @@ sidebar_position: 1
 
 # Configuration Guide
 
-FLOPY-NET uses a hierarchical configuration system that allows for flexible customization of all system components through Docker Compose environment variables, JSON configuration files, and runtime parameters. This guide covers the configuration structure, files, and best practices for the v1.0.0-alpha.8 container architecture.
+FLOPY-NET employs a hierarchical configuration system designed to support both development and research environments while maintaining consistency across Docker Compose and GNS3 deployment scenarios. This guide covers configuration management for the v1.0.0-alpha.8 implementation, including simulation parameters, network settings, and component coordination.
 
-## Configuration Hierarchy
+## Current Implementation Configuration Context
 
-FLOPY-NET follows a layered configuration approach with the following precedence (highest to lowest):
+**Important Note**: The current FLOPY-NET v1.0.0-alpha.8 configuration is optimized for system architecture research and network simulation studies. The federated learning components use simulated training with synthetic data generation rather than actual machine learning training, allowing researchers to focus on network behavior, policy enforcement, and system scalability analysis.
 
-1. **Command-Line Arguments** (highest priority)
-2. **Docker Environment Variables** (docker-compose.yml, container environment)
-3. **JSON Configuration Files** (config/ directory)
-4. **Hardcoded Defaults** (in source code)
+Configuration parameters primarily control simulation behavior, network topology settings, policy enforcement rules, and monitoring data collection rather than actual machine learning hyperparameters. For production federated learning deployments, custom configurations would need to be developed that extend these base settings with real training parameters, dataset specifications, and model architecture definitions.
+
+## Configuration Architecture
+
+FLOPY-NET follows a multi-layered configuration approach that adapts to different deployment environments while maintaining consistent behavior across development and research scenarios. The configuration hierarchy ensures that system behavior can be precisely controlled while providing sensible defaults for rapid deployment and experimentation.
+
+**Configuration Precedence (highest to lowest priority):**
+
+1. **Runtime Command Arguments** - Direct CLI parameters when launching scenarios or services
+2. **Docker Environment Variables** - Container-specific settings in docker-compose.yml or GNS3 templates  
+3. **JSON Configuration Files** - Structured configuration stored in the config/ directory hierarchy
+4. **System Defaults** - Built-in defaults defined in source code for reliable fallback behavior
+
+This layered approach enables flexible deployment across different environments while ensuring reproducible experimental conditions and consistent system behavior.
 
 ## Container Configuration
 
@@ -62,7 +72,7 @@ environment:
 environment:
   - SERVICE_TYPE=fl-server
   - FL_SERVER_PORT=8080
-  - METRICS_PORT=9091
+  - METRICS_PORT=8081
   - MIN_CLIENTS=1
   - MIN_AVAILABLE_CLIENTS=1
   - POLICY_ENGINE_HOST=policy-engine
@@ -80,7 +90,7 @@ environment:
   - RETRY_INTERVAL=5                      # Retry interval in seconds
 ```
 
-#### Collector Service (Port 8000, IP 192.168.100.40)
+#### Collector Service (Port 8083, IP 192.168.100.40)
 ```yaml
 environment:
   - SERVICE_TYPE=collector
@@ -94,7 +104,7 @@ environment:
   - NETWORK_INTERVAL_SEC=5                # Network monitoring interval
 ```
 
-**Note**: The Collector API provides custom endpoint documentation at `http://localhost:8000/api` (not automatic OpenAPI docs).
+**Note**: The Collector API provides custom endpoint documentation at `http://localhost:8083/api` (not automatic OpenAPI docs).
 
 #### SDN Controller (Ports 6633/8181, IP 192.168.100.41)
 ```yaml

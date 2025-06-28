@@ -5,92 +5,117 @@ The Networking API provides comprehensive network management capabilities throug
 ## Base URL
 
 ```
-http://localhost:8181/api/v1  # ONOS Controller
-http://localhost:8080/api/v1  # Ryu Controller
+http://localhost:8181/stats  # Ryu Controller REST API
 ```
 
 ## Authentication
 
-Include API key in the Authorization header:
+Currently, the Networking API does not implement authentication. All endpoints are accessible without authorization headers.
 
-```http
-Authorization: Bearer networking_api_key_here
-```
+**Note**: Authentication features are planned for future releases.
 
 ## Network Topology
 
 ### Get Network Topology
 
 ```http
-GET /topology
+GET /switches
+```
+
+Returns all switches in the network.
+
+**Response:**
+```json
+[
+  123456789,
+  987654321
+]
+```
+
+### Get Switch Details
+
+```http
+GET /desc/{switch_id}
 ```
 
 **Response:**
 ```json
 {
-  "topology": {
-    "switches": [
-      {
-        "id": "of:0000000000000001",
-        "type": "OpenFlow",
-        "version": "1.3",
-        "manufacturer": "Open vSwitch",
-        "hardware": "2.15.0",
-        "software": "2.15.0",
-        "ports": [
-          {
-            "number": 1,
-            "name": "eth1",
-            "status": "enabled",
-            "speed": "1Gbps",
-            "duplex": "full"
-          }
-        ],
-        "flows_count": 15,
-        "status": "connected",
-        "last_seen": "2024-01-15T11:30:00Z"
-      }
-    ],
-    "hosts": [
-      {
-        "id": "00:00:00:00:00:01/None",
-        "mac": "00:00:00:00:00:01",
-        "ip": "192.168.141.10",
-        "location": {
-          "switch": "of:0000000000000001",
-          "port": 1
-        },
-        "type": "fl_client",
-        "status": "active",
-        "last_seen": "2024-01-15T11:29:30Z"
-      }
-    ],
-    "links": [
-      {
-        "id": "link_001",
-        "source": {
-          "switch": "of:0000000000000001",
-          "port": 2
-        },
-        "destination": {
-          "switch": "of:0000000000000002",
-          "port": 1
-        },
-        "bandwidth": "1Gbps",
-        "latency": "2ms",
-        "utilization": 45.2,
-        "status": "active"
-      }
-    ]
-  },
-  "statistics": {
-    "total_switches": 3,
-    "total_hosts": 8,
-    "total_links": 4,
-    "total_flows": 45,
-    "network_utilization": 38.5
+  "123456789": {
+    "mfr_desc": "Open vSwitch",
+    "hw_desc": "2.15.0",
+    "sw_desc": "2.15.0",
+    "serial_num": "None",
+    "dp_desc": "None"
   }
 }
+```
+
+### Get Switch Ports
+
+```http
+GET /portdesc/{switch_id}
+```
+
+**Response:**
+```json
+{
+  "123456789": [
+    {
+      "port_no": 1,
+      "name": "s1-eth1",
+      "config": 0,
+      "state": 0,
+      "curr": 2112,
+      "advertised": 0,
+      "supported": 0,
+      "peer": 0,
+      "curr_speed": 10000000,
+      "max_speed": 0
+    }
+  ]
+}
+```
+
+### Get Network Links
+
+```http
+GET /topology/links
+```
+
+**Response:**
+```json
+[
+  {
+    "src": {
+      "dpid": "123456789",
+      "port": 2
+    },
+    "dst": { 
+      "dpid": "987654321",
+      "port": 1
+    }
+  }
+]
+```
+
+### Get Network Hosts
+
+```http
+GET /topology/hosts
+```
+
+**Response:**
+```json
+[
+  {
+    "mac": "00:00:00:00:00:01",
+    "ipv4": ["192.168.100.10"],    "port": {
+      "dpid": "123456789",
+      "port_no": 1
+    }
+  }
+]
 ```
 
 ### Get Switch Details
@@ -223,63 +248,122 @@ GET /statistics
 
 ## Flow Management
 
+### Get Flow Statistics
+
+```http
+GET /flow/{switch_id}
+```
+
+**Response:**
+```json
+{
+  "123456789": [
+    {
+      "table_id": 0,
+      "priority": 100,
+      "match": {
+        "in_port": 1,
+        "eth_type": 2048,
+        "ip_proto": 6,
+        "tcp_dst": 8080
+      },
+      "instructions": [
+        {
+          "type": "APPLY_ACTIONS",
+          "actions": [
+            {
+              "type": "OUTPUT",
+              "port": 2
+            }
+          ]
+        }
+      ],
+      "packet_count": 1256,
+      "byte_count": 156789,
+      "duration_sec": 930,
+      "duration_nsec": 123000000
+    }
+  ]
+}
+```
+
 ### Install Flow Rule
 
 ```http
-POST /flows
+POST /flowentry/add
 Content-Type: application/json
 ```
 
 **Request Body:**
 ```json
 {
-  "switch_id": "of:0000000000000001",
+  "dpid": 123456789,
   "priority": 100,
-  "timeout": {
-    "idle": 30,
-    "hard": 300
-  },
   "match": {
     "in_port": 1,
-    "eth_type": "0x0800",
+    "eth_type": 2048,
     "ip_proto": 6,
-    "ipv4_src": "192.168.141.10/32",
-    "ipv4_dst": "192.168.141.20/32",
+    "ipv4_src": "192.168.100.10",
+    "ipv4_dst": "192.168.100.20",
     "tcp_dst": 8080
   },
   "actions": [
     {
-      "type": "set_queue",
-      "queue_id": 1
-    },
-    {
-      "type": "set_field",
-      "field": "ip_dscp",
-      "value": "46"
-    },
-    {
-      "type": "output",
+      "type": "OUTPUT",
       "port": 2
     }
   ],
-  "metadata": {
-    "experiment_id": "exp_001",
-    "client_id": "client_003",
-    "traffic_type": "fl_communication"
+  "idle_timeout": 30,
+  "hard_timeout": 300
+}
+```
+
+### Remove Flow Rule
+
+```http
+POST /flowentry/delete
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "dpid": 123456789,
+  "match": {
+    "in_port": 1,
+    "eth_type": 2048,
+    "tcp_dst": 8080
   }
 }
+```
+
+### Get Port Statistics
+
+```http
+GET /port/{switch_id}
 ```
 
 **Response:**
 ```json
 {
-  "flow": {
-    "id": "flow_new_001",
-    "switch_id": "of:0000000000000001",
-    "status": "installed",
-    "installation_time": "2024-01-15T11:30:00Z",
-    "cookie": "0x123456789abcdef0"
-  }
+  "123456789": [
+    {
+      "port_no": 1,
+      "rx_packets": 15678,
+      "tx_packets": 14892,
+      "rx_bytes": 2345678,
+      "tx_bytes": 2198765,
+      "rx_dropped": 2,
+      "tx_dropped": 0,
+      "rx_errors": 0,
+      "tx_errors": 0,
+      "rx_frame_err": 0,
+      "rx_over_err": 0,
+      "rx_crc_err": 0,
+      "collisions": 0,
+      "duration_sec": 1230,      "duration_nsec": 456000000
+    }
+  ]
 }
 ```
 

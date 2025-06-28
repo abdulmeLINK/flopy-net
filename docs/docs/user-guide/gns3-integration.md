@@ -1,64 +1,165 @@
-# GNS3 Integration
+# GNS3 VM Integration
 
-This guide covers integrating FLOPY-NET with GNS3 for realistic network simulation, enabling comprehensive testing of Flower-based federated learning systems under various network conditions and topologies using the FLOPY-NET container architecture.
+This guide covers integrating FLOPY-NET with GNS3 VM for realistic network simulation, enabling comprehensive testing of federated learning systems under various network conditions and topologies.
+
+## Critical Configuration Requirements
+
+### Same Subnet Requirement for GNS3 VM
+
+⚠️ **IMPORTANT**: When using GNS3 VM integration, all FLOPY-NET components **MUST** be configured in the same subnet (192.168.100.0/24) for proper operation when Cloud node used in the project. For advanced Layer 3 forwarding routers should be used. Routers is not currently supported by scenario GNS3 deployment. 
+
+**Correct Configuration:**
+```yaml
+# All components in 192.168.100.0/24
+Policy Engine: 192.168.100.20
+FL Server: 192.168.100.10  
+Collector: 192.168.100.40
+SDN Controller: 192.168.100.41
+OpenVSwitch: 192.168.100.60
+FL Clients: 192.168.100.101-105
+```
+
+**Incorrect Configuration:**
+```yaml
+# DON'T DO THIS - Different subnets will cause communication failures
+Policy Engine: 192.168.20.10   # Different subnet
+FL Server: 192.168.10.10       # Different subnet  
+Collector: 192.168.40.10       # Different subnet
+```
+
+### Required Network Settings
+
+```json
+{
+  "network_requirements": {
+    "subnet_mask": "255.255.255.0",
+    "gateway": "192.168.100.1",
+    "broadcast_domain": "192.168.100.255",
+    "mtu": 1500,
+    "dns_servers": ["8.8.8.8", "8.8.4.4"]
+  },
+  
+  "container_networking": {
+    "bridge_mode": true,
+    "host_networking": false,
+    "custom_networks": false,
+    "ip_forwarding": true
+  }
+}
+```
 
 ## Overview
 
-GNS3 (Graphical Network Simulator-3) integration provides:
+GNS3 VM integration provides:
 
 - **Realistic Network Topologies**: Complex multi-hop networks, WAN links, cellular networks, edge computing scenarios
 - **Dynamic Network Conditions**: Real-time latency injection, bandwidth limitations, packet loss simulation, and jitter
 - **Container Integration**: Deploy FLOPY-NET Docker containers as GNS3 nodes with full service functionality
 - **SDN Integration**: OpenVSwitch and Ryu controller integration for programmable network behavior
-- **Topology Management**: Programmatic network configuration and control via GNS3 API
+- **VM-based Performance**: Better performance than containerized GNS3 for complex simulations
 - **FL-Specific Scenarios**: Pre-built templates for federated learning network research
 
 ## Architecture Integration
 
-FLOPY-NET integrates with GNS3 through multiple layers:
+FLOPY-NET integrates with GNS3 VM through multiple layers:
 
-### Container Deployment in GNS3
-- **FL Server Container**: Deploy `abdulmelink/flopynet-server:v1.0.0-alpha.8` as GNS3 Docker node
-- **FL Client Containers**: Deploy `abdulmelink/flopynet-client:v1.0.0-alpha.8` with unique client IDs
-- **Policy Engine**: Deploy `abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8` for centralized governance
-- **SDN Controller**: Deploy `abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.8` for network control
-- **Network Switches**: Use OpenVSwitch containers for programmable switching
+### GNS3 VM Architecture
+- **GNS3 VM Host**: Ubuntu-based virtual machine running GNS3 server
+- **Docker Runtime**: Native Docker installation within the VM for container management
+- **FLOPY-NET Containers**: Deploy `abdulmelink/flopynet-*` images as GNS3 Docker nodes
+- **Network Simulation**: Virtual networks with realistic latency, bandwidth, and loss characteristics
+- **SSH Integration**: Remote control and monitoring via SSH from host machine
 
-### GNS3 API Integration
-- **Project Management**: Automated project creation, configuration, and cleanup
-- **Node Control**: Dynamic container instantiation and network interface configuration
-- **Link Management**: Runtime network link modification and condition injection
-- **Template Management**: Pre-configured node templates for FLOPY-NET services
+### Host-VM Communication
+- **GNS3 API**: REST API communication over VM network adapter
+- **SSH Integration**: Secure shell access for container management and monitoring
+- **Cloud Node Bridge**: Direct network access between host and GNS3 topology
+- **File Transfer**: Configuration and result exchange via SCP/SFTP
 
 ## Prerequisites
 
-### 1. GNS3 Installation
+### 1. GNS3 VM Installation
 
-Install GNS3 server:
+**Download and Install GNS3 VM:**
 
-```bash
-# Install GNS3 server via Docker
-docker pull gns3/gns3server:latest
+1. **Download GNS3 VM** from https://www.gns3.com/software/download-vm
+2. **Choose your hypervisor:**
+   - VMware Workstation/vSphere (Recommended for performance)
+   - VirtualBox (Free option)
+   - Hyper-V (Windows Pro/Enterprise)
 
-# Or install natively on Ubuntu/Debian
-sudo apt update
-sudo apt install -y python3-pip
-pip3 install gns3-server
-
-# For GUI client (optional)
-sudo apt install -y gns3-gui
+3. **Import VM and configure resources:**
+```powershell
+# VMware example resource allocation
+CPU: 4 cores (minimum 2)
+RAM: 8 GB (minimum 4 GB)  
+Disk: 50 GB (minimum 20 GB)
+Network Adapter 1: NAT (internet access)
+Network Adapter 2: Host-only (FLOPY-NET integration)
 ```
 
-### 2. Configure GNS3 Server
+### 2. Configure GNS3 VM Networking
 
-Create GNS3 server configuration:
-
+**Setup VM network configuration:**
 ```bash
-# Create configuration directory
+# SSH into GNS3 VM (default credentials: gns3/gns3)
+ssh gns3@192.168.56.100
+
+# Configure static IP for host-only adapter
+sudo nano /etc/netplan/01-netcfg.yaml
+
+# Example configuration:
+network:
+  version: 2
+  ethernets:
+    eth0:  # NAT adapter  
+      dhcp4: true
+    eth1:  # Host-only adapter
+      dhcp4: false
+      addresses: [192.168.56.100/24]
+      nameservers:
+        addresses: [8.8.8.8]
+
+# Apply network configuration
+sudo netplan apply
+```
+
+### 3. Install Docker in GNS3 VM
+
+**Install Docker runtime for container support:**
+```bash
+# Update package repositories
+sudo apt update && sudo apt upgrade -y
+
+# Install Docker dependencies
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+
+# Add Docker GPG key and repository
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+# Install Docker Engine
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Add gns3 user to docker group
+sudo usermod -aG docker gns3
+newgrp docker
+
+# Verify Docker installation
+docker --version
+docker run hello-world
+```
+
+### 4. Configure GNS3 Server in VM
+
+**Configure GNS3 server settings:**
+```bash
+# Create GNS3 configuration directory
 mkdir -p ~/.config/GNS3/2.2
 
-# Configure server settings
-cat > ~/.config/GNS3/2.2/gns3_server.conf << EOF
+# Configure GNS3 server
+cat > ~/.config/GNS3/2.2/gns3_server.conf << 'EOF'
 [Server]
 host = 0.0.0.0
 port = 3080
@@ -66,6 +167,7 @@ images_path = /opt/gns3/images
 projects_path = /opt/gns3/projects
 appliances_path = /opt/gns3/appliances
 configs_path = /opt/gns3/configs
+report_errors = True
 
 [Qemu]
 enable_hardware_acceleration = true
@@ -73,146 +175,454 @@ require_hardware_acceleration = false
 
 [Dynamips]
 allocate_hypervisor_per_device = true
-memory_usage_limit_per_hypervisor = 1024
 
 [Docker]
 enable = true
 EOF
+
+# Create required directories
+sudo mkdir -p /opt/gns3/{images,projects,appliances,configs}
+sudo chown -R gns3:gns3 /opt/gns3
 ```
 
-### 3. Start GNS3 Services
+### 5. Start and Verify GNS3 Services
 
+**Start GNS3 server:**
 ```bash
-# Start GNS3 server
-docker run -d \
-  --name gns3-server \
-  --privileged \
-  -p 3080:3080 \
-  -v /opt/gns3:/opt/gns3 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  gns3/gns3server:latest
+# Start GNS3 server (auto-starts on VM boot)
+sudo systemctl start gns3
 
-# Verify GNS3 server is running
+# Enable auto-start on boot
+sudo systemctl enable gns3
+
+# Check server status
+sudo systemctl status gns3
+
+# Verify GNS3 API is accessible
 curl http://localhost:3080/v2/version
 ```
 
-## FLOPY-NET GNS3 Integration
+**Test from host machine:**
+```powershell
+# Test GNS3 VM connectivity from host
+curl http://192.168.56.100:3080/v2/version
 
-### 1. Configure Integration
-
-Update FLOPY-NET configuration:
-
-```yaml
-# config/gns3_integration.yml
-gns3:
-  enabled: true
-  server_url: "http://localhost:3080"
-  api_version: "v2"
-  auth:
-    username: ""  # Leave empty for no auth
-    password: ""
-  
-  default_project: "flopy-net-testbed"
-  
-  templates:
-    - name: "Ubuntu Docker"
-      template_id: "docker-ubuntu"
-      symbol: "docker"
-    - name: "OpenVSwitch"
-      template_id: "openvswitch"
-      symbol: "ethernet_switch"
-  
-  network_conditions:
-    latency_range: [10, 200]  # ms
-    bandwidth_range: [1, 1000]  # Mbps
-    packet_loss_range: [0, 0.1]  # percentage
+# Expected response: JSON with GNS3 version info
 ```
 
-### 2. Initialize GNS3 Project
+## FLOPY-NET GNS3 VM Integration
 
-Create a new GNS3 project for FLOPY-NET:
+### 1. Configure Host Machine Integration
 
-```bash
-curl -X POST http://localhost:3080/v2/projects \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "flopy-net-testbed",
-    "project_id": "12345678-1234-1234-1234-123456789abc"
-  }'
-```
-
-### 3. Define Network Topology
-
-Create a topology configuration:
+Update FLOPY-NET configuration to connect to GNS3 VM:
 
 ```json
+// config/gns3_connection.json
 {
-  "topology": {
-    "name": "FLOPY-NET Federated Learning Testbed",
-    "nodes": [
-      {
-        "name": "FL-Server",
-        "node_type": "docker",
-        "template": "flopy-net/fl-server:latest",
-        "ports": [
-          {"name": "eth0", "port_number": 0}
-        ],
-        "properties": {
-          "image": "flopy-net/fl-server:latest",
-          "environment": "FL_SERVER_PORT=8080",
-          "extra_hosts": "host.docker.internal:host-gateway"
-        }
-      },
-      {
-        "name": "SDN-Controller",
-        "node_type": "docker", 
-        "template": "flopy-net/sdn-controller:latest",
-        "ports": [
-          {"name": "eth0", "port_number": 0}
-        ]
-      },
-      {
-        "name": "Core-Switch",
-        "node_type": "ethernet_switch",
-        "template": "ethernet_switch",
-        "ports": [
-          {"name": "Ethernet0", "port_number": 0},
-          {"name": "Ethernet1", "port_number": 1},
-          {"name": "Ethernet2", "port_number": 2},
-          {"name": "Ethernet3", "port_number": 3}
-        ]
-      },
-      {
-        "name": "Edge-Switch-1",
-        "node_type": "ethernet_switch",
-        "template": "ethernet_switch"
-      },
-      {
-        "name": "Edge-Switch-2", 
-        "node_type": "ethernet_switch",
-        "template": "ethernet_switch"
-      }
-    ],
-    "links": [
-      {
-        "source": {"node": "FL-Server", "port": 0},
-        "destination": {"node": "Core-Switch", "port": 0}
-      },
-      {
-        "source": {"node": "SDN-Controller", "port": 0},
-        "destination": {"node": "Core-Switch", "port": 1}
-      },
-      {
-        "source": {"node": "Core-Switch", "port": 2},
-        "destination": {"node": "Edge-Switch-1", "port": 0}
-      },
-      {
-        "source": {"node": "Core-Switch", "port": 3},
-        "destination": {"node": "Edge-Switch-2", "port": 0}
-      }
+  "host": "192.168.56.100",  // GNS3 VM IP address
+  "port": 3080,
+  "protocol": "http",
+  "user": null,
+  "password": null,
+  "verify_ssl": false,
+  "vm_integration": true,
+  "ssh_config": {
+    "host": "192.168.56.100",
+    "port": 22,
+    "username": "gns3",
+    "password": "gns3",
+    "key_file": null  // Optional: use SSH key instead of password
+  },
+  "container_registry": {
+    "username": "abdulmelink",
+    "images": [
+      "flopynet-fl-server:latest",
+      "flopynet-fl-client:latest", 
+      "flopynet-policy-engine:latest",
+      "flopynet-collector:latest",
+      "flopynet-sdn-controller:latest",
+      "flopynet-openvswitch:latest"
     ]
   }
 }
+```
+
+### 2. Register GNS3 Templates
+
+Before pulling images, register the FLOPY-NET templates in GNS3 using the dedicated template registration script:
+
+```powershell
+# From the host machine (FLOPY-NET project directory)
+cd d:\dev\microfed\codebase
+
+# Register all FLOPY-NET templates in GNS3 VM
+python scripts\gns3_templates.py register --host 192.168.56.100 --port 3080
+
+# Verify template registration
+python scripts\gns3_templates.py list --host 192.168.56.100 --flopynet-only
+
+# Expected output should show all registered templates:
+# DOCKER TEMPLATES (6):
+#   - flopynet-FLServer (guest): abdulmelink/flopynet-server:latest
+#   - flopynet-FLClient (guest): abdulmelink/flopynet-client:latest
+#   - flopynet-PolicyEngine (guest): abdulmelink/flopynet-policy-engine:latest
+#   - flopynet-Collector (guest): abdulmelink/flopynet-collector:latest
+#   - flopynet-SDNController (guest): abdulmelink/flopynet-sdn-controller:latest
+#   - OpenVSwitch (guest): abdulmelink/flopynet-openvswitch:latest
+```
+
+### 3. Pull FLOPY-NET Base Images
+
+After template registration, pull the required Docker images into the GNS3 VM:
+```bash
+# SSH into GNS3 VM
+ssh gns3@192.168.56.100
+
+# Pull all FLOPY-NET Docker images
+docker pull abdulmelink/flopynet-server:latest
+docker pull abdulmelink/flopynet-client:latest
+docker pull abdulmelink/flopynet-policy-engine:latest  
+docker pull abdulmelink/flopynet-collector:latest
+docker pull abdulmelink/flopynet-sdn-controller:latest
+docker pull abdulmelink/flopynet-openvswitch:latest
+
+# Verify images are available
+docker images | grep abdulmelink
+
+# Expected output should show all flopynet images with their tags and sizes
+```
+
+### 4. Deploy Custom Images (Optional)
+
+For custom images built on top of FLOPY-NET base images, follow this comprehensive workflow:
+
+#### 4.1. Build Custom Images
+
+**⚠️ CRITICAL REQUIREMENT: Metric Collection Consistency**
+
+When building custom FL clients and servers, you **MUST** maintain the same metric collection methods and interfaces as the base FLOPY-NET images. The Collector service expects consistent metric formats and endpoints across all FL components.
+
+**Required Metric Collection Standards:**
+- FL clients must expose metrics on port 8081 with the same API endpoints
+- FL servers must maintain the MetricsTrackingStrategy interface
+- Custom implementations must preserve the JSON response format
+- Metric timestamps and data structures must remain consistent
+
+**Example: Custom FL Client with Consistent Metrics**
+```dockerfile
+# Dockerfile.custom-fl-client
+FROM abdulmelink/flopynet-client:latest
+
+# Add custom dependencies
+RUN pip install transformers torch-audio scikit-image pandas seaborn
+
+# Add custom model implementations
+COPY custom_models/ /app/custom_models/
+COPY custom_datasets/ /app/custom_datasets/
+COPY custom_config.json /app/config/
+
+# CRITICAL: Preserve metric collection interface
+COPY custom_metrics_handler.py /app/src/fl/
+COPY custom_model_handler.py /app/src/fl/
+
+# Custom environment variables
+ENV CUSTOM_MODEL_PATH=/app/custom_models
+ENV CUSTOM_DATASET_PATH=/app/custom_datasets
+ENV ENABLE_CUSTOM_FEATURES=true
+# REQUIRED: Maintain metrics endpoint compatibility
+ENV METRICS_PORT=8081
+ENV METRICS_ENDPOINT=/metrics
+
+# Custom startup script that preserves metric collection
+COPY custom_entrypoint.sh /app/
+RUN chmod +x /app/custom_entrypoint.sh
+
+WORKDIR /app
+ENTRYPOINT ["/app/custom_entrypoint.sh"]
+```
+
+**Example: Custom FL Server with Preserved Metrics**
+```dockerfile
+# Dockerfile.custom-fl-server
+FROM abdulmelink/flopynet-server:latest
+
+# Add custom aggregation algorithms
+COPY custom_aggregation/ /app/custom_aggregation/
+COPY custom_strategies/ /app/src/fl/strategies/
+
+# CRITICAL: Custom strategy must extend MetricsTrackingStrategy
+COPY custom_metrics_strategy.py /app/src/fl/strategies/
+
+# Environment for custom registry
+ENV CUSTOM_REGISTRY=your-org
+ENV CUSTOM_AGGREGATION_PATH=/app/custom_aggregation
+# REQUIRED: Preserve metrics collection interface
+ENV FL_METRICS_PORT=8081
+ENV ENABLE_METRICS_TRACKING=true
+
+COPY custom_server_entrypoint.sh /app/
+RUN chmod +x /app/custom_server_entrypoint.sh
+
+WORKDIR /app
+ENTRYPOINT ["/app/custom_server_entrypoint.sh"]
+```
+
+**Build and Deploy Custom Image with Registry Management:**
+```powershell
+# Build custom images with your registry
+docker build -f Dockerfile.custom-fl-client -t your-org/custom-flopynet-client:v1.0 .
+docker build -f Dockerfile.custom-fl-server -t your-org/custom-flopynet-server:v1.0 .
+
+# Tag for your custom registry (different from abdulmelink registry)
+docker tag your-org/custom-flopynet-client:v1.0 your-registry.com/flopynet/custom-client:v1.0
+docker tag your-org/custom-flopynet-server:v1.0 your-registry.com/flopynet/custom-server:v1.0
+
+# Push to your custom registry
+docker push your-registry.com/flopynet/custom-client:v1.0
+docker push your-registry.com/flopynet/custom-server:v1.0
+
+# Save images for transfer to GNS3 VM (if not using registry)
+docker save your-org/custom-flopynet-client:v1.0 | gzip > custom-client.tar.gz
+docker save your-org/custom-flopynet-server:v1.0 | gzip > custom-server.tar.gz
+
+# Transfer to GNS3 VM
+scp custom-client.tar.gz custom-server.tar.gz gns3@192.168.56.100:/tmp/
+
+# SSH into GNS3 VM and load images
+ssh gns3@192.168.56.100
+docker load < /tmp/custom-client.tar.gz
+docker load < /tmp/custom-server.tar.gz
+docker images | grep custom-flopynet
+```
+
+**⚠️ Registry Considerations for Custom Images:**
+- Use your own Docker registry namespace (e.g., `your-org/` instead of `abdulmelink/`)
+- Update template configurations to reference your custom registry
+- **CRITICAL**: Ensure metric collection compatibility with base images
+- Maintain version compatibility with FLOPY-NET core services
+- **Registry Separation**: Custom registries must maintain the same API contracts as `abdulmelink/` registry
+
+#### 4.2. Create Custom Templates with Metric Collection Consistency
+
+**⚠️ MANDATORY: Metric Collection Method Consistency**
+
+When creating custom FL implementations, the metric collection methods **MUST** remain identical between FL clients and servers regardless of your custom registry. The FLOPY-NET Collector service expects consistent metric interfaces across all components.
+
+**Required Metric Collection Standards:**
+
+1. **FL Client Metric Requirements (MANDATORY):**
+   ```json
+   {
+     "endpoint": "http://client:8081/metrics",
+     "response_format": {
+       "client_id": "string",
+       "training_accuracy": "float",
+       "training_loss": "float", 
+       "data_samples": "integer",
+       "training_time": "float",
+       "round_number": "integer",
+       "timestamp": "ISO8601"
+     }
+   }
+   ```
+
+2. **FL Server Metric Requirements (MANDATORY):**
+   ```json
+   {
+     "interface": "MetricsTrackingStrategy",
+     "sqlite_storage": "fl_rounds.db",
+     "endpoint": "http://server:8081/metrics",
+     "round_tracking": "required",
+     "aggregation_metrics": "required"
+   }
+   ```
+
+3. **Cross-Registry Compatibility:**
+   - Metric API endpoints must match `abdulmelink/` base images exactly
+   - JSON response schemas must be identical
+   - SQLite database format must be compatible
+   - Timestamp formats and data types must remain consistent
+
+**Custom Template Definition with Registry Management:**
+```json
+// config/gns3/templates/custom_fl_client.json
+{
+  "name": "Custom-FLClient",
+  "template_type": "docker",
+  "image": "your-org/custom-flopynet-client:v1.0",
+  "adapters": 1,
+  "console_type": "telnet",
+  "category": "guest",
+  "symbol": ":/symbols/docker_guest.svg",
+  "environment": {
+    "SERVICE_TYPE": "fl-client",
+    "CUSTOM_MODEL_PATH": "/app/custom_models",
+    "CUSTOM_DATASET_PATH": "/app/custom_datasets",
+    "ENABLE_CUSTOM_FEATURES": "true",
+    "FL_SERVER_HOST": "192.168.141.10",
+    "FL_SERVER_PORT": "8080",
+    "POLICY_ENGINE_URL": "http://192.168.141.20:5000",
+    "CLIENT_TYPE": "custom_enhanced",
+    "METRICS_PORT": "8081",
+    "METRICS_ENDPOINT": "/metrics",
+    "REGISTRY_SOURCE": "your-org"
+  }
+}
+```
+
+```json
+// config/gns3/templates/custom_fl_server.json
+{
+  "name": "Custom-FLServer", 
+  "template_type": "docker",
+  "image": "your-org/custom-flopynet-server:v1.0",
+  "adapters": 1,
+  "console_type": "telnet",
+  "category": "guest", 
+  "symbol": ":/symbols/docker_guest.svg",
+  "environment": {
+    "SERVICE_TYPE": "fl-server",
+    "CUSTOM_AGGREGATION_PATH": "/app/custom_aggregation",
+    "FL_SERVER_PORT": "8080",
+    "FL_METRICS_PORT": "8081",
+    "POLICY_ENGINE_URL": "http://192.168.141.20:5000",
+    "ENABLE_METRICS_TRACKING": "true",
+    "AGGREGATION_STRATEGY": "custom_fedavg",
+    "REGISTRY_SOURCE": "your-org"
+  }
+}
+```
+
+**⚠️ CRITICAL: Metric Collection Consistency Requirements**
+
+When creating custom templates, ensure the following metric collection standards are maintained:
+
+1. **FL Client Metrics Requirements:**
+   - Must expose metrics on port 8081 (`METRICS_PORT=8081`)
+   - Must implement `/metrics` endpoint (`METRICS_ENDPOINT=/metrics`)
+   - Must return JSON format compatible with Collector service
+   - Must include client_id, training_accuracy, training_loss, data_samples
+
+2. **FL Server Metrics Requirements:**
+   - Must maintain MetricsTrackingStrategy interface
+   - Must expose metrics on port 8081 for HTTP API
+   - Must track global_accuracy, global_loss, round_number, active_clients
+   - Must store round data in SQLite format compatible with collector
+
+3. **Registry Naming Convention:**
+   - Use consistent naming: `your-org/custom-flopynet-{component}:{version}`
+   - Set `REGISTRY_SOURCE` environment variable for tracking
+   - Maintain semantic versioning for compatibility tracking
+
+**Register Custom Template with Registry Specification:**
+```powershell
+# Create custom templates directory structure
+mkdir config\gns3\custom-templates\your-org
+copy config\gns3\templates\custom_fl_client.json config\gns3\custom-templates\your-org\
+copy config\gns3\templates\custom_fl_server.json config\gns3\custom-templates\your-org\
+
+# Register custom templates with your registry
+python scripts\gns3_templates.py register --host 192.168.56.100 --templates-dir config\gns3\custom-templates\your-org --registry your-org
+
+# Register specific custom templates
+python scripts\gns3_templates.py register --host 192.168.56.100 --registry your-org --custom-only
+
+# Verify custom template registration
+python scripts\gns3_templates.py list --host 192.168.56.100 --registry your-org | findstr Custom
+
+# Expected output should show your custom templates:
+# Custom-FLClient (guest): your-org/custom-flopynet-client:v1.0
+# Custom-FLServer (guest): your-org/custom-flopynet-server:v1.0
+```
+
+#### 4.3. Template Management Commands
+
+**Using the gns3_templates.py Script:**
+```powershell
+# List all available commands
+python scripts\gns3_templates.py --help
+
+# Register templates with specific options
+python scripts\gns3_templates.py register --host 192.168.56.100 --registry your-registry --verbose
+
+# Clean existing templates before re-registration
+python scripts\gns3_templates.py clean --host 192.168.56.100 --pattern flopynet
+
+# Update existing templates with new image versions
+python scripts\gns3_templates.py update --host 192.168.56.100
+
+# List templates with filtering
+python scripts\gns3_templates.py list --host 192.168.56.100 --flopynet-only
+```
+
+### 5. Create GNS3 Project for FLOPY-NET
+
+**Initialize a new GNS3 project:**
+```powershell
+# From host machine, create a new project
+curl -X POST http://192.168.56.100:3080/v2/projects `
+  -H "Content-Type: application/json" `
+  -d '{
+    "name": "FLOPY-NET-Federated-Learning",
+    "project_id": "flopy-net-001",
+    "auto_start": false,
+    "auto_open": false
+  }'
+```
+
+**Or use FLOPY-NET CLI:**
+```powershell
+# Navigate to FLOPY-NET directory
+cd d:\dev\microfed\codebase
+
+# Create GNS3 project via FLOPY-NET
+python src\main.py gns3 create-project --name "FLOPY-NET-FL-Research" --vm-host 192.168.56.100
+```
+
+### 4. Configure Network Topology for Same Subnet
+
+**Critical**: All FLOPY-NET components must be in the same subnet when using GNS3 VM:
+
+```json
+// config/topology/flopy_net_same_subnet.json
+{
+  "topology": {
+    "name": "FLOPY-NET Same Subnet Topology",
+    "subnet": "192.168.100.0/24",
+    "gateway": "192.168.100.1",
+    
+    "nodes": [
+      {
+        "name": "Core-Switch",
+        "type": "ethernet_switch",
+        "ports": 16,
+        "position": {"x": 0, "y": 0}
+      },
+      {
+        "name": "Policy-Engine",
+        "type": "docker",
+        "image": "abdulmelink/flopynet-policy-engine:latest",
+        "ip": "192.168.100.20",
+        "ports": ["5000:5000"],
+        "position": {"x": -200, "y": -100}
+      },
+      {"source": "SDN-Controller", "destination": "Core-Switch"},
+      {"source": "OpenVSwitch", "destination": "Core-Switch"},
+      {"source": "FL-Client-1", "destination": "Core-Switch"},
+      {"source": "FL-Client-2", "destination": "Core-Switch"},
+      {"source": "FL-Client-3", "destination": "Core-Switch"},
+      {"source": "FL-Client-4", "destination": "Core-Switch"},
+      {"source": "FL-Client-5", "destination": "Core-Switch"}
+    ]
+  }
+}
+```
+
+**Why This Topology Works:**
+- **Single Broadcast Domain**: All containers can discover each other
+- **Direct Communication**: No routing between subnets required
+- **Policy Enforcement**: Policy engine can reach all components
+- **Simplified Networking**: Reduces configuration complexity
 ```
 
 ## Automated Topology Deployment
@@ -352,17 +762,38 @@ class GNS3Manager:
                     {"node_id": node_ids["Policy-Engine"], "adapter_number": 0, "port_number": 0},
                     {"node_id": node_ids["Core-Switch"], "adapter_number": 0, "port_number": 1}
                 ]
+            },
+            {
+                "nodes": [
+                    {"node_id": node_ids["Core-Switch"], "adapter_number": 0, "port_number": 2},
+                    {"node_id": node_ids["FL-Client-01"], "adapter_number": 0, "port_number": 0}
+                ]
+            },
+            {
+                "nodes": [
+                    {"node_id": node_ids["Core-Switch"], "adapter_number": 0, "port_number": 3},
+                    {"node_id": node_ids["FL-Client-02"], "adapter_number": 0, "port_number": 0}
+                ]
+            },
+            {
+                "nodes": [
+                    {"node_id": node_ids["Core-Switch"], "adapter_number": 0, "port_number": 4},
+                    {"node_id": node_ids["FL-Client-03"], "adapter_number": 0, "port_number": 0}
+                ]
+            },
+            {
+                "nodes": [
+                    {"node_id": node_ids["Core-Switch"], "adapter_number": 0, "port_number": 5},
+                    {"node_id": node_ids["FL-Client-04"], "adapter_number": 0, "port_number": 0}
+                ]
+            },
+            {
+                "nodes": [
+                    {"node_id": node_ids["Core-Switch"], "adapter_number": 0, "port_number": 6},
+                    {"node_id": node_ids["FL-Client-05"], "adapter_number": 0, "port_number": 0}
+                ]
             }
         ]
-        
-        # Connect FL clients to core switch
-        for i in range(1, 6):
-            links.append({
-                "nodes": [
-                    {"node_id": node_ids[f"FL-Client-{i:02d}"], "adapter_number": 0, "port_number": 0},
-                    {"node_id": node_ids["Core-Switch"], "adapter_number": 0, "port_number": i + 1}
-                ]
-            })
         
         # Create all links
         for link_config in links:

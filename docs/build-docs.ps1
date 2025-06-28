@@ -11,7 +11,7 @@
     The action to perform: build, push, all, list, or clean
     
 .PARAMETER Registry
-    The Docker registry to use (default: abdulmelik)
+    The Docker registry to use (default: abdulmelink)
     
 .PARAMETER Username
     The registry username for authentication
@@ -26,10 +26,10 @@
     .\build-docs.ps1 -Action build
     
 .EXAMPLE
-    .\build-docs.ps1 -Action push -Registry abdulmelik -Username myuser -Password mypass
+    .\build-docs.ps1 -Action push -Registry abdulmelink -Username myuser -Password mypass
     
 .EXAMPLE
-    .\build-docs.ps1 -Action all -Registry abdulmelik -Clean
+    .\build-docs.ps1 -Action all -Registry abdulmelink -Clean
 #>
 
 param(

@@ -36,14 +36,16 @@
       "fl-client-1": "192.168.100.101",
       "fl-client-2": "192.168.100.102",
       "fl-client-3": "192.168.100.103"
-    }
-  },
+    }  },
 
-  "collector_forwarding": {
-    "node_name": "collector",
-    "internal_ip": "192.168.100.40", 
-    "internal_port": 8000, 
-    "external_port": 8001  
+  "_deprecated_collector_forwarding": {
+    "_note": "Port forwarding is deprecated - cloud node is used for external access",
+    "_old_config": {
+      "node_name": "collector",
+      "internal_ip": "192.168.100.40", 
+      "internal_port": 8000, 
+      "external_port": 8001  
+    }
   },
   
   "federation": {

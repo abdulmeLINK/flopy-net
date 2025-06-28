@@ -121,11 +121,22 @@ Enhancing the existing React + FastAPI dashboard architecture.
   - **Action:** Create automated report generation for research publications
 
 #### 4.3. Experiment Management
-- **Current State:** Manual experiment configuration and execution
+- **Current State:** Manual experiment configuration and execution with GNS3 template registration via `scripts/gns3_templates.py`
 - **Next Step:** Comprehensive experiment lifecycle management
   - **Action:** Implement experiment templating and versioning system
   - **Action:** Add collaborative features for multi-researcher environments
   - **Action:** Create experiment reproducibility verification tools
+  - **Action:** Enhance the `gns3_templates.py` script with template versioning and automated custom image deployment
+
+#### 4.4. Enhanced Template and Image Management
+- **Current State:** Manual template registration using `scripts/gns3_templates.py` with basic register, list, clean, and update commands
+- **Next Step:** Automated template and custom image lifecycle management
+  - **Action:** Implement automated custom image building and deployment workflows
+  - **Action:** Add template versioning and rollback capabilities
+  - **Action:** Create template dependency tracking and validation
+  - **Action:** Develop automated testing for custom images before deployment to GNS3
+
+#### 4.5. Client Environment Context Reporting
 - **Next Step:** Provide context on the environment where each client is running.
   - **Action:** Modify the `fl-client` entrypoint script or application to collect system information (e.g., OS, CPU architecture, memory) using libraries like `platform` or `psutil`.
   - **Action:** Report this static information to the `Collector` upon startup.

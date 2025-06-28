@@ -1,97 +1,154 @@
 # Dashboard API Reference
 
-The Dashboard API provides programmatic access to FLOPY-NET's web interface backend, enabling automation of experiment management, real-time monitoring, and system configuration.
+The Dashboard API provides programmatic access to FLOPY-NET's web interface backend, enabling real-time monitoring, system configuration, and data visualization through a FastAPI-based REST service.
 
 ## Base URL
 
 ```
-http://localhost:3001/api/v1
+http://localhost:8001/api
 ```
+
+## Service Information
+
+**Backend**: FastAPI REST API (Port 8001)  
+**Frontend**: Vite/React SPA (Port 8085)  
+**Authentication**: None (currently open access)  
+**Technology**: FastAPI with async/await support  
+**WebSocket Support**: Real-time event streaming  
 
 ## Authentication
 
-Include JWT token in the Authorization header:
+Currently, the Dashboard API does not implement authentication. All endpoints are accessible without authorization headers.
 
+**Note**: Authentication features are planned for future releases.
+
+## Core Endpoints
+
+### Health and Status
+
+#### Health Check
 ```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-## Experiments
-
-### List Experiments
-
-```http
-GET /experiments
-
-# Query Parameters
-?status=running&limit=10&offset=0&sort=created_at:desc
+GET /health
 ```
 
 **Response:**
 ```json
 {
-  "experiments": [
+  "status": "ok",
+  "timestamp": "2025-01-16T10:30:00Z",
+  "services": {
+    "collector": "healthy",
+    "policy_engine": "healthy",
+    "fl_server": "degraded"
+  },
+  "uptime": 7200
+}
+```
+
+### Overview Dashboard
+
+#### Get FL Status
+```http
+GET /overview/fl-status
+```
+
+**Response:**
+```json
+{
+  "round": 5,
+  "clients_connected": 2,
+  "clients_total": 2,
+  "accuracy": 87.5,
+  "loss": 0.23,
+  "status": "active",
+  "max_rounds": 10
+}
+```
+
+#### Get Network Status
+```http
+GET /overview/network-status
+```
+
+**Response:**
+```json
+{
+  "switches": 3,
+  "hosts": 8,
+  "active_flows": 45,
+  "utilization": 38.5,
+  "status": "operational"
+}
+```
+
+#### Get Policy Status
+```http
+GET /overview/policy-status
+```
+
+**Response:**
+```json
+{
+  "active_policies": 15,
+  "policy_checks_total": 2450,
+  "policy_checks_allowed": 2200,
+  "policy_checks_denied": 250,
+  "status": "operational"
+}
+```
+
+### FL Monitoring
+
+#### Get FL Metrics
+```http
+GET /fl-monitoring/metrics
+```
+
+**Query Parameters:**
+- `limit` (optional): Number of metrics to return (default: 100)
+- `offset` (optional): Pagination offset
+- `start_round` (optional): Filter from round number
+- `end_round` (optional): Filter to round number
+
+**Response:**
+```json
+{
+  "metrics": [
     {
-      "id": "exp_001",
-      "name": "MNIST Federated Learning",
-      "status": "running",
-      "scenario": "basic_fl",
-      "clients_count": 5,
-      "rounds_completed": 12,
-      "rounds_total": 20,
-      "accuracy": 0.89,
-      "loss": 0.34,
-      "created_at": "2024-01-15T10:00:00Z",
-      "started_at": "2024-01-15T10:05:00Z",
-      "estimated_completion": "2024-01-15T10:25:00Z"
+      "round": 5,
+      "accuracy": 0.87,
+      "loss": 0.23,
+      "training_duration": 45.2,
+      "clients": 2,
+      "timestamp": "2025-01-16T10:30:00Z"
     }
   ],
-  "total": 1,
-  "limit": 10,
-  "offset": 0
+  "total_count": 50,
+  "pagination": {
+    "limit": 100,
+    "offset": 0,
+    "has_more": false
+  }
 }
 ```
 
-### Create Experiment
-
+#### Get FL Latest Round
 ```http
-POST /experiments
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "name": "Custom MNIST Experiment",
-  "scenario": "basic_fl",
-  "configuration": {
-    "dataset": "mnist",
-    "model": "cnn",
-    "rounds": 20,
-    "clients_per_round": 3,
-    "local_epochs": 5,
-    "learning_rate": 0.01,
-    "batch_size": 32
-  },
-  "network_settings": {
-    "bandwidth_limit": "10Mbps",
-    "latency": "50ms",
-    "packet_loss": 0.01
-  },
-  "policies": ["priority_fl_traffic", "adaptive_qos"]
-}
+GET /fl-monitoring/latest
 ```
 
 **Response:**
 ```json
 {
-  "experiment": {
-    "id": "exp_002",
-    "name": "Custom MNIST Experiment",
-    "status": "created",
-    "configuration": { /* ... */ },
-    "created_at": "2024-01-15T11:00:00Z"
-  }
+  "round": 5,
+  "accuracy": 87.5,
+  "loss": 0.23,
+  "training_duration": 45.2,
+  "clients_connected": 2,
+  "timestamp": "2025-01-16T10:30:00Z",
+  "status": "completed"
+}
+```
 }
 ```
 

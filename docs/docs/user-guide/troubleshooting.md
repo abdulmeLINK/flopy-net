@@ -120,7 +120,7 @@ foreach (`$service in `$services) {
     }
 }
 ```
-            "collector") port=8081 ;;
+            "collector") port=8083 ;;
             "policy-engine") port=5000 ;;
             "fl-server") port=8080 ;;
             "sdn-controller") port=8181 ;;        esac
@@ -157,7 +157,7 @@ sudo systemctl status docker
 docker-compose logs
 
 # Check port conflicts
-sudo netstat -tulpn | grep -E "(3001|5000|8080|8081|8181)"
+sudo netstat -tulpn | grep -E "(8001|8085|5000|8080|8083|8181)"
 
 # Check resource availability
 free -m
@@ -170,10 +170,11 @@ df -h
 sudo systemctl restart docker
 
 # Free up ports (if needed)
-sudo fuser -k 3001/tcp  # Dashboard
+sudo fuser -k 8001/tcp  # Dashboard Backend
+sudo fuser -k 8085/tcp  # Dashboard Frontend
 sudo fuser -k 5000/tcp  # Policy Engine  
 sudo fuser -k 8080/tcp  # FL Server
-sudo fuser -k 8081/tcp  # Collector
+sudo fuser -k 8083/tcp  # Collector
 sudo fuser -k 8181/tcp  # SDN Controller
 
 # Increase system limits
@@ -198,32 +199,33 @@ docker-compose up -d
 
 *Diagnosis:*
 ```bash
-# Check database containers
-docker ps | grep -E "(influxdb|redis|mongodb)"
+# Check storage services
+docker ps | grep -E "(collector|policy-engine)"
 
-# Check database connectivity
-docker exec flopy-net-collector curl http://influxdb:8086/health
-docker exec flopy-net-collector redis-cli -h redis ping
-docker exec flopy-net-policy-engine mongo --host mongodb --eval "db.runCommand('ping')"
+# Check data files
+ls -la logs/metrics.db
+ls -la logs/events.jsonl
 
-# Check database logs
-docker logs flopy-net-influxdb
-docker logs flopy-net-redis
-docker logs flopy-net-mongodb
+# Check collector storage health (if available)
+curl http://localhost:8083/api/health
+
+# Check collector logs
+docker logs flopy-net-collector
+docker logs flopy-net-policy-engine
 ```
 
 *Solutions:*
 ```bash
-# Restart database containers
-docker restart flopy-net-influxdb flopy-net-redis flopy-net-mongodb
+# Restart core services
+docker restart flopy-net-collector flopy-net-policy-engine
 
-# Recreate database volumes (WARNING: Data loss)
-docker-compose down -v
-docker-compose up -d
+# Check if data files exist and are accessible
+ls -la logs/
+ls -la config/
 
-# Check database configuration
-docker exec flopy-net-influxdb influx config
-docker exec flopy-net-redis redis-cli config get "*"
+# Check storage directories
+docker exec flopy-net-collector ls -la /app/logs/
+docker exec flopy-net-collector ls -la /app/config/
 ```
 
 ### 2. Experiment Execution Issues
@@ -240,9 +242,8 @@ docker exec flopy-net-redis redis-cli config get "*"
 # Check FL server status
 curl http://localhost:8080/api/v1/health
 
-# Check experiment details
-experiment_id="your_experiment_id"
-curl http://localhost:3001/api/v1/experiments/$experiment_id
+# Check FL server status and training info
+curl http://localhost:8080/health
 
 # Check client connectivity
 docker exec flopy-net-client-001 ping flopy-net-fl-server
@@ -260,10 +261,8 @@ docker logs flopy-net-client-001 --tail=50
 # Restart FL server
 docker restart flopy-net-fl-server
 
-# Reset experiment
-curl -X POST http://localhost:3001/api/v1/experiments/$experiment_id/control \
-  -H "Content-Type: application/json" \
-  -d '{"action": "reset"}'
+# Reset FL server if needed
+curl -X POST http://localhost:8080/reset
 
 # Check network connectivity between containers
 docker network inspect flopy-net-network
@@ -282,7 +281,7 @@ docker-compose restart fl-client-001 fl-client-002 fl-client-003
 *Diagnosis:*
 ```bash
 # Analyze FL metrics
-curl http://localhost:8081/api/v1/metrics/query?metric=global_accuracy&experiment_id=$experiment_id
+curl http://localhost:8083/api/v1/metrics/query?metric=global_accuracy&experiment_id=$experiment_id
 
 # Check network statistics
 curl http://localhost:8181/api/v1/statistics
@@ -296,15 +295,13 @@ curl http://localhost:5000/api/v1/events?experiment_id=$experiment_id
 
 *Solutions:*
 ```bash
-# Optimize FL parameters
-curl -X PUT http://localhost:3001/api/v1/experiments/$experiment_id \
+# Configure FL server parameters
+curl -X POST http://localhost:8080/configure \
   -H "Content-Type: application/json" \
   -d '{
-    "configuration": {
-      "local_epochs": 3,
-      "batch_size": 64,
-      "clients_per_round": 3
-    }
+    "local_epochs": 3,
+    "batch_size": 64,
+    "clients_per_round": 3
   }'
 
 # Improve network conditions
@@ -455,9 +452,9 @@ docker-compose up -d
 docker system prune -f
 sudo journalctl --vacuum-time=1week
 
-# Optimize database performance
-docker exec flopy-net-influxdb influx config set storage-cache-max-memory-size 1GB
-docker exec flopy-net-redis redis-cli config set maxmemory 512mb
+# Check SQLite database size and performance
+ls -lh logs/metrics.db
+docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "PRAGMA integrity_check;"
 
 # Scale down if necessary
 docker-compose up --scale fl-client=3
@@ -467,38 +464,35 @@ docker-compose up --scale fl-client=3
 
 *Symptoms:*
 - Slow metrics queries
-- Database timeouts
-- High database CPU usage
+- Database timeouts  
+- High storage I/O
 
 *Diagnosis:*
 ```bash
-# Check database performance
-docker exec flopy-net-influxdb influx query 'SHOW STATS'
-docker exec flopy-net-redis redis-cli info stats
-docker exec flopy-net-mongodb mongo --eval "db.stats()"
+# Check SQLite database performance
+docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "PRAGMA quick_check;"
+docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "PRAGMA table_info(metrics);"
 
-# Monitor database queries
-docker exec flopy-net-influxdb influx query 'SHOW QUERIES'
+# Check storage usage
+du -sh logs/
+docker exec flopy-net-collector df -h /app/logs/
 
-# Check database logs
-docker logs flopy-net-influxdb --tail=100
+# Check collector logs for slow queries
+docker logs flopy-net-collector --tail=100 | grep -i "slow\|timeout"
 ```
 
 *Solutions:*
 ```bash
-# Optimize database configuration
-docker exec flopy-net-influxdb influx config set query-timeout 30s
-docker exec flopy-net-redis redis-cli config set maxmemory-policy allkeys-lru
+# Optimize SQLite performance
+docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "PRAGMA optimize;"
+docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "PRAGMA journal_mode=WAL;"
+docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "PRAGMA synchronous=NORMAL;"
 
-# Create database indexes
-docker exec flopy-net-mongodb mongo --eval "
-db.experiments.createIndex({timestamp: 1});
-db.metrics.createIndex({experiment_id: 1, timestamp: 1});
-"
+# Clean up old data (if cleanup is not working)
+docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "DELETE FROM metrics WHERE timestamp < datetime('now', '-7 days');"
 
-# Compact databases
-docker exec flopy-net-influxdb influx backup /tmp/backup
-docker exec flopy-net-influxdb influx restore --bucket primary /tmp/backup
+# Check database size
+docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "PRAGMA page_count; PRAGMA page_size;"
 ```
 
 ## Advanced Troubleshooting
@@ -627,7 +621,7 @@ echo
 
 # Check port accessibility
 echo "Port Accessibility:"
-ports=("3001:dashboard" "8081:collector" "5000:policy-engine" "8080:fl-server" "8181:sdn-controller")
+ports=("8001:dashboard-backend" "8083:collector" "5000:policy-engine" "8080:fl-server" "8181:sdn-controller")
 for port_service in "\${ports[@]}"; do
     port=\${port_service%:*}
     service=\${port_service#*:}    
@@ -742,8 +736,8 @@ class FLOPYProfiler:
     def measure_api_response_times(self):
         """Measure API response times"""
         apis = [
-            ('dashboard', 'http://localhost:3001/api/v1/health'),
-            ('collector', 'http://localhost:8081/api/v1/health'),
+            ('dashboard', 'http://localhost:8001/api/health'),
+            ('collector', 'http://localhost:8083/api/v1/health'),
             ('policy-engine', 'http://localhost:5000/api/v1/health'),
             ('fl-server', 'http://localhost:8080/api/v1/health'),
             ('sdn-controller', 'http://localhost:8181/api/v1/health')
@@ -850,8 +844,8 @@ recover_service() {
 
 # Recover all services
 services=(
-    "dashboard:3001"
-    "collector:8081"
+    "dashboard-backend:8001"
+    "collector:8083"
     "policy-engine:5000"
     "fl-server:8080"
     "sdn-controller:8181"
@@ -879,21 +873,14 @@ Backup and restore procedures:
 
 backup_data() {
     echo "Creating data backup..."
-    
-    backup_dir="backups/$(date +%Y%m%d_%H%M%S)"
+      backup_dir="backups/$(date +%Y%m%d_%H%M%S)"
     mkdir -p $backup_dir
     
-    # Backup databases
-    echo "Backing up InfluxDB..."
-    docker exec flopy-net-influxdb influx backup --bucket primary $backup_dir/influxdb
-    
-    echo "Backing up Redis..."
-    docker exec flopy-net-redis redis-cli save
-    docker cp flopy-net-redis:/data/dump.rdb $backup_dir/redis.rdb
-    
-    echo "Backing up MongoDB..."
-    docker exec flopy-net-mongodb mongodump --out /tmp/backup
-    docker cp flopy-net-mongodb:/tmp/backup $backup_dir/mongodb
+    # Backup SQLite database and logs
+    echo "Backing up data files..."
+    cp logs/metrics.db $backup_dir/metrics.db 2>/dev/null || echo "No metrics.db found"
+    cp logs/events.jsonl $backup_dir/events.jsonl 2>/dev/null || echo "No events.jsonl found"
+    cp -r logs/ $backup_dir/logs/ 2>/dev/null || echo "No logs directory found"
     
     # Backup configurations
     echo "Backing up configurations..."
@@ -911,28 +898,23 @@ restore_data() {
     fi
     
     echo "Restoring data from $backup_dir..."
-    
-    # Stop services
+      # Stop services
     docker-compose down
     
-    # Restore databases
-    if [ -d "$backup_dir/influxdb" ]; then
-        echo "Restoring InfluxDB..."
-        docker-compose up -d influxdb
-        sleep 10
-        docker exec flopy-net-influxdb influx restore --bucket primary $backup_dir/influxdb
+    # Restore data files
+    if [ -f "$backup_dir/metrics.db" ]; then
+        echo "Restoring SQLite database..."
+        cp $backup_dir/metrics.db logs/metrics.db
     fi
     
-    if [ -f "$backup_dir/redis.rdb" ]; then
-        echo "Restoring Redis..."
-        docker cp $backup_dir/redis.rdb flopy-net-redis:/data/dump.rdb
-        docker-compose restart redis
+    if [ -f "$backup_dir/events.jsonl" ]; then
+        echo "Restoring events log..."
+        cp $backup_dir/events.jsonl logs/events.jsonl
     fi
     
-    if [ -d "$backup_dir/mongodb" ]; then
-        echo "Restoring MongoDB..."
-        docker cp $backup_dir/mongodb flopy-net-mongodb:/tmp/restore
-        docker exec flopy-net-mongodb mongorestore /tmp/restore
+    if [ -d "$backup_dir/logs" ]; then
+        echo "Restoring log files..."
+        cp -r $backup_dir/logs/* logs/ 2>/dev/null || true
     fi
     
     # Restore configurations
@@ -986,12 +968,12 @@ echo "Rebuilding services..."
 docker-compose build --no-cache
 
 # 6. Start services in order
-echo "Starting databases..."
-docker-compose up -d influxdb redis mongodb
-sleep 30
-
 echo "Starting core services..."
 docker-compose up -d collector policy-engine sdn-controller
+sleep 20
+
+echo "Starting FL services..."
+docker-compose up -d fl-server
 sleep 20
 
 echo "Starting FL services..."
@@ -1006,12 +988,12 @@ echo "Verifying system health..."
 sleep 30
 
 healthy=true
-services=("dashboard:3001" "collector:8081" "policy-engine:5000" "fl-server:8080" "sdn-controller:8181")
+services=("collector:8083" "policy-engine:5000" "fl-server:8080" "sdn-controller:8181")
 for service_port in "\${services[@]}"; do
     service=\${service_port%:*}
     port=\${service_port#*:}
     
-    if curl -s -f http://localhost:\$port/api/v1/health > /dev/null; then
+    if curl -s -f http://localhost:\$port/health > /dev/null; then
         echo "✓ \$service is healthy"
     else
         echo "✗ \$service is not healthy"
@@ -1040,15 +1022,14 @@ Set up continuous monitoring:
 monitor_system() {
     while true; do
         timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-          # Check service health
-        all_healthy=true
-        services=("dashboard:3001" "collector:8081" "policy-engine:5000" "fl-server:8080" "sdn-controller:8181")
+          # Check service health        all_healthy=true
+        services=("collector:8083" "policy-engine:5000" "fl-server:8080" "sdn-controller:8181")
         
         for service_port in "\${services[@]}"; do
             service=\${service_port%:*}
             port=\${service_port#*:}
             
-            if ! curl -s -f --max-time 10 http://localhost:\$port/api/v1/health > /dev/null; then
+            if ! curl -s -f --max-time 10 http://localhost:\$port/health > /dev/null; then
                 echo "[\$timestamp] ALERT: \$service is unhealthy"
                 all_healthy=false
                 
@@ -1093,16 +1074,14 @@ Schedule regular maintenance:
 
 perform_maintenance() {
     echo "Starting automated maintenance..."
-    
-    # Clean up old logs
+      # Clean up old logs
     echo "Cleaning up logs..."
-    docker exec flopy-net-influxdb influx delete --bucket primary --start '2024-01-01T00:00:00Z' --stop $(date -d '30 days ago' -Iseconds)
+    find logs/ -type f -name "*.log" -mtime +7 -delete 2>/dev/null || true
     
-    # Optimize databases
-    echo "Optimizing databases..."
-    docker exec flopy-net-influxdb influx query 'DELETE FROM _monitoring WHERE time < now() - 7d'
-    docker exec flopy-net-redis redis-cli BGREWRITEAOF
-    docker exec flopy-net-mongodb mongo --eval "db.runCommand({compact: 'experiments'})"
+    # Optimize SQLite database
+    echo "Optimizing database..."
+    docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "PRAGMA optimize;"
+    docker exec flopy-net-collector sqlite3 /app/logs/metrics.db "VACUUM;"
     
     # Update container images
     echo "Checking for image updates..."

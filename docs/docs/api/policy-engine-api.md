@@ -1,6 +1,6 @@
 # Policy Engine API Reference
 
-The Policy Engine API provides policy management capabilities for federated learning governance, network control, and system compliance monitoring.
+The Policy Engine API provides policy management and enforcement capabilities for federated learning governance, network control, and system compliance monitoring.
 
 ## Base URL
 
@@ -14,7 +14,7 @@ http://localhost:5000/
 **Network IP**: `192.168.100.20`  
 **Port**: `5000`  
 **Technology**: Flask REST API  
-**Storage**: SQLite database and JSON files  
+**Storage**: JSON configuration files  
 
 ## API Endpoints
 
@@ -27,24 +27,7 @@ GET /health
 **Response:**
 ```json
 {
-  "status": "healthy",
-  "service": "policy-engine",
-  "version": "v1.0.0-alpha.8",
-  "timestamp": "2025-06-16T10:30:00Z"
-}
-```
-
-### Root Endpoint
-
-```http
-GET /
-```
-
-**Response:**
-```json
-{
-  "message": "Policy Engine API",
-  "version": "1.0.0"
+  "status": "ok"
 }
 ```
 
@@ -56,23 +39,67 @@ GET /
 GET /policies
 ```
 
+**Query Parameters:**
+- `type` (optional): Filter policies by type (e.g., `network_security`, `model_validation`)
+
 **Response:**
 ```json
 {
-  "policies": [
-    {
-      "id": 1,
-      "name": "Client Validation Policy",
-      "description": "Validate FL client parameters before allowing participation",
-      "rules": [
-        {
-          "condition": "client_id exists",
-          "action": "allow_participation"
+  "default-net-sec-001": {
+    "id": "default-net-sec-001",
+    "name": "base_network_security",
+    "type": "network_security",
+    "description": "Base network security policy allowing essential FL system communication",
+    "priority": 100,
+    "rules": [
+      {
+        "action": "allow",
+        "description": "Allow FL clients to connect to FL server",
+        "match": {
+          "protocol": "tcp",
+          "src_type": "fl-client",
+          "dst_type": "fl-server",
+          "dst_port": 8080
         }
-      ],
-      "enabled": true
+      }
+    ]
+  }
+}
+```
+
+### Get Policy by ID
+
+```http
+GET /policies/{policy_id}
+```
+
+**Response:**
+```json
+{
+  "id": "default-net-sec-001",
+  "name": "base_network_security",
+  "type": "network_security",
+  "description": "Base network security policy allowing essential FL system communication",
+  "priority": 100,
+  "rules": [
+    {
+      "action": "allow",
+      "description": "Allow FL clients to connect to FL server",
+      "match": {
+        "protocol": "tcp",
+        "src_type": "fl-client",
+        "dst_type": "fl-server",
+        "dst_port": 8080
+      }
     }
   ]
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "error": "Policy {policy_id} not found"
 }
 ```
 
@@ -86,157 +113,50 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "name": "Network Quality Policy",
-  "description": "Monitor network quality for FL training",
-  "rules": [
-    {
-      "condition": "latency < 100ms",
-      "action": "allow_training"
-    },
-    {
-      "condition": "packet_loss > 5%",
-      "action": "pause_training"
-    }
-  ],
-  "enabled": true
-}
-```
-
-**Response:**
-```json
-{
-  "id": 2,
-  "name": "Network Quality Policy",
-  "description": "Monitor network quality for FL training",
-  "rules": [
-    {
-      "condition": "latency < 100ms",
-      "action": "allow_training"
-    },
-    {
-      "condition": "packet_loss > 5%",
-      "action": "pause_training"
-    }
-  ],  "enabled": true
-}
-```
-
-## Policy Management
-
-### Create Complex Policy
-
-**Request:**
-```http
-POST /api/v1/policies
-Content-Type: application/json
-```
-
-```json
-{
-  "name": "Adaptive Bandwidth Policy",
-  "description": "Dynamically allocate bandwidth based on training performance",
-  "rules": [
-    {
-      "condition": "network_utilization > 70",
-      "priority": "high"
-    }
-  ],
-  "actions": [
-    {
-      "type": "allocate_bandwidth",
-      "parameters": {
-        "min_bandwidth": "5Mbps",
-        "max_bandwidth": "20Mbps",
-        "adaptive": true
-      }
-    },
-    {
-      "type": "log_event",
-      "parameters": {
-        "level": "info",
-        "message": "Bandwidth allocated for model aggregation"
-      }
-    }
-  ],
-  "enabled": true,
-  "schedule": {
-    "type": "always"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "policy": {
-    "id": "pol_002",
-    "name": "Adaptive Bandwidth Allocation",
-    "status": "draft",
-    "version": 1,
-    "created_at": "2024-01-15T11:00:00Z",
-    "validation": {
-      "valid": true,
-      "warnings": [
-        "Consider adding fallback action for high network utilization"
-      ]
-    }
-  }
-}
-```
-
-### Get Policy Details
-
-```http
-GET /policies/{policy_id}
-```
-
-**Response:**
-```json
-{
-  "policy": {
-    "id": "pol_001",
-    "name": "FL Traffic Priority",
-    "description": "Prioritize federated learning traffic during training rounds",
-    "category": "network_qos",
-    "status": "active",
-    "priority": "high",
-    "conditions": [
+  "type": "network_security",
+  "data": {
+    "name": "custom_policy",
+    "description": "Custom network security policy",
+    "rules": [
       {
-        "field": "traffic_type",
-        "operator": "equals",
-        "value": "fl_communication",
-        "description": "Match FL communication traffic"
+        "action": "allow",
+        "description": "Allow custom traffic",
+        "match": {
+          "protocol": "tcp",
+          "dst_port": 9000
+        }
       }
-    ],
-    "actions": [
-      {
-        "type": "set_qos_class",
-        "parameters": {
-          "dscp": "AF41",
-          "bandwidth_guarantee": "10Mbps"
-        },
-        "description": "Apply high-priority QoS marking"
-      }
-    ],
-    "metadata": {
-      "created_at": "2024-01-15T10:00:00Z",
-      "updated_at": "2024-01-15T10:30:00Z",
-      "version": 2,
-      "author": "admin",
-      "tags": ["fl", "qos", "priority"]
-    },
-    "enforcement_stats": {
-      "total_enforcements": 156,
-      "successful_enforcements": 154,
-      "failed_enforcements": 2,
-      "last_enforcement": "2024-01-15T10:45:00Z",
-      "average_execution_time": "15ms"
-    },
-    "dependencies": [
-      "sdn_controller",
-      "fl_server"
     ]
   }
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": "custom-policy-001",
+  "type": "network_security",
+  "data": {
+    "name": "custom_policy",
+    "description": "Custom network security policy",
+    "rules": [
+      {
+        "action": "allow",
+        "description": "Allow custom traffic",
+        "match": {
+          "protocol": "tcp",
+          "dst_port": 9000
+        }
+      }
+    ]
+  }
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "error": "Missing policy type or data"
 }
 ```
 
@@ -250,31 +170,48 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "description": "Updated: Prioritize federated learning traffic with dynamic bandwidth allocation",
-  "actions": [
-    {
-      "type": "set_qos_class",
-      "parameters": {
-        "dscp": "AF41",
-        "bandwidth_guarantee": "15Mbps"
+  "data": {
+    "name": "updated_policy",
+    "description": "Updated policy description",
+    "rules": [
+      {
+        "action": "deny",
+        "description": "Block suspicious traffic",
+        "match": {
+          "protocol": "tcp",
+          "dst_port": 8080
+        }
       }
-    }
-  ]
+    ]
+  }
 }
 ```
 
-### Activate/Deactivate Policy
-
-```http
-POST /policies/{policy_id}/activate
-POST /policies/{policy_id}/deactivate
-```
-
-**Request Body (optional):**
+**Response:**
 ```json
 {
-  "reason": "Testing updated bandwidth allocation",
-  "scheduled_at": "2024-01-15T12:00:00Z"
+  "id": "policy-001",
+  "data": {
+    "name": "updated_policy",
+    "description": "Updated policy description",
+    "rules": [
+      {
+        "action": "deny",
+        "description": "Block suspicious traffic",
+        "match": {
+          "protocol": "tcp",
+          "dst_port": 8080
+        }
+      }
+    ]
+  }
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "error": "Policy {policy_id} not found"
 }
 ```
 
@@ -284,576 +221,232 @@ POST /policies/{policy_id}/deactivate
 DELETE /policies/{policy_id}
 ```
 
-**Query Parameters:**
-- `force`: Force deletion even if policy is active
-
 **Response:**
 ```json
 {
-  "status": "deleted",
-  "policy_id": "pol_002",
-  "timestamp": "2024-01-15T11:30:00Z"
+  "id": "policy-001",
+  "deleted": true
 }
 ```
 
-## Policy Evaluation
-
-### Evaluate Policies
-
-```http
-POST /policies/evaluate
-Content-Type: application/json
-```
-
-**Request Body:**
+**Error Response (404):**
 ```json
 {
-  "context": {
-    "traffic_type": "fl_communication",
-    "experiment_status": "running",
-    "experiment_id": "exp_001",
-    "client_id": "client_003",
-    "network_utilization": 65,
-    "fl_training_phase": "local_training",
-    "timestamp": "2024-01-15T11:00:00Z"
-  },
-  "dry_run": false
+  "error": "Policy {policy_id} not found"
 }
 ```
 
-**Response:**
-```json
-{
-  "evaluation_id": "eval_abc123",
-  "timestamp": "2024-01-15T11:00:01Z",
-  "matched_policies": [
-    {
-      "policy_id": "pol_001",
-      "policy_name": "FL Traffic Priority",
-      "match_score": 1.0,
-      "conditions_met": [
-        "traffic_type equals fl_communication",
-        "experiment_status in [running, active]"
-      ],
-      "actions_executed": [
-        {
-          "type": "set_qos_class",
-          "status": "success",
-          "execution_time": "12ms",
-          "result": {
-            "dscp_applied": "AF41",
-            "bandwidth_reserved": "10Mbps"
-          }
-        }
-      ]
-    }
-  ],
-  "total_execution_time": "18ms",
-  "dry_run": false,
-  "warnings": [],
-  "errors": []
-}
-```
+## Event Management
 
-### Batch Policy Evaluation
-
-```http
-POST /policies/evaluate/batch
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "evaluations": [
-    {
-      "id": "eval_001",
-      "context": {
-        "traffic_type": "fl_communication",
-        "experiment_id": "exp_001"
-      }
-    },
-    {
-      "id": "eval_002",
-      "context": {
-        "traffic_type": "general",
-        "experiment_id": "exp_001"
-      }
-    }
-  ],
-  "dry_run": true
-}
-```
-
-## Policy Templates
-
-### List Policy Templates
-
-```http
-GET /policies/templates
-```
-
-**Response:**
-```json
-{
-  "templates": [
-    {
-      "id": "tpl_fl_priority",
-      "name": "FL Traffic Prioritization",
-      "description": "Template for prioritizing FL communication traffic",
-      "category": "network_qos",
-      "parameters": [
-        {
-          "name": "bandwidth_guarantee",
-          "type": "string",
-          "default": "10Mbps",
-          "description": "Minimum bandwidth guarantee"
-        },
-        {
-          "name": "dscp_marking",
-          "type": "string",
-          "default": "AF41",
-          "options": ["AF41", "AF42", "AF43"],
-          "description": "DSCP marking for traffic classification"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Create Policy from Template
-
-```http
-POST /policies/from-template
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "template_id": "tpl_fl_priority",
-  "name": "Custom FL Priority Policy",
-  "parameters": {
-    "bandwidth_guarantee": "15Mbps",
-    "dscp_marking": "AF42"
-  }
-}
-```
-
-## Event and Trigger Management
-
-### List Policy Events
+### Get Events
 
 ```http
 GET /events
 ```
 
 **Query Parameters:**
-- `policy_id`: Filter by policy ID
-- `event_type`: trigger, evaluation, action_executed, error
-- `from`: Start time (ISO 8601)
-- `to`: End time (ISO 8601)
-- `severity`: info, warning, error, critical
+- `since_event_id` (optional): Get events after this event ID
+- `limit` (optional): Maximum number of events to return (default: 1000)
 
 **Response:**
 ```json
 {
   "events": [
     {
-      "id": "evt_001",
-      "type": "policy_triggered",
-      "policy_id": "pol_001",
-      "policy_name": "FL Traffic Priority",
-      "timestamp": "2024-01-15T11:00:00Z",
-      "severity": "info",
-      "context": {
-        "experiment_id": "exp_001",
-        "client_id": "client_003",
-        "trigger_reason": "FL communication detected"
-      },
-      "execution_result": {
-        "status": "success",
-        "actions_executed": 1,
-        "execution_time": "15ms"
+      "event_id": "uuid-string",
+      "timestamp": "2025-06-22T10:30:00.000Z",
+      "source_component": "POLICY_ENGINE",
+      "event_type": "POLICY_LOADED",
+      "details": {
+        "policy_id": "default-net-sec-001",
+        "policy_type": "network_security"
       }
     }
   ],
-  "total": 1
+  "last_event_id": "uuid-string"
 }
 ```
 
-### Create Custom Trigger
+## Policy Checking
+
+### Check Policy (Main Endpoint)
 
 ```http
-POST /triggers
+POST /check
 Content-Type: application/json
 ```
 
 **Request Body:**
 ```json
 {
-  "name": "High Network Utilization Alert",
-  "description": "Trigger when network utilization exceeds threshold",
-  "condition": {
-    "field": "network_utilization",
-    "operator": "greater_than",
-    "value": 80
-  },
-  "actions": [
-    {
-      "type": "webhook",
-      "parameters": {
-        "url": "https://alerts.example.com/webhook",
-        "method": "POST",
-        "headers": {
-          "Content-Type": "application/json"
-        },        "payload": {
-          "alert": "High network utilization detected",
-          "value": "`{`{network_utilization`}`}",
-          "timestamp": "`{`{timestamp`}`}"
-        }
-      }
-    }
-  ],
-  "enabled": true
+  "type": "network_security",
+  "context": {
+    "src_ip": "192.168.1.100",
+    "dst_ip": "192.168.1.200",
+    "dst_port": 8080,
+    "protocol": "tcp"
+  }
 }
 ```
 
-## Policy Simulation
+**Response:**
+```json
+{
+  "allowed": true,
+  "policy_id": "default-net-sec-001",
+  "rule_matched": {
+    "action": "allow",
+    "description": "Allow FL clients to connect to FL server"
+  },
+  "request_id": "uuid-string"
+}
+```
 
-### Simulate Policy Changes
+### Check Policy (API Alias)
 
 ```http
-POST /policies/simulate
+POST /api/check_policy
 Content-Type: application/json
 ```
 
 **Request Body:**
 ```json
 {
-  "scenario": {
-    "name": "Network Congestion Test",
-    "duration": "1h",
-    "events": [
-      {
-        "timestamp": "2024-01-15T12:00:00Z",
-        "context": {
-          "network_utilization": 85,
-          "active_experiments": 3
-        }
-      },
-      {
-        "timestamp": "2024-01-15T12:30:00Z",
-        "context": {
-          "network_utilization": 95,
-          "active_experiments": 5
-        }
-      }
-    ]
-  },
-  "policy_changes": [
-    {
-      "policy_id": "pol_001",
-      "changes": {
-        "actions": [
-          {
-            "type": "set_qos_class",
-            "parameters": {
-              "bandwidth_guarantee": "20Mbps"
-            }
-          }
-        ]
-      }
-    }
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "simulation_id": "sim_001",
-  "status": "completed",
-  "duration": "1h",
-  "results": {
-    "total_evaluations": 150,
-    "policy_triggers": 25,
-    "successful_actions": 24,
-    "failed_actions": 1,
-    "performance_impact": {
-      "average_response_time": "18ms",
-      "peak_response_time": "45ms",
-      "resource_utilization": "medium"
-    },
-    "recommendations": [
-      "Consider implementing fallback policies for high utilization scenarios",
-      "Bandwidth guarantee of 20Mbps may be excessive for current traffic patterns"
-    ]
+  "policy_type": "network_security",
+  "context": {
+    "src_ip": "192.168.1.100",
+    "dst_ip": "192.168.1.200",
+    "dst_port": 8080,
+    "protocol": "tcp"
   }
 }
 ```
 
-## System Configuration
+Response format is the same as `/check`.
 
-### Get Engine Configuration
-
-```http
-GET /config
-```
-
-**Response:**
-```json
-{
-  "engine": {
-    "evaluation_timeout": "30s",
-    "max_concurrent_evaluations": 100,
-    "policy_cache_ttl": "300s",
-    "enable_metrics_collection": true
-  },
-  "storage": {
-    "policy_retention": "1y",
-    "event_retention": "90d",
-    "backup_interval": "24h"
-  },
-  "integrations": {
-    "sdn_controller": {
-      "enabled": true,
-      "endpoint": "http://localhost:8181",
-      "timeout": "10s"
-    },
-    "fl_server": {
-      "enabled": true,
-      "endpoint": "http://localhost:8080",
-      "timeout": "5s"
-    },
-    "collector": {
-      "enabled": true,
-      "endpoint": "http://localhost:8081",
-      "metrics_interval": "30s"
-    }
-  }
-}
-```
-
-### Update Configuration
+### Check Policy (API v1)
 
 ```http
-PUT /config
+POST /api/v1/check
 Content-Type: application/json
 ```
 
-**Request Body:**
-```json
-{
-  "engine": {
-    "evaluation_timeout": "45s",
-    "max_concurrent_evaluations": 150
-  }
-}
-```
+This endpoint is an alias for `/api/check_policy` and accepts the same request format.
 
-## Monitoring and Analytics
+## Policy Types
 
-### Policy Performance Metrics
+The Policy Engine supports several policy types:
 
-```http
-GET /metrics/policies
-```
+### Network Security Policies
+- **Type**: `network_security`
+- **Purpose**: Control network traffic between components
+- **Match Fields**: `protocol`, `src_type`, `dst_type`, `src_ip`, `dst_ip`, `dst_port`
+- **Actions**: `allow`, `deny`
 
-**Query Parameters:**
-- `policy_id`: Specific policy ID
-- `from`: Start time
-- `to`: End time
-- `metric`: execution_time, success_rate, trigger_count
+### Model Validation Policies
+- **Type**: `model_validation`
+- **Purpose**: Validate federated learning models
+- **Match Fields**: `model_size`, `accuracy_threshold`, `client_id`
+- **Actions**: `accept`, `reject`
 
-**Response:**
-```json
-{
-  "policies": [
-    {
-      "policy_id": "pol_001",
-      "policy_name": "FL Traffic Priority",
-      "metrics": {
-        "execution_time": {
-          "avg": "15ms",
-          "min": "8ms",
-          "max": "45ms",
-          "p95": "25ms"
-        },
-        "success_rate": 0.987,
-        "trigger_count": 156,
-        "error_count": 2,
-        "last_execution": "2024-01-15T11:45:00Z"
-      }
-    }
-  ]
-}
-```
-
-### System Health
-
-```http
-GET /health
-```
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "version": "1.0.0",
-  "uptime": "3d 8h 15m",
-  "components": {
-    "policy_evaluator": {
-      "status": "healthy",
-      "active_evaluations": 5,
-      "queue_size": 12,
-      "processing_rate": "150 evaluations/min"
-    },
-    "rule_engine": {
-      "status": "healthy",
-      "loaded_policies": 25,
-      "active_triggers": 8
-    },
-    "storage": {
-      "status": "connected",
-      "database_size": "125MB",
-      "connection_pool": "8/10"
-    }
-  },
-  "integrations": {
-    "sdn_controller": {
-      "status": "connected",
-      "response_time": "12ms",
-      "last_check": "2024-01-15T11:59:30Z"
-    },
-    "fl_server": {
-      "status": "connected",
-      "response_time": "8ms",
-      "last_check": "2024-01-15T11:59:30Z"
-    }
-  }
-}
-```
+### Client Selection Policies
+- **Type**: `client_selection`
+- **Purpose**: Control client participation in training rounds
+- **Match Fields**: `client_capabilities`, `data_quality`, `network_conditions`
+- **Actions**: `select`, `skip`
 
 ## Error Handling
 
-### Validation Errors
+All endpoints return appropriate HTTP status codes:
 
+- **200**: Success
+- **201**: Created (for POST requests)
+- **400**: Bad Request (missing or invalid parameters)
+- **404**: Not Found (policy not found)
+- **500**: Internal Server Error
+
+Error responses include a descriptive error message:
 ```json
 {
-  "error": {
-    "code": "POLICY_VALIDATION_FAILED",
-    "message": "Policy validation failed",
-    "details": {
-      "conditions": [
-        "Field 'traffic_type' is required"
-      ],
-      "actions": [
-        "Action type 'invalid_action' is not supported"
+  "error": "Description of the error"
+}
+```
+
+## Configuration
+
+The Policy Engine loads policies from:
+- **Default**: `config/policies/policies.json`
+- **Environment**: `POLICY_FILE` environment variable
+
+Policy configuration files use JSON format with the following structure:
+```json
+{
+  "version": 2,
+  "policies": {
+    "policy-id": {
+      "id": "policy-id",
+      "name": "policy_name",
+      "type": "policy_type",
+      "description": "Policy description",
+      "priority": 100,
+      "rules": [
+        {
+          "action": "allow|deny",
+          "description": "Rule description",
+          "match": {
+            "field": "value"
+          }
+        }
       ]
     }
   }
 }
 ```
 
-### Execution Errors
+## Examples
 
-```json
-{
-  "error": {
-    "code": "POLICY_EXECUTION_FAILED",
-    "message": "Failed to execute policy action",
-    "details": {
-      "policy_id": "pol_001",
-      "action_type": "set_qos_class",
-      "error": "SDN controller unreachable",
-      "retry_available": true
+### Checking Network Traffic Policy
+
+```bash
+curl -X POST http://localhost:5000/check \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "network_security",
+    "context": {
+      "protocol": "tcp",
+      "src_type": "fl-client",
+      "dst_type": "fl-server",
+      "dst_port": 8080
     }
-  }
-}
+  }'
 ```
 
-## SDK Examples
+### Creating a Custom Policy
 
-### Python SDK
-
-```python
-from flopy_net_client import PolicyEngineClient
-
-# Initialize client
-policy_engine = PolicyEngineClient(
-    base_url="http://localhost:5000/api/v1",
-    api_key="policy_engine_api_key"
-)
-
-# Create a new policy
-policy = policy_engine.create_policy({
-    "name": "Dynamic QoS Policy",
-    "category": "network_qos",
-    "conditions": [
+```bash
+curl -X POST http://localhost:5000/policies \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "network_security",
+    "data": {
+      "name": "block_port_22",
+      "description": "Block SSH traffic",
+      "rules": [
         {
-            "field": "experiment_priority",
-            "operator": "equals",
-            "value": "high"
+          "action": "deny",
+          "description": "Block SSH",
+          "match": {
+            "protocol": "tcp",
+            "dst_port": 22
+          }
         }
-    ],
-    "actions": [
-        {
-            "type": "allocate_bandwidth",
-            "parameters": {
-                "min_bandwidth": "20Mbps"
-            }
-        }
-    ]
-})
-
-# Evaluate policies for current context
-evaluation = policy_engine.evaluate_policies({
-    "experiment_priority": "high",
-    "network_utilization": 60,
-    "active_clients": 8
-})
-
-print(f"Matched {len(evaluation.matched_policies)} policies")
-
-# Monitor policy events
-for event in policy_engine.stream_events():
-    if event.type == "policy_triggered":
-        print(f"Policy {event.policy_name} triggered")
+      ]
+    }
+  }'
 ```
 
-### JavaScript SDK
+### Getting Events Since Last Check
 
-```javascript
-import { PolicyEngineClient } from 'flopy-net-client';
-
-const policyEngine = new PolicyEngineClient({
-    baseUrl: 'http://localhost:5000/api/v1',
-    apiKey: 'policy_engine_api_key'
-});
-
-// Create policy from template
-const policy = await policyEngine.createFromTemplate({
-    templateId: 'tpl_fl_priority',
-    name: 'My FL Priority Policy',
-    parameters: {
-        bandwidth_guarantee: '25Mbps'
-    }
-});
-
-// Real-time policy evaluation
-const context = {
-    traffic_type: 'fl_communication',
-    experiment_status: 'running'
-};
-
-const evaluation = await policyEngine.evaluate(context);
-console.log('Actions executed: ' + evaluation.matched_policies.length);
-
-// WebSocket for real-time events
-const eventStream = policyEngine.createEventStream();
-eventStream.on('policy_triggered', (event) => {
-    console.log('Policy ' + event.policy_name + ' executed');
-});
+```bash
+curl "http://localhost:5000/events?since_event_id=last-known-id&limit=100"
 ```

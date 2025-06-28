@@ -1,16 +1,24 @@
-# Policy Management
+# Policy Management and Governance
 
-This comprehensive guide covers creating, managing, and troubleshooting policies in FLOPY-NET's Policy Engine, enabling dynamic network behavior and adaptive federated learning orchestration.
+This comprehensive guide covers creating, managing, and implementing policies within FLOPY-NET's centralized Policy Engine, enabling sophisticated governance of federated learning simulations, network behavior, and system security across distributed research environments.
 
-## Policy Engine Overview
+## Policy Engine Architecture
 
-The FLOPY-NET Policy Engine provides declarative policy management for:
+The FLOPY-NET Policy Engine operates as the central decision-making authority for the entire distributed system, providing real-time policy evaluation and enforcement across all federated learning components, network infrastructure, and monitoring systems. The engine is designed to handle the unique requirements of federated learning research, including dynamic client management, network condition adaptation, and experimental parameter control.
 
-- **Network QoS**: Dynamic bandwidth allocation, traffic prioritization
-- **FL Governance**: Training parameter adaptation, client selection
-- **Security Enforcement**: Access control, anomaly response
-- **Resource Management**: Adaptive resource allocation, load balancing
-- **Event Response**: Automated responses to system events
+Operating as a Flask-based REST service, the Policy Engine maintains persistent policy definitions in JSON format while providing real-time decision-making capabilities through HTTP API endpoints. The engine integrates with all system components including FL servers, clients, SDN controllers, and monitoring services to provide comprehensive governance coverage.
+
+## Policy Framework Capabilities
+
+The Policy Engine provides declarative policy management for multiple aspects of federated learning research environments:
+
+**Federated Learning Governance** encompasses training parameter adaptation, client selection criteria, model aggregation rules, and convergence optimization policies that can dynamically adjust simulation behavior based on network conditions or experimental requirements.
+
+**Network Quality of Service** policies enable dynamic bandwidth allocation, traffic prioritization, latency optimization, and congestion control to study how network conditions affect federated learning performance and communication patterns.
+
+**Security and Access Control** policies provide comprehensive access management, anomaly detection response, privacy protection measures, and complete audit logging capabilities essential for research environments handling sensitive data or multi-user scenarios.
+
+**Resource Management** policies govern CPU and memory allocation, storage management, load balancing, and auto-scaling behaviors to ensure optimal resource utilization during intensive simulation scenarios or when running multiple concurrent experiments.
 
 ## Policy Fundamentals
 

@@ -4,155 +4,181 @@ sidebar_position: 1
 
 # Running Experiments
 
-Learn how to set up, configure, and execute federated learning experiments in FLOPY-NET. This guide covers everything from basic experiments to advanced research scenarios.
+Learn how to set up, configure, and execute federated learning simulation experiments in FLOPY-NET. This guide covers everything from basic simulation scenarios to advanced research configurations using the GNS3-based scenario architecture.
 
-## Experiment Lifecycle
+> **Note**: The current FLOPY-NET implementation simulates federated learning training using random data to demonstrate network effects, policy enforcement, and system monitoring. The FL client and server components can be extended for real machine learning workloads in research scenarios.
+
+## Experiment Lifecycle in FLOPY-NET
+
+FLOPY-NET uses a scenario-driven architecture where experiments are defined through GNS3 scenario configurations. The experiment lifecycle follows a structured approach from design through analysis:
 
 ```mermaid
 graph LR
-    A[Design] --> B[Configure]
-    B --> C[Deploy]
-    C --> D[Execute]
-    D --> E[Monitor]
-    E --> F[Analyze]
-    F --> G[Report]
+    A[Design Scenario] --> B[Configure Components]
+    B --> C[Deploy to GNS3]
+    C --> D[Execute Simulation]
+    D --> E[Monitor Network & FL]
+    E --> F[Collect Metrics]
+    F --> G[Analyze Results]
     
     style A fill:#79c0ff,stroke:#333,stroke-width:2px,color:#000
     style D fill:#7ce38b,stroke:#333,stroke-width:2px,color:#000
     style F fill:#ffa7c4,stroke:#333,stroke-width:2px,color:#000
 ```
 
-## Creating Experiments
+The scenario-based execution allows researchers to study federated learning under realistic network conditions, policy constraints, and system monitoring while maintaining reproducible experimental setups.
 
-### Using the Dashboard (Recommended)
+## Running Simulation Experiments
 
-1. **Navigate to Experiments**
-   - Open http://localhost:8085
-   - Click "Experiments" in the sidebar
-   - Click "New Experiment"
+### Using Scenario Files (Recommended)
 
-2. **Configure Experiment**
-   - **Name**: Descriptive experiment name
-   - **Scenario**: Select from predefined scenarios
-   - **Dataset**: Choose dataset (MNIST, CIFAR-10, etc.)
-   - **Model**: Select ML model architecture
-   - **Clients**: Number of FL clients
-   - **Rounds**: Training rounds to execute
+FLOPY-NET experiments are executed through scenario files that define the complete experiment setup, including network topology, FL configuration, and monitoring requirements.
 
-3. **Advanced Configuration**
-   - **Data Distribution**: IID vs Non-IID
-   - **Network Conditions**: Latency, packet loss, bandwidth
-   - **Security Settings**: Byzantine clients, defenses
-   - **Resource Constraints**: CPU, memory limits
+**Basic Scenario Execution:**
+```bash
+# Execute a predefined scenario
+python -m src.scenarios.run_scenario --scenario config/scenarios/basic_main.json
 
-### Using the REST API
-
-```bash title="Create Experiment via API"
-curl -X POST "http://localhost:8001/api/v1/experiments" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "MNIST_NonIID_Experiment",
-    "description": "Testing non-IID data distribution effects",
-    "scenario": "non_iid_fl",
-    "config": {
-      "dataset": "mnist",
-      "model": "simple_cnn",
-      "num_clients": 10,
-      "num_rounds": 20,
-      "client_fraction": 0.8,
-      "data_distribution": {
-        "type": "non_iid",
-        "alpha": 0.5
-      },
-      "network_conditions": {
-        "latency": {"mean": 50, "std": 10},
-        "packet_loss": 0.02,
-        "bandwidth": "10Mbps"
-      }
-    }
-  }'
+# Execute with custom output directory
+python -m src.scenarios.run_scenario \
+  --scenario config/scenarios/basic_main.json \
+  --output-dir results/my_experiment
 ```
 
-### Using the Command Line
+**Scenario Configuration Structure:**
+The scenario files define all aspects of the simulation including GNS3 topology deployment, FL client/server configuration, policy settings, and monitoring requirements. Key configuration elements include:
 
-```bash title="CLI Experiment"
-# Basic experiment
-python -m src.main \
-  --scenario basic_fl \
-  --dataset mnist \
-  --model simple_cnn \
-  --clients 5 \
-  --rounds 10
+- **GNS3 Integration**: Network topology and node deployment specifications
+- **FL Simulation**: Client count, communication patterns, and training simulation parameters
+- **Policy Enforcement**: Resource limits, security policies, and compliance requirements
+- **Monitoring Setup**: Metric collection intervals and data aggregation settings
 
-# Advanced experiment with custom configuration
-python -m src.main \
-  --config-file experiments/custom_experiment.json \
-  --output-dir results/experiment_1 \
-  --seed 42
+### Using the Dashboard for Monitoring
+
+The dashboard provides real-time monitoring of simulation experiments but experiment creation and execution is primarily scenario-driven through configuration files.
+
+**Dashboard Access:**
+- Open http://localhost:8085 to access the monitoring dashboard
+- View real-time FL simulation metrics, network performance, and policy compliance
+- Monitor component health and system resource utilization
+
+**Dashboard Features:**
+- **Simulation Progress**: Track FL communication rounds and convergence simulation
+- **Network Metrics**: Monitor latency, bandwidth utilization, and connectivity
+- **Policy Compliance**: View policy enforcement actions and compliance status
+- **Component Status**: Monitor FL client/server health and collector metrics
+### Using the REST API for Monitoring
+
+```bash title="Monitor Simulation via API"
+# Get current simulation status
+curl -X GET "http://localhost:8001/api/v1/simulation/status"
+
+# Get FL simulation metrics
+curl -X GET "http://localhost:8001/api/v1/metrics/fl"
+
+# Get network performance metrics
+curl -X GET "http://localhost:8001/api/v1/metrics/network"
+
+# Get policy compliance status
+curl -X GET "http://localhost:8001/api/v1/policies/status"
 ```
 
-## Experiment Configuration
+### Command Line Scenario Execution
 
-### Configuration File Structure
+```bash title="CLI Scenario Execution"
+# Execute basic FL simulation scenario
+python -m src.scenarios.run_scenario \
+  --scenario config/scenarios/basic_main.json \
+  --gns3-host 192.168.56.100 \
+  --output-dir results/basic_simulation
 
-```json title="experiments/custom_experiment.json"
+# Execute with custom monitoring interval
+python -m src.scenarios.run_scenario \
+  --scenario config/scenarios/basic_main.json \
+  --monitor-interval 30 \
+  --duration 1800
+
+# Execute with policy enforcement
+python -m src.scenarios.run_scenario \
+  --scenario config/scenarios/basic_main.json \
+  --policy-config config/policies/default_policies.json
+```
+
+## Scenario Configuration
+
+### Scenario File Structure
+
+FLOPY-NET scenarios are defined in JSON files that specify the complete simulation setup including GNS3 network topology, FL component configuration, and monitoring parameters.
+
+```json title="config/scenarios/basic_main.json"
 {
-  "experiment": {
-    "name": "Network_Impact_Study",
-    "description": "Studying impact of network conditions on FL convergence",
-    "seed": 42,
-    "output_dir": "results/network_impact"
+  "name": "Basic FL Simulation",
+  "description": "Standard FL simulation with network monitoring",
+  "version": "1.0",
+  "gns3": {
+    "project_name": "FLOPY-NET-Basic",
+    "topology_file": "config/topology/basic_topology.json",
+    "auto_deploy": true
   },
-  "federated_learning": {
-    "algorithm": "fedavg",
-    "num_clients": 20,
-    "clients_per_round": 16,
-    "num_rounds": 50,
+  "fl_simulation": {
+    "num_clients": 3,
+    "simulation_rounds": 10,
+    "round_duration": 60,
+    "client_participation_rate": 1.0,
+    "simulate_training": true,
+    "use_random_data": true
+  },
+  "monitoring": {
+    "collect_metrics": true,
+    "metric_interval": 10,
+    "collectors": ["fl_metrics", "network_metrics", "policy_metrics"]
+  },
+  "policy_enforcement": {
+    "enable_policies": true,
+    "policy_config": "config/policies/default_policies.json"
+  },
+  "duration": 600,
+  "output_config": {
+    "save_logs": true,
+    "save_metrics": true,
+    "log_level": "INFO"
+  }
+}
+```### Simulation Component Configuration
+
+The FL simulation components are configured to demonstrate federated learning behavior patterns without requiring actual machine learning workloads. This enables rapid testing of network conditions, policy enforcement, and system monitoring.
+
+**FL Server Simulation Configuration:**
+```json
+"fl_server": {
+  "simulation_mode": true,
+  "mock_model_aggregation": true,
+  "convergence_simulation": {
+    "target_accuracy": 0.85,
+    "convergence_rate": 0.95,
+    "add_noise": true
+  },
+  "communication_patterns": {
+    "client_selection": "random",
+    "aggregation_strategy": "fedavg_simulation"
+  }
+}
+```
+
+**FL Client Simulation Configuration:**
+```json
+"fl_clients": {
+  "simulation_mode": true,
+  "generate_synthetic_updates": true,
+  "training_simulation": {
     "local_epochs": 5,
-    "learning_rate": 0.01,
-    "batch_size": 32
+    "batch_size": 32,
+    "learning_rate_simulation": 0.01,
+    "performance_variation": 0.1
   },
-  "model": {
-    "name": "resnet18",
-    "num_classes": 10,
-    "pretrained": false
-  },
-  "dataset": {
-    "name": "cifar10",
-    "data_path": "data/cifar10",
-    "split_method": "dirichlet",
-    "alpha": 0.3,
-    "min_samples_per_client": 100
-  },
-  "network": {
-    "topology": "star",
-    "latency": {
-      "distribution": "normal",
-      "mean": 100,
-      "std": 20,
-      "unit": "ms"
-    },
-    "bandwidth": {
-      "upload": "5Mbps",
-      "download": "25Mbps"
-    },
-    "packet_loss": 0.01,
-    "jitter": {
-      "mean": 10,
-      "std": 5,
-      "unit": "ms"
-    }
-  },
-  "security": {
-    "byzantine_clients": 2,
-    "attack_type": "label_flipping",
-    "defense_mechanism": "krum",
-    "trust_threshold": 0.6
-  },
-  "policies": {
-    "model_size_limit": "100MB",
-    "round_timeout": "300s",
-    "client_dropout_threshold": 0.2
+  "resource_constraints": {
+    "cpu_limit": "500m",
+    "memory_limit": "512Mi"
   }
 }
 ```

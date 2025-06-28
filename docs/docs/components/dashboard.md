@@ -12,58 +12,73 @@ The Dashboard follows a three-tier architecture designed for scalability and mai
 
 ```mermaid
 graph TB
-    subgraph "Frontend Layer"
-        FE[React Frontend<br/>Port 8085]
-        FE --> |TypeScript/Vite| UI[Material-UI Components]
-        FE --> |Visualization| VIZ[Recharts/ReactFlow]
-        FE --> |WebSocket| WS[Real-time Updates]
+    subgraph "Presentation Tier"
+        Frontend["React Frontend<br/>Port 8085 (nginx:80)<br/>Material-UI, TypeScript, Vite"]
     end
     
-    subgraph "Backend Layer"
-        BE[FastAPI Backend<br/>Port 8001]
-        BE --> |REST API| API[Endpoints]
-        BE --> |Data Aggregation| AGG[Service Clients]
-        BE --> |Caching| CACHE[In-Memory Cache]
+    subgraph "Application Tier"
+        Backend["FastAPI Backend<br/>Port 8001 (uvicorn)<br/>REST API & WebSocket"]
+        Cache["FastAPI Cache<br/>InMemoryBackend"]
+        Health["Health Check System<br/>Connection Status Tracking"]
     end
     
-    subgraph "Data Sources"
-        COLLECTOR[Collector Service<br/>Port 8002]
-        GNS3[GNS3 Server<br/>Port 3080]
-        POLICY[Policy Engine<br/>Port 5000]
-        FL[FL Server<br/>Port 8080]
-        SDN[SDN Controller<br/>Port 8181]
+    subgraph "Service Integration Layer"
+        CollectorClient["CollectorApiClient<br/>HTTP + Basic Auth"]
+        GNS3Client["AsyncGNS3Client<br/>Wraps src/GNS3API"]
+        PolicyClient["AsyncPolicyEngineClient<br/>HTTP Client"]
     end
     
-    FE --> |HTTP/WS| BE
-    BE --> |HTTP| COLLECTOR
-    BE --> |HTTP| GNS3
-    BE --> |HTTP| POLICY
-    BE --> |HTTP| FL
-    BE --> |HTTP| SDN
+    subgraph "Data/Service Tier"
+        Collector["Collector Service<br/>Port 8003/8083<br/>Metrics & Events"]
+        PolicyEngine["Policy Engine<br/>Port 5000/8002<br/>Policies & Compliance"]
+        GNS3["GNS3 Server<br/>Port 3080 → API v2<br/>Network Topology"]
+    end
     
-    style FE fill:#79c0ff,stroke:#1f6feb,color:#000
-    style BE fill:#d2a8ff,stroke:#8b5cf6,color:#000
-    style COLLECTOR fill:#56d364,stroke:#238636,color:#000
-    style GNS3 fill:#f85149,stroke:#da3633,color:#fff
-    style POLICY fill:#ffa657,stroke:#fb8500,color:#000
+    Frontend -->|HTTP/WebSocket| Backend
+    Backend --> Cache
+    Backend --> Health
+    Backend --> CollectorClient
+    Backend --> GNS3Client
+    Backend --> PolicyClient
+    CollectorClient -->|REST API| Collector
+    PolicyClient -->|REST API| PolicyEngine
+    GNS3Client -->|REST API| GNS3
+    
+    classDef frontend fill:#79c0ff,stroke:#1f6feb,color:#000
+    classDef backend fill:#ffa657,stroke:#fb8500,color:#000
+    classDef integration fill:#d2a8ff,stroke:#8b5cf6,color:#000
+    classDef services fill:#56d364,stroke:#238636,color:#000
+    
+    class Frontend frontend
+    class Backend,Cache,Health backend
+    class CollectorClient,GNS3Client,PolicyClient integration
+    class Backend backend
+    class Collector,PolicyEngine,GNS3,FL services
 ```
 
 ### Components Overview
 
 #### 1. React Frontend (Port 8085)
 - **Technology**: React 18, TypeScript, Vite, Material-UI
+- **Deployment**: nginx container serving static files on port 80, exposed as 8085
 - **Purpose**: Interactive web interface for system monitoring
 - **Features**: Real-time charts, network topology, responsive design
 
 #### 2. FastAPI Backend (Port 8001)
-- **Technology**: FastAPI, Python 3.8+, asyncio
-- **Purpose**: REST API server and data aggregation layer
-- **Features**: Service health monitoring, data caching, WebSocket support
+- **Technology**: FastAPI, Python 3.8+, asyncio, uvicorn ASGI server
+- **Purpose**: REST API server and service aggregation layer
+- **Features**: Service health monitoring, FastAPI cache, WebSocket support
+- **Environment**: Configurable connection settings, timeouts, and retries
 
-#### 3. Alternative Dash Interface (Port 8050)
-- **Technology**: Dash, Plotly
-- **Purpose**: Alternative dashboard implementation
-- **Features**: Real-time charts, simplified interface
+#### 3. Service Integration Clients
+- **CollectorApiClient**: HTTP client with basic authentication for collector service
+- **AsyncGNS3Client**: Async wrapper around the core GNS3API from `src/networking/gns3/`
+- **AsyncPolicyEngineClient**: Direct HTTP client for policy engine communication
+
+#### 4. External Service Dependencies
+- **Collector Service**: Ports 8003/8083 for metrics and events collection
+- **Policy Engine**: Ports 5000/8002 for policy management and compliance
+- **GNS3 Server**: Port 3080 with API v2 for network topology management
 
 ## Frontend Architecture
 
@@ -110,20 +125,26 @@ graph TB
 ### FastAPI Application Structure
 
 ```python
-# Core application setup
+# Core application setup - from main.py
 app = FastAPI(
-    title="FLOPY-NET Backend",
-    description="API for the Federated Learning SDN Dashboard", 
-    version="0.1.0",
-    redirect_slashes=False
+    title="Dashboard Backend API",
+    description="MicroFed Dashboard API v1.0.0-alpha.8", 
+    version=settings.APP_VERSION
 )
 
-# Service connection management
+# Global connection status tracking
 connection_status = {
     "policy_engine": {"connected": False, "last_check": None, "error": None},
     "gns3": {"connected": False, "last_check": None, "error": None}, 
     "collector": {"connected": False, "last_check": None, "error": None}
 }
+
+# FastAPI Cache initialization
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize cache backend
+    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache")
+    yield
 ```
 
 ### Service Clients
@@ -133,13 +154,18 @@ connection_status = {
 class CollectorApiClient:
     """Client for interacting with the Collector service."""
     
-    def __init__(self, base_url: str = "http://localhost:8002"):
-        self.base_url = base_url
+    def __init__(self, base_url: Optional[str] = None):
+        self.base_url = base_url or settings.COLLECTOR_URL
+        # Configurable timeout and connection limits
+        self.timeout = httpx.Timeout(...)
+        self.limits = httpx.Limits(...)
+        # Basic authentication
+        auth = httpx.BasicAuth("admin", "securepassword")
         
-    async def get_metrics(self, params: dict = None) -> dict:
+    async def get_metrics(self, params: dict = None) -> MetricsResponse:
         """Fetch metrics from collector service."""
         
-    async def get_fl_metrics(self, params: dict = None) -> dict:
+    async def get_fl_metrics(self, params: dict = None) -> FLMetricsResponse:
         """Fetch FL-specific metrics."""
         
     async def get_events(self, params: dict = None) -> dict:
@@ -149,12 +175,35 @@ class CollectorApiClient:
 #### GNS3 Client
 ```python
 class AsyncGNS3Client:
-    """Async client for GNS3 server communication."""
+    """Async wrapper for the GNS3API from the src directory."""
     
-    def __init__(self, base_url: str = "http://localhost:3080"):
-        self.base_url = base_url
+    def __init__(self, base_url: Optional[str] = None):
+        self.base_url = base_url or settings.GNS3_URL
+        # Wraps the synchronous GNS3API from src/networking/gns3/
+        self.client = GNS3API(self.base_url)
         
-    async def get_projects(self) -> List[dict]:
+    async def get_projects(self) -> List[Dict[str, Any]]:
+        """Get all GNS3 projects."""
+        
+    async def get_nodes(self, project_id: str) -> List[Dict[str, Any]]:
+        """Get nodes in a project."""
+```
+
+#### Policy Engine Client  
+```python
+class AsyncPolicyEngineClient:
+    """Direct HTTP client for the Policy Engine API."""
+    
+    def __init__(self, base_url: Optional[str] = None, timeout: int = 10):
+        self.base_url = base_url or settings.POLICY_ENGINE_URL
+        self._client = httpx.AsyncClient(...)
+        
+    async def get_policies(self) -> List[Dict[str, Any]]:
+        """Fetch all policies."""
+        
+    async def get_policy_decisions(self, params: dict = None) -> Dict[str, Any]:
+        """Fetch policy decisions."""
+```
         """Get all GNS3 projects."""
         
     async def get_project_topology(self, project_id: str) -> dict:
@@ -217,33 +266,57 @@ class AsyncPolicyEngineClient:
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `COLLECTOR_URL` | Collector service URL | `http://localhost:8002` |
-| `POLICY_ENGINE_URL` | Policy Engine URL | `http://localhost:5000` |
-| `GNS3_URL` | GNS3 server URL | `http://localhost:3080` |
-| `FL_SERVER_URL` | FL Server URL | `http://localhost:8080` |
-| `SDN_CONTROLLER_URL` | SDN Controller URL | `http://localhost:8181` |
-| `LOG_LEVEL` | Logging level | `INFO` |
-| `CONNECTION_RETRIES` | Service connection retries | `3` |
-| `HEALTH_CHECK_INTERVAL` | Health check interval (seconds) | `30` |
+| Variable | Description | Default | Docker Default |
+|----------|-------------|---------|---------------|
+| `COLLECTOR_URL` | Collector service URL | `http://localhost:8083` | `http://192.168.1.109:8003` |
+| `POLICY_ENGINE_URL` | Policy Engine URL | `http://localhost:5000` | `http://192.168.1.109:8002` |
+| `GNS3_URL` | GNS3 server URL | `http://localhost:3080` | `http://192.168.1.109:8001` |
+| `GNS3_API_VERSION` | GNS3 API version | `v2` | `v2` |
+| `LOG_LEVEL` | Logging level | `INFO` | `DEBUG` |
+| `CONNECTION_TIMEOUT` | Connection timeout (seconds) | `10` | `10` |
+| `CONNECTION_RETRIES` | Service connection retries | `3` | `3` |
+| `RETRY_DELAY` | Retry delay (seconds) | `2` | `2` |
+| `HEALTH_CHECK_INTERVAL` | Health check interval (seconds) | `30` | `30` |
+| `STARTUP_TIMEOUT` | Startup timeout (seconds) | `30` | `60` |
+| `APP_VERSION` | Application version | `1.0.0` | `v1.0.0-alpha.8` |
+| `BUILD_DATE` | Build date | `unknown` | `2025-06-10` |
+| `ENVIRONMENT` | Environment type | `development` | `development` |
+| `SCENARIOS_DIR` | Scenarios directory path | `/app/src/scenarios` | `/app/src/scenarios` |
 
 ### Frontend Configuration
 
 ```typescript
-// src/config/api.ts
-export const API_CONFIG = {
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001',
-  timeout: 10000,
-  retries: 3
-};
+// Build-time environment variables (embedded in Vite build)
+VITE_BACKEND_URL=http://localhost:8001
+VITE_APP_VERSION=v1.0.0-alpha.8
+VITE_BUILD_DATE=2025-06-10
+VITE_GIT_COMMIT=latest
+VITE_ENVIRONMENT=development
+```
 
-// src/config/websocket.ts
-export const WS_CONFIG = {
-  url: import.meta.env.VITE_WS_URL || 'ws://localhost:8001',
-  reconnectInterval: 5000,
-  maxReconnectAttempts: 10
-};
+### Docker Compose Configuration
+
+```yaml
+services:
+  dashboard-backend:
+    image: abdulmelink/flopynet-dashboard-backend:v1.0.0-alpha.8
+    ports:
+      - "8001:8001"
+    environment:
+      - GNS3_URL=${GNS3_URL:-http://192.168.1.109:8001}
+      - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.1.109:8003}
+      - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.1.109:8002}
+    volumes:
+      - ../src:/app/src
+      - ../config:/app/config
+    
+  dashboard-frontend:
+    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.8
+    ports:
+      - "8085:80"
+    depends_on:
+      dashboard-backend:
+        condition: service_healthy
 ```
 
 ## Service Integration
@@ -407,40 +480,90 @@ const useWebSocket = (url: string) => {
 
 ### Docker Configuration
 
+The Dashboard is deployed using Docker Compose with two main services:
+
 ```yaml
-# docker-compose.yml
+# From dashboard/docker-compose.yml
 version: '3.8'
 services:
   dashboard-backend:
-    build: ./dashboard/backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: abdulmelink/flopynet-dashboard-backend:v1.0.0-alpha.8
+    container_name: dashboard-backend
     ports:
-      - "8001:8001"
+      - "8001:8001"    
     environment:
-      - COLLECTOR_URL=http://collector:8002
-      - POLICY_ENGINE_URL=http://policy-engine:5000
-      - GNS3_URL=http://gns3:3080
-    depends_on:
-      - collector
-      - policy-engine
-      
+      - GNS3_URL=${GNS3_URL:-http://192.168.1.109:8001}
+      - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.1.109:8003}
+      - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.1.109:8002}
+      - LOG_LEVEL=DEBUG
+      - APP_VERSION=v1.0.0-alpha.8
+      - BUILD_DATE=2025-06-10
+      - ENVIRONMENT=development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - ../src:/app/src
+      - ../config:/app/config
+      - client_error_logs:/app/logs
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    networks:
+      - dashboard-network
+
   dashboard-frontend:
-    build: ./dashboard/frontend
+    build:
+      context: ./frontend
+      args:
+        - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8001}
+        - VITE_APP_VERSION=v1.0.0-alpha.8
+        - VITE_BUILD_DATE=2025-06-10
+    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.8
+    container_name: dashboard-frontend
     ports:
       - "8085:80"
-    environment:
-      - VITE_BACKEND_URL=http://localhost:8001
     depends_on:
-      - dashboard-backend
+      dashboard-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - dashboard-network
+
+networks:
+  dashboard-network:
+    driver: bridge
+    name: dashboard-network
+
+volumes:
+  client_error_logs:
+    name: client_error_logs
 ```
 
 ### Production Deployment
 
 ```bash
-# Build and deploy
-docker-compose -f docker-compose.prod.yml up -d
+# Navigate to dashboard directory
+cd dashboard
 
-# Health check
+# Build and deploy
+docker-compose up -d
+
+# Check service health
+docker-compose ps
 curl http://localhost:8001/api/health
+
+# View logs
+docker-compose logs -f dashboard-backend
+docker-compose logs -f dashboard-frontend
 
 # Access dashboard
 open http://localhost:8085

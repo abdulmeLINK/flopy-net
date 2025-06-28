@@ -2,108 +2,83 @@
 sidebar_position: 3
 ---
 
-# Advanced Configuration
+# Advanced Configuration and Customization
 
-Master advanced FLOPY-NET configuration techniques for complex federated learning experiments, including custom algorithms, advanced networking, and sophisticated policy management.
+This tutorial covers advanced FLOPY-NET configuration techniques for sophisticated research scenarios, including custom federated learning implementations, complex network topologies, advanced policy management, and system optimization for research environments.
 
-## Overview
+## Configuration Overview for Research Environments
 
-This tutorial covers advanced configuration topics:
+FLOPY-NET's advanced configuration capabilities enable researchers to create sophisticated experimental environments that extend beyond the base simulation framework. While the current v1.0.0-alpha.8 implementation provides federated learning simulation with synthetic data, the configuration system is designed to support custom implementations that introduce real machine learning training, complex network scenarios, and advanced policy enforcement.
 
-- **Custom FL Algorithms**: Implement and configure custom federated learning algorithms
-- **Advanced Network Configuration**: Complex topology and traffic shaping
-- **Sophisticated Policy Management**: Multi-layer policies and dynamic rule systems
-- **Performance Optimization**: Resource allocation and system tuning
-- **Integration Patterns**: Advanced service integration and data flow
+This tutorial demonstrates how to configure FLOPY-NET for various research scenarios including network behavior studies, policy enforcement research, system scalability analysis, and the foundation for implementing actual federated learning algorithms. The configuration approaches shown here provide the framework for transitioning from simulation to production-ready federated learning deployments.
 
-## Custom Federated Learning Algorithms
+## Custom Implementation Framework
 
-### Implementing FedProx
+### Building Real FL Algorithm Implementations
 
-Create a custom FedProx implementation with configurable proximal term:
+While the base FLOPY-NET images simulate federated learning behavior, researchers can implement actual federated learning algorithms by extending the base configuration and container framework. The following example demonstrates the configuration structure needed to support real FedProx implementation:
 
 ```python
-# src/fl/algorithms/fedprox.py
-from src.fl.algorithms.base_algorithm import BaseFLAlgorithm
-import torch
-import torch.nn.functional as F
-from typing import Dict, List, Any
+# Example: Configuration for actual FedProx implementation
+# This would replace the simulation logic in custom containers
 
-class FedProxAlgorithm(BaseFLAlgorithm):
+class FedProxConfiguration:
     """
-    FedProx algorithm implementation with proximal term for handling
-    heterogeneous client capabilities and data distributions.
+    Configuration template for implementing real FedProx algorithm
+    within custom FLOPY-NET containers.
     """
     
     def __init__(self, config: Dict[str, Any]):
-        super().__init__(config)
+        # Real training parameters (vs simulation parameters)
         self.algorithm_name = "FedProx"
+        self.simulation_mode = config.get("simulation_mode", False)
         self.mu = config.get("mu", 0.1)  # Proximal term coefficient
-        self.adaptive_mu = config.get("adaptive_mu", False)
-        self.mu_adaptation_strategy = config.get("mu_adaptation_strategy", "divergence_based")
+        self.dataset_path = config.get("dataset_path", "/app/datasets")
+        self.model_architecture = config.get("model_architecture", "resnet18")
         
-    def local_training(self, client_id: str, local_model: torch.nn.Module, 
-                      global_model: torch.nn.Module, train_loader: torch.utils.data.DataLoader,
-                      local_epochs: int, learning_rate: float) -> Dict[str, Any]:
-        """
-        Perform local training with proximal term.
-        """
-        local_model.train()
-        optimizer = torch.optim.SGD(local_model.parameters(), lr=learning_rate)
+        # Network-aware training parameters
+        self.adaptive_mu = config.get("adaptive_mu", True)
+        self.network_condition_adjustment = config.get("network_adjustment", True)
+        self.policy_integration = config.get("policy_integration", True)
         
-        # Store global model parameters for proximal term
-        global_params = {name: param.clone().detach() 
-                        for name, param in global_model.named_parameters()}
-        
-        training_loss = 0.0
-        proximal_loss = 0.0
-        
-        for epoch in range(local_epochs):
-            epoch_loss = 0.0
-            epoch_proximal = 0.0
-            
-            for batch_idx, (data, target) in enumerate(train_loader):
-                optimizer.zero_grad()
-                
-                # Forward pass
-                output = local_model(data)
-                classification_loss = F.cross_entropy(output, target)
-                
-                # Calculate proximal term
-                prox_term = 0.0
-                for name, param in local_model.named_parameters():
-                    if name in global_params:
-                        prox_term += torch.norm(param - global_params[name])**2
-                
-                # Total loss with proximal regularization
-                total_loss = classification_loss + (self.mu / 2) * prox_term
-                
-                # Backward pass
-                total_loss.backward()
-                optimizer.step()
-                
-                # Track losses
-                epoch_loss += classification_loss.item()
-                epoch_proximal += prox_term.item()
-            
-            training_loss += epoch_loss / len(train_loader)
-            proximal_loss += epoch_proximal / len(train_loader)
-        
-        # Adapt mu based on training dynamics
-        if self.adaptive_mu:
-            self.mu = self.adapt_mu(client_id, training_loss, proximal_loss)
-        
+    def configure_for_simulation(self):
+        """Configure for FLOPY-NET simulation mode (current default)"""
         return {
-            "client_id": client_id,
-            "training_loss": training_loss / local_epochs,
-            "proximal_loss": proximal_loss / local_epochs,
-            "mu_used": self.mu,
-            "model_parameters": {name: param.data.clone() 
-                               for name, param in local_model.named_parameters()},
-            "num_samples": len(train_loader.dataset)
+            "training_mode": "simulation",
+            "data_source": "synthetic",
+            "training_rounds": "mock",
+            "metrics_generation": "artificial",
+            "computation_requirements": "minimal"
         }
     
-    def adapt_mu(self, client_id: str, training_loss: float, proximal_loss: float) -> float:
+    def configure_for_real_training(self):
+        """Configure for actual federated learning implementation"""
+        return {
+            "training_mode": "real",
+            "data_source": self.dataset_path,
+            "model_path": "/app/models",
+            "training_rounds": "actual",
+            "metrics_generation": "computed", 
+            "computation_requirements": "full"
+        }
+```
+
+### Container Configuration for Custom Implementations
+
+Custom federated learning implementations require modified container configurations that support both simulation and real training modes:
+
+```python
+def get_client_update(self, local_model, train_loader):
+    """Example client update method for real FL implementation."""
+    return {
+        "model_parameters": {name: param.data.clone() 
+                           for name, param in local_model.named_parameters()},
+        "num_samples": len(train_loader.dataset)
+    }
+```
+
+```python
+def adapt_mu(self, client_id: str, training_loss: float, proximal_loss: float) -> float:
         """
         Adaptively adjust the proximal term coefficient.
         """

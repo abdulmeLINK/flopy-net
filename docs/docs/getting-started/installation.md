@@ -12,16 +12,29 @@ Before installing FLOPY-NET, ensure you have the following prerequisites:
 
 ### Required Software
 
-- **Docker** (version 20.10 or higher)
-- **Docker Compose** (version 2.0 or higher)
+- **Docker Desktop for Windows** (version 4.10 or higher)
+- **Docker Compose** (included with Docker Desktop)
 - **Python** (version 3.8 or higher)
 - **Git** (for cloning the repository)
+- **Windows 10/11** with WSL2 enabled (recommended for Docker)
 
 ### Optional but Recommended
 
 - **GNS3 Server** (version 2.2 or higher) - for network simulation
 - **Node.js** (version 16 or higher) - for development
 - **Visual Studio Code** - for development with our extensions
+- **Windows Terminal** or **PowerShell 7** - for better CLI experience
+
+### Windows-Specific Setup
+
+For optimal performance on Windows:
+
+1. **Enable WSL2**: FLOPY-NET works best with Docker Desktop using WSL2 backend
+2. **Docker Desktop Configuration**:
+   - Allocate at least 4 GB RAM to Docker
+   - Enable "Use the WSL 2 based engine"
+   - Ensure file sharing is enabled for your project directory
+3. **Network Configuration**: Windows Defender Firewall may need configuration for container networking
 
 ### System Requirements
 
@@ -34,45 +47,48 @@ Before installing FLOPY-NET, ensure you have the following prerequisites:
 
 ## Quick Installation
 
-The fastest way to get FLOPY-NET running is using Docker Compose:
+The fastest way to get FLOPY-NET running on Windows is using Docker Compose:
 
 ```powershell title="Quick Start (Windows PowerShell)"
 # Clone the repository
 git clone https://github.com/abdulmelink/flopy-net.git
 cd flopy-net
 
-# Start all services using the PowerShell script
-.\docker-run.ps1
-
-# Or manually with docker-compose
+# Start all services (Windows Docker)
 docker-compose up -d
 
 # Verify installation
 docker-compose ps
+
+# Check service health
+docker-compose logs policy-engine
+docker-compose logs fl-server
 ```
 
 This will start all FLOPY-NET components:
 - **Policy Engine**: http://localhost:5000 (IP: 192.168.100.20)
 - **FL Server**: Port 8080 (IP: 192.168.100.10)  
-- **FL Clients**: IPs 192.168.100.101, 192.168.100.102
-- **Collector Service**: Port 8000 (IP: 192.168.100.40)
+- **FL Metrics**: Port 8081 (IP: 192.168.100.10)
+- **FL Clients**: IPs 192.168.100.101, 192.168.100.102 (Port: 8081 each)
+- **Collector Service**: Port 8083 (IP: 192.168.100.40)
 - **SDN Controller**: Port 6633/8181 (IP: 192.168.100.41)
-- **OpenVSwitch**: IP range 192.168.100.60-99
-- **Dashboard**: Frontend and backend services (see dashboard documentation)
+- **OpenVSwitch**: IP: 192.168.100.60
+- **Dashboard Frontend**: Port 8085
+- **Dashboard Backend**: Port 8001
 
 ## System Architecture
 
 The system uses a **static IP configuration** on the `192.168.100.0/24` network:
 
-| Component | IP Range | Example IPs |
-|-----------|----------|-------------|
-| Policy Engine | 192.168.100.20-29 | 192.168.100.20 |
-| FL Server | 192.168.100.10-19 | 192.168.100.10 |
-| FL Clients | 192.168.100.100-255 | 192.168.100.101, 102 |
-| Collector | 192.168.100.40 | 192.168.100.40 |
-| SDN Controller | 192.168.100.30-49 | 192.168.100.41 |
-| OpenVSwitch | 192.168.100.60-99 | 192.168.100.60 |
-| Northbound APIs | 192.168.100.50-59 | 192.168.100.50 |
+| Component | IP Range | Example IPs | Ports |
+|-----------|----------|-------------|-------|
+| Policy Engine | 192.168.100.20-29 | 192.168.100.20 | 5000 |
+| FL Server | 192.168.100.10-19 | 192.168.100.10 | 8080, 8081 |
+| FL Clients | 192.168.100.100-255 | 192.168.100.101, 102 | 8081 |
+| Collector | 192.168.100.40 | 192.168.100.40 | 8083 |
+| SDN Controller | 192.168.100.30-49 | 192.168.100.41 | 6633, 8181 |
+| OpenVSwitch | 192.168.100.60-99 | 192.168.100.60 | 6633 |
+| Dashboard APIs | 192.168.100.50-59 | 192.168.100.50 | 8001, 8085 |
 
 ## Manual Installation
 
@@ -141,8 +157,8 @@ cd dashboard/frontend && npm install && npm run dev
 docker pull abdulmelink/flopynet-dashboard:latest
 docker pull abdulmelink/flopynet-collector:latest
 docker pull abdulmelink/flopynet-policy-engine:latest
-docker pull abdulmelink/flopynet-fl-server:latest
-docker pull abdulmelink/flopynet-fl-client:latest
+docker pull abdulmelink/flopynet-server:latest
+docker pull abdulmelink/flopynet-client:latest
 
 # Run with docker-compose
 docker-compose -f docker-compose.prod.yml up -d
@@ -159,46 +175,212 @@ docker build -f docker/collector.Dockerfile -t flopynet-collector .
 docker build -f docker/flopynet_policy_engine.Dockerfile -t flopynet-policy-engine .
 ```
 
-## GNS3 Integration Setup
+## GNS3 VM Setup for Network Simulation
 
-For network simulation capabilities, set up GNS3 integration:
+For realistic network simulation capabilities, FLOPY-NET integrates with GNS3 VM rather than containerized GNS3. This provides better performance and compatibility.
 
-### 1. Install GNS3 Server
+### 1. Download and Setup GNS3 VM
 
-```bash title="GNS3 Server Installation"
-# Using Docker (recommended)
-docker run -d \
-  --name gns3-server \
-  -p 3080:3080 \
-  --privileged \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  gns3/gns3:latest
+**Download GNS3 VM:**
+```powershell
+# Download from official GNS3 website
+# https://www.gns3.com/software/download-vm
 
-# Or install native GNS3 server
-# See: https://docs.gns3.com/docs/
+# Choose your hypervisor:
+# - VMware Workstation/vSphere (Recommended)
+# - VirtualBox (Free alternative) 
+# - Hyper-V (Windows Pro/Enterprise)
 ```
 
-### 2. Configure GNS3 Connection
+**VM Configuration Requirements:**
+```yaml
+Minimum Specs:
+  - RAM: 4 GB (8 GB recommended)
+  - CPU: 2 cores (4 cores recommended)  
+  - Disk: 20 GB (50 GB recommended)
+  - Network: NAT + Host-only adapters
 
-```json title="config/gns3_connection.json"
+Recommended Specs:
+  - RAM: 8-16 GB
+  - CPU: 4-8 cores
+  - Disk: 100 GB SSD
+  - Network: Bridged + Host-only adapters
+```
+
+### 2. Configure GNS3 VM Networking
+
+**Setup VM Network Adapters:**
+```powershell
+# Adapter 1: NAT (for internet access)
+# Purpose: GNS3 VM internet connectivity
+# Configuration: DHCP enabled
+
+# Adapter 2: Host-only (for FLOPY-NET integration)
+# Purpose: Communication with host Docker containers
+# Network: 192.168.56.0/24 (VirtualBox) or 192.168.137.0/24 (Hyper-V)
+# VM IP: 192.168.56.100 (static assignment recommended)
+```
+
+**Configure VM Static IP:**
+```bash
+# SSH into GNS3 VM (default: gns3/gns3)
+ssh gns3@192.168.56.100
+
+# Edit network configuration  
+sudo nano /etc/netplan/01-netcfg.yaml
+
+# Add static IP configuration:
+network:
+  version: 2
+  ethernets:
+    eth1:  # Host-only adapter
+      dhcp4: false
+      addresses: [192.168.56.100/24]
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+
+# Apply configuration
+sudo netplan apply
+```
+
+### 3. Install Docker in GNS3 VM
+
+**Install Docker Engine:**
+```bash
+# Update package index
+sudo apt update
+
+# Install prerequisites
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+
+# Add Docker repository
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+# Install Docker
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io
+
+# Add gns3 user to docker group
+sudo usermod -aG docker gns3
+
+# Start and enable Docker
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Verify installation
+docker --version
+```
+
+### 4. Configure GNS3 Server
+
+**Configure GNS3 Server Settings:**
+```bash
+# Edit GNS3 server configuration
+nano ~/.config/GNS3/2.2/gns3_server.conf
+
+# Add/modify these settings:
+[Server]
+host = 0.0.0.0
+port = 3080
+images_path = /opt/gns3/images  
+projects_path = /opt/gns3/projects
+appliances_path = /opt/gns3/appliances
+
+[Docker]
+enable = true
+# Use Docker runtime in VM
+```
+
+**Start GNS3 Server:**
+```bash
+# Start GNS3 server (will auto-start on boot)
+sudo systemctl start gns3
+
+# Enable auto-start
+sudo systemctl enable gns3
+
+# Verify server is running
+curl http://localhost:3080/v2/version
+```
+
+### 5. Pull FLOPY-NET Docker Images
+
+**Pull Required Images:**
+```bash
+# Pull FLOPY-NET images into GNS3 VM
+docker pull abdulmelink/flopynet-server:latest
+docker pull abdulmelink/flopynet-client:latest  
+docker pull abdulmelink/flopynet-policy-engine:latest
+docker pull abdulmelink/flopynet-collector:latest
+docker pull abdulmelink/flopynet-sdn-controller:latest
+docker pull abdulmelink/flopynet-openvswitch:latest
+
+# Verify images are available
+docker images | grep flopynet
+```
+
+### 6. Register FLOPY-NET Templates
+
+After pulling the images, register the GNS3 templates using the template registration script:
+
+```powershell
+# Exit SSH session and return to host machine
+exit
+
+# From the host machine (FLOPY-NET project directory)
+cd d:\dev\microfed\codebase
+
+# Register all FLOPY-NET templates in GNS3 VM
+python scripts\gns3_templates.py register --host 192.168.56.100 --port 3080
+
+# Verify template registration
+python scripts\gns3_templates.py list --host 192.168.56.100 --flopynet-only
+```
+
+**Expected template registration output:**
+```
+Found 6 templates:
+
+DOCKER TEMPLATES (6):  - flopynet-FLServer (guest): abdulmelink/flopynet-server:latest
+  - flopynet-FLClient (guest): abdulmelink/flopynet-client:latest
+  - flopynet-PolicyEngine (guest): abdulmelink/flopynet-policy-engine:latest
+  - flopynet-Collector (guest): abdulmelink/flopynet-collector:latest
+  - flopynet-SDNController (guest): abdulmelink/flopynet-sdn-controller:latest
+  - OpenVSwitch (guest): abdulmelink/flopynet-openvswitch:latest
+```
+
+### 7. Configure Host Machine Integration
+
+**Update FLOPY-NET Configuration:**
+```json
+// config/gns3_connection.json
 {
-  "host": "localhost",
+  "host": "192.168.56.100",  // GNS3 VM IP
   "port": 3080,
   "protocol": "http",
   "user": null,
   "password": null,
-  "verify_ssl": false
+  "verify_ssl": false,
+  "vm_integration": true,
+  "ssh_config": {
+    "host": "192.168.56.100",
+    "port": 22,
+    "username": "gns3", 
+    "password": "gns3"
+  }
 }
 ```
 
-### 3. Deploy FLOPY-NET Images to GNS3
+**Test Connectivity:**
+```powershell
+# Test GNS3 VM connectivity from host
+curl http://192.168.56.100:3080/v2/version
 
-```bash
-# Use our deployment script
-python scripts/deploy_gns3_images.py
+# Test SSH connectivity  
+ssh gns3@192.168.56.100 'docker --version'
 
-# Or manually build and push
-./docker/build-and-push-all.sh
+# Expected response: Docker version info
 ```
 
 ## Verification
@@ -221,20 +403,21 @@ docker-compose ps
 ### 2. Access Dashboards
 
 - **Main Dashboard**: http://localhost:8085
-- **API Documentation**: http://localhost:8001/docs
-- **Alternative Dashboard**: http://localhost:8050
+- **Dashboard API**: http://localhost:8001/docs
+- **Policy Engine API**: http://localhost:5000
+- **Collector API**: http://localhost:8083
 
 ### 3. Run Health Checks
 
 ```bash
-# Check API health
+# Check Policy Engine health (core system)
+curl http://localhost:5000/health
+
+# Check collector metrics endpoint
+curl http://localhost:8083/health
+
+# Check dashboard backend API
 curl http://localhost:8001/health
-
-# Check collector metrics
-curl http://localhost:8002/metrics
-
-# Check policy engine status
-curl http://localhost:8003/status
 ```
 
 ## Troubleshooting

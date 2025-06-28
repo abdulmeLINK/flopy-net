@@ -1,730 +1,736 @@
 # FL Framework API
 
-The FL Framework provides REST APIs for managing federated learning experiments, including client registration, training coordination, and model management.
+The FL Framework in FLOPY-NET is based on the Flower federated learning framework and provides both gRPC communication (for FL training) and REST APIs (for monitoring and management). The FL Server runs an internal Flask metrics server alongside the Flower gRPC server.
 
-## Base URL
+## Architecture Overview
 
+FLOPY-NET's FL implementation consists of:
+
+- **FL Server**: Coordinates federated learning using Flower's custom `MetricsTrackingStrategy`
+- **FL Clients**: Participate in training using Flower's ClientApp with `ModelHandler`
+- **Policy Integration**: Policy Engine controls FL operations via real-time policy checks
+- **Metrics Collection**: Both internal Flask server and external Collector service monitor FL progress
+- **Persistent Storage**: SQLite database stores training rounds and metrics
+
+## FL Server Implementation
+
+The FL Server (`src/fl/server/fl_server.py`) combines Flower's gRPC server with a Flask metrics API:
+
+### Docker Configuration
+```yaml
+environment:
+  - SERVICE_TYPE=fl-server
+  - SERVICE_VERSION=v1.0.0-alpha.8
+  - HOST=0.0.0.0
+  - FL_SERVER_PORT=8080        # Flower gRPC port
+  - METRICS_PORT=9091          # Environment variable (not used by FL server)
+  # Note: FL Server reads metrics_port from config/server_config.json (default: 8081)
+  - POLICY_ENGINE_HOST=policy-engine
+  - POLICY_ENGINE_PORT=5000
+  - MIN_CLIENTS=1
+  - MIN_AVAILABLE_CLIENTS=1
+  - LOG_LEVEL=INFO
+  - USE_STATIC_IP=true
 ```
-http://localhost:8080/api/v1
+
+### Key Environment Variables
+- `FL_SERVER_PORT`: Port for Flower gRPC communication (default: 8080)
+- `METRICS_PORT`: Environment variable set to 9091 (not used by FL server)
+- **Note**: FL Server reads `metrics_port` from `config/server_config.json` (actual port: 8081)
+- `MIN_CLIENTS`: Minimum clients required for training rounds
+- `MIN_AVAILABLE_CLIENTS`: Minimum clients that must be available
+- `POLICY_ENGINE_HOST`: Hostname of the Policy Engine service
+- `POLICY_ENGINE_PORT`: Port of the Policy Engine service
+- `HOST`: Server bind address (0.0.0.0 for all interfaces)
+
+### Internal Components
+
+**MetricsTrackingStrategy**: Custom Flower strategy that:
+- Tracks detailed training metrics in `global_metrics` dictionary
+- Integrates policy checks for every training round
+- Stores round data in persistent SQLite storage via `FLRoundStorage`
+- Supports training pause/resume based on policy decisions
+
+**Flask Metrics Server**: Internal REST API running on port **8081** (from config file):
+- `/metrics` - Current training metrics and status
+- `/rounds` - Persistent training rounds with filtering
+- `/events` - Training events from event buffer
+- `/health` - Health check endpoint
+- `/restart` - Manual training restart (POST)
+
+## FL Client Implementation  
+
+FL Clients (`src/fl/client/fl_client.py`) connect via Flower gRPC and use ModelHandler:
+
+### Docker Configuration
+```yaml
+environment:
+  - SERVICE_TYPE=fl-client
+  - SERVICE_VERSION=v1.0.0-alpha.8
+  - CLIENT_ID=client-1
+  - SERVER_HOST=fl-server        # FL Server hostname
+  - POLICY_ENGINE_HOST=policy-engine
+  - MAX_RECONNECT_ATTEMPTS=-1    # Infinite reconnection
+  - RETRY_INTERVAL=5             # 5 seconds between attempts
+  - MAX_RETRIES=30
+  - LOG_LEVEL=INFO
 ```
 
-## Authentication
+### Key Environment Variables
+- `CLIENT_ID`: Unique identifier for the client (e.g., "client-1", "client-2")
+- `SERVER_HOST`: Hostname of the FL Server for gRPC connection
+- `POLICY_ENGINE_HOST`: Policy Engine hostname for policy checks
+- `MAX_RECONNECT_ATTEMPTS`: Reconnection attempts (-1 for infinite)
+- `RETRY_INTERVAL`: Seconds between reconnection attempts
+- `MAX_RETRIES`: Maximum retries for operations
 
-Currently, the FL Framework uses basic authentication or API keys for securing endpoints. Include the authentication header in all requests:
+### ModelHandler Integration
 
-```http
-Authorization: Bearer <api-key>
-```
+Each client uses `ModelHandler` from `src/fl/common/model_handler.py`:
+- **Dynamic Model Loading**: Loads models from configurable modules
+- **Training Simulation**: Realistic training metrics progression
+- **Policy Integration**: Checks policies before local training
+- **Error Handling**: Raises `ConfigurationError` for invalid setups
 
-## Core Endpoints
+## FL Server REST API
 
-### Server Status
+The FL Server runs an internal Flask server providing REST endpoints for monitoring and management.
+
+**Base URL**: `http://fl-server:8081` (internal) or `http://localhost:8081` (external)
+
+### Server Status and Health
 
 #### Get Server Status
 ```http
-GET /status
+GET /
 ```
-
-**Description**: Get current FL server status and configuration.
 
 **Response:**
 ```json
 {
   "status": "running",
-  "version": "1.0.0",
-  "current_round": 5,
-  "total_rounds": 10,
-  "active_clients": 8,
-  "registered_clients": 12,
-  "experiment_id": "exp_2025_001",
-  "model_config": {
-    "architecture": "CNN",
-    "dataset": "CIFAR-10",
-    "batch_size": 32
-  },
-  "training_config": {
-    "rounds": 10,
-    "min_clients": 5,
-    "client_fraction": 0.8,
-    "local_epochs": 3
-  },
-  "timestamp": "2025-01-16T10:30:00Z"
+  "endpoints": ["/health", "/metrics", "/events"]
 }
 ```
 
 #### Health Check
 ```http
-GET /health
+GET /health  
 ```
 
 **Response:**
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2025-01-16T10:30:00Z",
-  "uptime": 3600,
-  "memory_usage": "512MB",
-  "cpu_usage": "25%"
+  "status": "healthy", 
+  "timestamp": 1703596200.0
 }
 ```
 
-### Client Management
+### Training Metrics
 
-#### Register Client
+#### Get Current Metrics
 ```http
-POST /clients/register
+GET /metrics
 ```
 
-**Request Body:**
+**Query Parameters:**
+- `include_rounds` (optional): Include historical rounds data (`true`/`false`)
+
+**Response:**
 ```json
 {
-  "client_id": "client-001",
-  "client_config": {
-    "batch_size": 32,
-    "local_epochs": 3,
-    "learning_rate": 0.01
+  "start_time": 1703596000.0,
+  "current_round": 5,
+  "connected_clients": 2,
+  "aggregate_fit_count": 10,
+  "aggregate_evaluate_count": 10,
+  "last_round_metrics": {
+    "accuracy": 0.87,
+    "loss": 0.23,
+    "fit_duration": 45.2,
+    "evaluate_duration": 12.1
   },
-  "capabilities": {
-    "compute_power": "high",
-    "memory": "8GB",
-    "network_bandwidth": "100Mbps"
+  "policy_checks_performed": 25,
+  "policy_checks_allowed": 23,
+  "policy_checks_denied": 2,
+  "training_complete": false,
+  "training_end_time": null,
+  "total_training_duration": 180.5,
+  "data_state": "training",
+  "model_size_mb": 2.1,
+  "max_rounds": 10,
+  "training_active": true
+}
+```
+
+### Persistent Training Rounds
+
+#### Get Training Rounds
+```http
+GET /rounds
+```
+
+**Query Parameters:**
+- `start_round` (optional): Start round number (default: 1)
+- `end_round` (optional): End round number (default: all)
+- `limit` (optional): Maximum rounds to return (default: 1000, max: 10000)
+- `offset` (optional): Number of rounds to skip (default: 0)
+- `min_accuracy` (optional): Minimum accuracy filter
+- `max_accuracy` (optional): Maximum accuracy filter
+
+**Response:**
+```json
+{
+  "rounds": [
+    {
+      "round": 1,
+      "timestamp": "2025-01-16T10:30:00.000Z",
+      "status": "complete",
+      "accuracy": 0.75,
+      "loss": 0.45,
+      "training_duration": 42.1,
+      "model_size_mb": 2.1,
+      "clients": 2,
+      "raw_metrics": {
+        "fit_metrics": {"accuracy": 0.75, "loss": 0.45},
+        "evaluate_metrics": {"accuracy": 0.73, "loss": 0.48}
+      }
+    }
+  ],
+  "total_rounds": 5,
+  "returned_rounds": 1,
+  "latest_round": 5,
+  "pagination": {
+    "limit": 1000,
+    "offset": 0,
+    "has_more": false
   },
-  "location": {
-    "ip_address": "192.168.141.100",
-    "region": "us-east-1"
+  "filters": {
+    "start_round": 1,
+    "end_round": null,
+    "min_accuracy": null,
+    "max_accuracy": null
   }
 }
 ```
 
-**Response:**
-```json
-{
-  "client_id": "client-001",
-  "registration_id": "reg_12345",
-  "status": "registered",
-  "assigned_round": 1,
-  "client_config": {
-    "batch_size": 32,
-    "local_epochs": 3,
-    "learning_rate": 0.01
-  },
-  "timestamp": "2025-01-16T10:30:00Z"
-}
-```
-
-#### Get Client Status
+#### Get Latest Rounds
 ```http
-GET /clients/{client_id}
-```
-
-**Response:**
-```json
-{
-  "client_id": "client-001",
-  "status": "active",
-  "current_round": 5,
-  "last_update": "2025-01-16T10:28:30Z",
-  "performance_metrics": {
-    "local_accuracy": 0.78,
-    "training_time": 45.2,
-    "communication_time": 3.1,
-    "data_size": 1000
-  },
-  "trust_score": 0.95,
-  "contribution_score": 0.87
-}
-```
-
-#### List All Clients
-```http
-GET /clients
+GET /rounds/latest
 ```
 
 **Query Parameters:**
-- `status` (optional): Filter by client status (`active`, `inactive`, `registered`)
-- `round` (optional): Filter by specific round participation
+- `limit` (optional): Number of latest rounds (default: 50, max: 1000)
 
 **Response:**
 ```json
 {
-  "clients": [
+  "rounds": [/* latest rounds array */],
+  "latest_round": 5,
+  "returned_rounds": 5
+}
+```
+
+### Training Events
+
+#### Get Training Events
+```http
+GET /events
+```
+
+**Query Parameters:**
+- `since_event_id` (optional): Get events after this event ID
+- `limit` (optional): Maximum events to return (default: 1000)
+
+**Response:**
+```json
+{
+  "events": [
     {
-      "client_id": "client-001",
-      "status": "active",
-      "current_round": 5,
-      "trust_score": 0.95
+      "event_id": "evt_001",
+      "event_type": "ROUND_START",
+      "timestamp": 1703596200.0,
+      "data": {
+        "round": 1,
+        "selected_clients": 2,
+        "server_id": "fl-server"
+      }
     },
     {
-      "client_id": "client-002", 
-      "status": "inactive",
-      "current_round": 4,
-      "trust_score": 0.82
+      "event_id": "evt_002", 
+      "event_type": "TRAINING_PAUSED_BY_POLICY",
+      "timestamp": 1703596250.0,
+      "data": {
+        "round": 2,
+        "reason": "Training window closed",
+        "policy_type": "fl_client_training"
+      }
     }
   ],
-  "total_count": 12,
-  "active_count": 8,
-  "timestamp": "2025-01-16T10:30:00Z"
+  "last_event_id": "evt_002"
 }
 ```
 
 ### Training Management
 
-#### Start Training
+#### Restart Training
 ```http
-POST /training/start
+POST /restart
 ```
 
-**Request Body:**
+Manually restart training if stopped by policy or completed.
+
+**Response:**
 ```json
 {
-  "experiment_config": {
-    "experiment_id": "exp_2025_001",
-    "rounds": 10,
-    "min_clients": 5,
-    "client_fraction": 0.8,
-    "dataset": "CIFAR-10",
-    "model_architecture": "CNN"
-  },
-  "training_config": {
-    "local_epochs": 3,
-    "batch_size": 32,
-    "learning_rate": 0.01,
-    "optimizer": "SGD"
-  },
-  "aggregation_config": {
-    "strategy": "FedAvg",
-    "weighted": true,
-    "min_updates": 5
-  }
+  "success": true,
+  "message": "Training restarted successfully"
 }
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "Training cannot be restarted. Current round: 10, Max rounds: 10, Training active: false"
+}
+```
+
+## Collector API Integration
+
+The Collector service (`src/collector/api/server.py`) provides comprehensive FL monitoring through event-based collection from the FL Server.
+
+**Base URL**: `http://collector:8000` (internal) or `http://localhost:8000` (external)
+
+### Collector FL Endpoints
+
+#### Get FL Training Status
+```http
+GET /api/metrics/fl/status
 ```
 
 **Response:**
 ```json
 {
-  "experiment_id": "exp_2025_001",
-  "status": "started",
-  "start_time": "2025-01-16T10:30:00Z",
-  "total_rounds": 10,
-  "current_round": 1,
-  "selected_clients": ["client-001", "client-003", "client-007"],
-  "estimated_duration": "45 minutes"
-}
-```
-
-#### Stop Training
-```http
-POST /training/stop
-```
-
-**Request Body:**
-```json
-{
-  "experiment_id": "exp_2025_001",
-  "reason": "manual_stop"
-}
-```
-
-#### Get Training Status
-```http
-GET /training/status
-```
-
-**Response:**
-```json
-{
-  "experiment_id": "exp_2025_001",
-  "status": "running",
+  "status": "training",
   "current_round": 5,
-  "total_rounds": 10,
-  "progress": 0.5,
-  "start_time": "2025-01-16T09:30:00Z",
-  "estimated_completion": "2025-01-16T10:15:00Z",
-  "selected_clients": ["client-001", "client-003", "client-007"],
-  "round_metrics": {
-    "accuracy": 0.78,
-    "loss": 0.45,
-    "round_duration": 120,
-    "participating_clients": 8
-  }
+  "max_rounds": 10,
+  "accuracy": 0.87,
+  "loss": 0.23,
+  "clients_connected": 2,
+  "training_duration": 180.5,
+  "data_state": "training",
+  "last_updated": "2025-01-16T10:30:00Z"
 }
 ```
 
-### Model Management
-
-#### Get Global Model
+#### Get FL Metrics
 ```http
-GET /model/global
+GET /api/metrics/fl
 ```
 
 **Query Parameters:**
-- `round` (optional): Specific round number (default: latest)
-- `format` (optional): Model format (`pytorch`, `tensorflow`, `onnx`)
+- `rounds_only` (optional): Return only rounds data (`true`/`false`)
+- `include_raw` (optional): Include raw metrics (`true`/`false`)
+- `start_round` (optional): Filter from round number
+- `end_round` (optional): Filter to round number
 
 **Response:**
 ```json
 {
-  "model_id": "model_exp_2025_001_round_5",
-  "round": 5,
-  "accuracy": 0.78,
-  "loss": 0.45,
-  "parameters_count": 1234567,
-  "model_size_mb": 45.2,
-  "created_at": "2025-01-16T10:25:00Z",
-  "download_url": "/model/download/model_exp_2025_001_round_5"
-}
-```
-
-#### Download Model
-```http
-GET /model/download/{model_id}
-```
-
-**Response**: Binary model file
-
-#### Upload Model Update
-```http
-POST /model/update/{client_id}
-```
-
-**Content-Type**: `multipart/form-data`
-
-**Form Data:**
-- `model_file`: Binary model file
-- `metrics`: JSON string with training metrics
-
-**Example metrics:**
-```json
-{
-  "local_accuracy": 0.82,
-  "local_loss": 0.35,
-  "training_time": 45.2,
-  "data_samples": 1000,
-  "epochs_completed": 3
-}
-```
-
-**Response:**
-```json
-{
-  "update_id": "update_12345",
-  "client_id": "client-001",
-  "round": 5,
-  "status": "received",
-  "model_size_mb": 45.2,
-  "received_at": "2025-01-16T10:28:00Z",
-  "validation_status": "pending"
-}
-```
-
-### Metrics and Monitoring
-
-#### Get Training Metrics
-```http
-GET /metrics/training
-```
-
-**Query Parameters:**
-- `experiment_id` (optional): Filter by experiment
-- `from_round` (optional): Start round
-- `to_round` (optional): End round
-- `client_id` (optional): Filter by specific client
-
-**Response:**
-```json
-{
-  "experiment_id": "exp_2025_001",
+  "current_metrics": {
+    "round": 5,
+    "accuracy": 0.87,
+    "loss": 0.23,
+    "training_duration": 180.5,
+    "model_size_mb": 2.1,
+    "clients_connected": 2
+  },
   "rounds": [
     {
       "round": 1,
-      "global_accuracy": 0.45,
-      "global_loss": 0.89,
-      "participating_clients": 8,
-      "round_duration": 125,
-      "aggregation_time": 5.2,
-      "client_metrics": {
-        "client-001": {
-          "local_accuracy": 0.48,
-          "local_loss": 0.85,
-          "training_time": 42.1,
-          "data_samples": 1000
-        }
-      }
+      "accuracy": 0.65,
+      "loss": 0.55,
+      "timestamp": "2025-01-16T10:25:00Z",
+      "training_duration": 35.2,
+      "clients": 2
     }
   ],
   "summary": {
     "total_rounds": 5,
-    "best_accuracy": 0.78,
-    "convergence_rate": 0.12,
-    "avg_round_duration": 120
+    "best_accuracy": 0.87,
+    "worst_accuracy": 0.65,
+    "average_round_duration": 36.1,
+    "training_complete": false
   }
 }
 ```
 
-#### Get Client Performance
-```http
-GET /metrics/clients/{client_id}
-```
-
-**Response:**
-```json
-{
-  "client_id": "client-001",
-  "performance_history": [
-    {
-      "round": 1,
-      "local_accuracy": 0.48,
-      "training_time": 42.1,
-      "communication_time": 3.2
-    }
-  ],
-  "statistics": {
-    "avg_accuracy": 0.76,
-    "avg_training_time": 43.5,
-    "total_rounds_participated": 5,
-    "reliability_score": 0.95,
-    "contribution_score": 0.87
-  }
-}
-```
-
-### Experiment Management
-
-#### Create Experiment
-```http
-POST /experiments
-```
-
-**Request Body:**
-```json
-{
-  "name": "CIFAR-10 CNN Experiment",
-  "description": "Federated learning experiment with CNN on CIFAR-10",
-  "dataset_config": {
-    "name": "CIFAR-10",
-    "split_strategy": "iid",
-    "clients_count": 10
-  },
-  "model_config": {
-    "architecture": "CNN",
-    "input_shape": [32, 32, 3],
-    "num_classes": 10
-  },
-  "training_config": {
-    "rounds": 10,
-    "local_epochs": 3,
-    "batch_size": 32,
-    "learning_rate": 0.01
-  },
-  "policy_config": {
-    "min_clients": 5,
-    "max_client_failures": 2,
-    "trust_threshold": 0.7
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "experiment_id": "exp_2025_001",
-  "name": "CIFAR-10 CNN Experiment",
-  "status": "created",
-  "created_at": "2025-01-16T10:30:00Z",
-  "estimated_duration": "45 minutes",
-  "resource_requirements": {
-    "min_clients": 5,
-    "estimated_compute": "high",
-    "network_bandwidth": "100Mbps"
-  }
-}
-```
-
-#### List Experiments
-```http
-GET /experiments
+#### Get FL Rounds
+```http  
+GET /api/metrics/fl/rounds
 ```
 
 **Query Parameters:**
-- `status` (optional): Filter by status (`created`, `running`, `completed`, `failed`)
-- `limit` (optional): Number of results (default: 50)
-- `offset` (optional): Pagination offset
+- `limit` (optional): Maximum rounds to return
+- `offset` (optional): Skip number of rounds
+- `min_accuracy` (optional): Minimum accuracy filter
+- `format` (optional): Response format (`json`, `csv`)
 
 **Response:**
 ```json
 {
-  "experiments": [
-    {
-      "experiment_id": "exp_2025_001",
-      "name": "CIFAR-10 CNN Experiment",
-      "status": "running",
-      "created_at": "2025-01-16T09:30:00Z",
-      "progress": 0.5
-    }
-  ],
-  "total_count": 15,
-  "has_more": true
-}
-```
-
-### WebSocket Events
-
-The FL Framework provides real-time updates via WebSocket connections:
-
-#### Connection
-```javascript
-const ws = new WebSocket('ws://localhost:8080/ws/events');
-```
-
-#### Event Types
-
-**Training Progress**
-```json
-{
-  "type": "training_progress",
-  "experiment_id": "exp_2025_001",
-  "round": 5,
-  "progress": 0.5,
-  "metrics": {
-    "accuracy": 0.78,
-    "loss": 0.45
+  "rounds": [/* FL rounds array */],
+  "total_count": 5,
+  "filters": {
+    "min_accuracy": null,
+    "limit": 1000,
+    "offset": 0
   },
-  "timestamp": "2025-01-16T10:30:00Z"
-}
-```
-
-**Client Update**
-```json
-{
-  "type": "client_update",
-  "client_id": "client-001",
-  "status": "training_completed",
-  "round": 5,
-  "metrics": {
-    "local_accuracy": 0.82,
-    "training_time": 45.2
-  },
-  "timestamp": "2025-01-16T10:28:00Z"
-}
-```
-
-**Round Completion**
-```json
-{
-  "type": "round_completed",
-  "experiment_id": "exp_2025_001",
-  "round": 5,
-  "global_metrics": {
-    "accuracy": 0.78,
-    "loss": 0.45
-  },
-  "participating_clients": 8,
-  "round_duration": 120,
-  "timestamp": "2025-01-16T10:30:00Z"
-}
-```
-
-## Error Handling
-
-All API endpoints use standard HTTP status codes and return error details in a consistent format:
-
-### Error Response Format
-```json
-{
-  "error": {
-    "code": "INVALID_CLIENT_ID",
-    "message": "Client ID not found",
-    "details": "The specified client ID 'client-999' is not registered",
-    "timestamp": "2025-01-16T10:30:00Z"
+  "metadata": {
+    "collection_method": "event_based",
+    "last_updated": "2025-01-16T10:30:00Z",
+    "data_source": "fl_server_events"
   }
 }
 ```
 
-### Common Error Codes
+#### Get FL Configuration  
+```http
+GET /api/metrics/fl/config
+```
 
-| HTTP Status | Error Code | Description |
-|-------------|------------|-------------|
-| 400 | `INVALID_REQUEST` | Malformed request body or parameters |
-| 401 | `UNAUTHORIZED` | Missing or invalid authentication |
-| 403 | `FORBIDDEN` | Insufficient permissions |
-| 404 | `NOT_FOUND` | Resource not found |
-| 409 | `CONFLICT` | Resource already exists or state conflict |
-| 429 | `RATE_LIMITED` | Too many requests |
-| 500 | `INTERNAL_ERROR` | Server internal error |
-| 503 | `SERVICE_UNAVAILABLE` | Service temporarily unavailable |
+**Response:**
+```json
+{
+  "server_config": {
+    "min_clients": 1,
+    "min_available_clients": 1,
+    "max_rounds": 10,
+    "fl_server_port": 8080,
+    "metrics_port": 9091
+  },
+  "client_config": {
+    "total_clients": 2,
+    "active_clients": 2,
+    "client_ids": ["client-1", "client-2"],
+    "reconnect_attempts": -1,
+    "retry_interval": 5
+  },
+  "policy_integration": {
+    "policy_engine_enabled": true,
+    "policy_checks_performed": 25,
+    "policy_checks_allowed": 23,
+    "policy_checks_denied": 2
+  }
+}
+```
 
-### FL-Specific Error Codes
+## Policy Engine Integration
 
-| Error Code | Description |
-|------------|-------------|
-| `CLIENT_NOT_REGISTERED` | Client not registered with server |
-| `EXPERIMENT_NOT_ACTIVE` | No active experiment running |
-| `ROUND_NOT_ACTIVE` | Specified round is not currently active |
-| `MODEL_VALIDATION_FAILED` | Uploaded model failed validation |
-| `INSUFFICIENT_CLIENTS` | Not enough clients for training |
-| `TRAINING_ALREADY_RUNNING` | Cannot start - training already in progress |
+The FL Server integrates with the Policy Engine for real-time governance:
 
-## Rate Limiting
+### Policy Check Types
 
-The FL Framework implements rate limiting to prevent abuse:
-
-- **General API**: 100 requests per minute per client
-- **Model Upload**: 10 uploads per minute per client
-- **Training Start**: 5 requests per hour per user
-- **WebSocket**: 1 connection per client
-
-Rate limit headers are included in responses:
-- `X-RateLimit-Limit`: Request limit per window
-- `X-RateLimit-Remaining`: Remaining requests in current window
-- `X-RateLimit-Reset`: Window reset time (Unix timestamp)
-
-## SDK Examples
-
-### Python Client
-
+**fl_client_training**: Controls when training rounds can execute
 ```python
-import requests
-import json
-
-class FLClient:
-    def __init__(self, server_url="http://localhost:8080", api_key=None):
-        self.base_url = f"{server_url}/api/v1"
-        self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}" if api_key else None
-        }
-    
-    def register_client(self, client_id, config):
-        """Register a new FL client."""
-        payload = {
-            "client_id": client_id,
-            "client_config": config
-        }
-        response = requests.post(
-            f"{self.base_url}/clients/register",
-            headers=self.headers,
-            json=payload
-        )
-        return response.json()
-    
-    def get_training_status(self):
-        """Get current training status."""
-        response = requests.get(
-            f"{self.base_url}/training/status",
-            headers=self.headers
-        )
-        return response.json()
-    
-    def upload_model_update(self, client_id, model_file, metrics):
-        """Upload model update after local training."""
-        files = {'model_file': model_file}
-        data = {'metrics': json.dumps(metrics)}
-        
-        response = requests.post(
-            f"{self.base_url}/model/update/{client_id}",
-            headers={"Authorization": self.headers["Authorization"]},
-            files=files,
-            data=data
-        )
-        return response.json()
-```
-
-### JavaScript Client
-
-```javascript
-class FLAPIClient {
-    constructor(serverUrl = 'http://localhost:8080', apiKey = null) {
-        this.baseUrl = `${serverUrl}/api/v1`;
-        this.headers = {
-            'Content-Type': 'application/json',
-            ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
-        };
-    }
-    
-    async getServerStatus() {
-        const response = await fetch(`${this.baseUrl}/status`, {
-            headers: this.headers
-        });
-        return response.json();
-    }
-    
-    async startTraining(experimentConfig) {
-        const response = await fetch(`${this.baseUrl}/training/start`, {
-            method: 'POST',
-            headers: this.headers,
-            body: JSON.stringify(experimentConfig)
-        });
-        return response.json();
-    }
-    
-    async getTrainingMetrics(experimentId) {
-        const response = await fetch(
-            `${this.baseUrl}/metrics/training?experiment_id=${experimentId}`,
-            { headers: this.headers }
-        );
-        return response.json();
-    }
-    
-    // WebSocket connection for real-time updates
-    connectWebSocket() {
-        this.ws = new WebSocket('ws://localhost:8080/ws/events');
-        
-        this.ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            this.handleEvent(data);
-        };
-        
-        return this.ws;
-    }
-    
-    handleEvent(event) {
-        switch (event.type) {
-            case 'training_progress':
-                console.log('Training progress:', event);
-                break;
-            case 'client_update':
-                console.log('Client update:', event);
-                break;
-            case 'round_completed':
-                console.log('Round completed:', event);
-                break;
-        }
-    }
+policy_context = {
+    "operation": "model_training",
+    "server_id": "default-server",  
+    "current_round": 5,
+    "current_hour": 14,  # Dynamic time check
+    "available_clients": 2,
+    "model": "cnn",
+    "dataset": "cifar10"
 }
 ```
 
-## Integration with Policy Engine
-
-The FL Framework integrates with the Policy Engine for governance and security:
-
-### Policy-Aware Client Selection
-```http
-GET /clients/select?round=5&policy_check=true
+**fl_server_control**: Controls server behavior and round limits
+```python
+policy_context = {
+    "operation": "decide_next_round",
+    "current_round": 5,
+    "max_rounds": 10,
+    "accuracy": 0.87,
+    "accuracy_improvement": 0.05,
+    "available_clients": 2
+}
 ```
 
-**Response:**
+**fl_training_parameters**: Sets training configuration
+```python  
+policy_context = {
+    "operation": "training_configuration",
+    "server_id": "default-server",
+    "model": "cnn", 
+    "dataset": "cifar10"
+}
+```
+
+### Policy Integration Flow
+
+1. **Round Start**: Server checks `fl_client_training` policy before each round
+2. **Training Pause**: If policy denies, training pauses and rechecks every 10 seconds  
+3. **Parameter Updates**: Policy can modify `total_rounds` and `max_rounds` dynamically
+4. **Event Logging**: All policy decisions logged to event system
+
+### Policy Response Handling
+
+**Allowed Training:**
 ```json
 {
-  "selected_clients": ["client-001", "client-003", "client-007"],
-  "policy_results": {
-    "client-001": {
-      "trust_score": 0.95,
-      "compliance": true,
-      "policies_applied": ["trust_threshold", "resource_requirements"]
-    }
-  },
-  "excluded_clients": ["client-002"],
-  "exclusion_reasons": {
-    "client-002": "Trust score below threshold (0.65 < 0.70)"
+  "allowed": true,
+  "reason": "Training permitted during business hours",
+  "parameters": {
+    "total_rounds": 15
   }
 }
 ```
 
-### Model Validation
-```http
-POST /model/validate/{client_id}
+**Denied Training:**
+```json
+{
+  "allowed": false, 
+  "reason": "Training blocked outside business hours (current: 22:30)",
+  "retry_after": 600
+}
 ```
 
-The Policy Engine validates model updates according to configured policies before aggregation.
+## Flower Framework Implementation
 
-This comprehensive API reference provides developers with all the information needed to integrate with the FL Framework and build federated learning applications on top of FLOPY-NET.
+### Server Strategy (MetricsTrackingStrategy)
+
+The FL Server uses a custom `MetricsTrackingStrategy` extending Flower's `FedAvg`:
+
+**Key Features:**
+- **Policy Integration**: Checks policies before every training round
+- **Metrics Tracking**: Updates `global_metrics` dictionary with training progress
+- **Event Logging**: Logs all training events to event buffer
+- **Persistent Storage**: Stores round data in SQLite via `FLRoundStorage`
+- **Training Control**: Supports pause/resume based on policy decisions
+
+**Policy Check Flow:**
+1. Before each round, checks `fl_client_training` policy
+2. If denied, pauses training and logs `TRAINING_PAUSED_BY_POLICY` event
+3. Rechecks policy every 10 seconds until allowed
+4. Resumes training and logs `TRAINING_RESUMED` event
+
+### Client Implementation (FlowerClient)
+
+FL Clients use custom `FlowerClient` class with `ModelHandler`:
+
+**Key Features:**
+- **ModelHandler Integration**: Dynamic model loading and training simulation
+- **Policy Checks**: Validates policies before local training
+- **Realistic Metrics**: Progressive accuracy improvement over rounds
+- **Error Handling**: Graceful handling of model loading failures
+- **Reconnection Logic**: Automatic reconnection with configurable retry logic
+
+### Communication Protocol
+
+**gRPC Communication**: Flower's standard gRPC protocol for FL
+- Port: 8080 (FL_SERVER_PORT)
+- Protocol: HTTP/2 with protobuf serialization
+- Security: Policy-based access control
+
+**REST API Communication**: Flask server for monitoring
+- Port: 9091 (METRICS_PORT) 
+- Protocol: HTTP/1.1 with JSON
+- Security: Internal service communication
+
+## Configuration Guide
+
+### Complete Docker Compose Example
+
+```yaml
+version: '3.8'
+
+services:
+  fl-server:
+    image: abdulmelink/flopynet-server:v1.0.0-alpha.8
+    container_name: fl-server
+    environment:
+      - SERVICE_TYPE=fl-server
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - HOST=0.0.0.0
+      - FL_SERVER_PORT=8080
+      - METRICS_PORT=9091
+      - POLICY_ENGINE_HOST=policy-engine
+      - POLICY_ENGINE_PORT=5000
+      - MIN_CLIENTS=1
+      - MIN_AVAILABLE_CLIENTS=1
+      - LOG_LEVEL=INFO
+      - USE_STATIC_IP=true
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.10
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      policy-engine:
+        condition: service_healthy
+
+  fl-client-1:
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+    container_name: fl-client-1
+    environment:
+      - SERVICE_TYPE=fl-client
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - CLIENT_ID=client-1
+      - SERVER_HOST=fl-server
+      - POLICY_ENGINE_HOST=policy-engine
+      - MAX_RECONNECT_ATTEMPTS=-1
+      - RETRY_INTERVAL=5
+      - MAX_RETRIES=30
+      - LOG_LEVEL=INFO
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.101
+    depends_on:
+      fl-server:
+        condition: service_healthy
+
+  fl-client-2:
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+    container_name: fl-client-2
+    environment:
+      - SERVICE_TYPE=fl-client
+      - SERVICE_VERSION=v1.0.0-alpha.8
+      - CLIENT_ID=client-2
+      - SERVER_HOST=fl-server
+      - POLICY_ENGINE_HOST=policy-engine
+      - MAX_RECONNECT_ATTEMPTS=-1
+      - RETRY_INTERVAL=5
+      - MAX_RETRIES=30
+      - LOG_LEVEL=INFO
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.102
+    depends_on:
+      fl-server:
+        condition: service_healthy
+
+  policy-engine:
+    image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8
+    container_name: policy-engine
+    environment:
+      - SERVICE_TYPE=policy-engine
+      - POLICY_PORT=5000
+      - LOG_LEVEL=INFO
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.20
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  collector:
+    image: abdulmelink/flopynet-collector:v1.0.0-alpha.8
+    container_name: collector
+    environment:
+      - SERVICE_TYPE=collector
+      - METRICS_API_PORT=8000
+      - FL_SERVER_HOST=fl-server
+      - FL_SERVER_METRICS_PORT=9091
+      - POLICY_ENGINE_HOST=policy-engine
+      - FL_MONITOR_ENABLED=true
+      - COLLECTION_INTERVAL=30
+    networks:
+      flopynet_network:
+        ipv4_address: 192.168.100.40
+    depends_on:
+      - fl-server
+      - policy-engine
+
+networks:
+  flopynet_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+```
+
+### Environment Variables Reference
+
+#### FL Server Variables
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SERVICE_TYPE` | - | Must be "fl-server" |
+| `HOST` | 0.0.0.0 | Server bind address |  
+| `FL_SERVER_PORT` | 8080 | Flower gRPC port |
+| `METRICS_PORT` | 9091 | Flask metrics API port |
+| `MIN_CLIENTS` | 1 | Minimum clients for training |
+| `MIN_AVAILABLE_CLIENTS` | 1 | Minimum available clients |
+| `POLICY_ENGINE_HOST` | - | Policy Engine hostname |
+| `POLICY_ENGINE_PORT` | 5000 | Policy Engine port |
+| `LOG_LEVEL` | INFO | Logging level |
+
+#### FL Client Variables  
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SERVICE_TYPE` | - | Must be "fl-client" |
+| `CLIENT_ID` | - | Unique client identifier |
+| `SERVER_HOST` | - | FL Server hostname |
+| `POLICY_ENGINE_HOST` | - | Policy Engine hostname |
+| `MAX_RECONNECT_ATTEMPTS` | -1 | Reconnection attempts (-1 = infinite) |
+| `RETRY_INTERVAL` | 5 | Seconds between reconnection attempts |
+| `MAX_RETRIES` | 30 | Maximum operation retries |
+| `LOG_LEVEL` | INFO | Logging level |
+
+## How to Start FL Training
+
+### Method 1: Using Docker Compose (Recommended)
+
+```bash
+# Navigate to the FLOPY-NET directory
+cd d:\dev\microfed\codebase
+
+# Start all services including FL components
+docker-compose up -d
+
+# Check that FL services are running
+docker-compose ps | grep fl-
+
+# View FL server logs
+docker-compose logs -f fl-server
+
+# View FL client logs  
+docker-compose logs -f fl-client-1
+```
+
+### Method 2: Using Docker Compose (Recommended)
+
+```bash
+# Start all components together
+docker-compose up -d
+
+# Or start specific components
+docker-compose up fl-server fl-client-1 fl-client-2
+```
+
+### Method 3: Using Scenario Execution
+
+```bash
+# Run a complete simulation scenario
+python -m src.scenarios.run_scenario --scenario config/scenarios/basic_main.json
+```
+
+### Method 4: Direct Python Execution
+
+**Start FL Server:**
+```bash
+cd src/fl/server
+python fl_server.py --host 0.0.0.0 --port 8080 --policy-engine-host policy-engine
+```
+
+**Start FL Clients:**
+```bash
+cd src/fl/client  
+python fl_client.py --client-id client-1 --server-host fl-server --server-port 8080
+python fl_client.py --client-id client-2 --server-host fl-server --server-port 8080
+```

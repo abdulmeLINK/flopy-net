@@ -567,7 +567,7 @@ print("Debugger attached!")
    pytest tests/integration/ -v
    
    # Manual testing with development environment
-   python -m src.main scenario --run basic_test
+   python -m src.scenarios.run_scenario --scenario basic_test
    ```
 
 4. **Commit Changes**

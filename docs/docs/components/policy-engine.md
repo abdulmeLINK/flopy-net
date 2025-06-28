@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Policy Engine
 
-The **Policy Engine** is the heart of FLOPY-NET's security, governance, and compliance system. It operates as a centralized Flask-based REST API service (Port 5000, IP 192.168.100.20) that enforces rules across all components, monitors compliance, detects anomalies, and ensures that Flower-based federated learning operations adhere to defined policies.
+The **Policy Engine** is the heart of FLOPY-NET's security, governance, and compliance system. It operates as a centralized Flask-based REST API service (Port 5000, IP 192.168.100.20) that enforces rules across all components, monitors compliance, detects anomalies, and ensures that federated learning operations adhere to defined policies.
 
 ## Overview
 

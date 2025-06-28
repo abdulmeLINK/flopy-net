@@ -5,22 +5,25 @@
 > ⚠️ **ALPHA VERSION WARNING**  
 > This is an **alpha development version** of FLOPY-NET. Many features are **not fully tested** and may contain bugs or incomplete implementations. The **Policy Engine** in particular has **untrusted policy types** and enforcement mechanisms that are still under development. Use this platform for research and development purposes only - **NOT for production environments**.
 
-FLOPY-NET is a comprehensive research platform for evaluating federated learning algorithms under realistic network conditions. It provides a complete testing environment that bridges the gap between theoretical federated learning research and real-world network dynamics by integrating network emulation, performance monitoring, and policy enforcement capabilities.
+FLOPY-NET is a comprehensive research platform for evaluating federated learning systems under realistic network conditions. The current implementation provides FL simulation using random data to demonstrate network effects, policy enforcement, and system monitoring capabilities. It bridges the gap between theoretical federated learning research and real-world network dynamics by integrating network emulation, performance monitoring, and policy enforcement capabilities.
 
-**Author's note**: Please prioratize the contributions on the modularity and itegratibility of the components for FL Client and FL Server in the means of the parameter injection through the environment variables and the derivability of the python modules so researches can implement their domain specific and custom FL systems. 
+> **Current Implementation Status**: The FL client and server components simulate federated learning training using randomly generated data to demonstrate system behavior, network interaction patterns, and policy enforcement. For actual machine learning research, these components can be extended with real ML models and datasets.
 
-I highly recommend using AI tools and agents to understand the system components and their interactions. The initial learning curve for you will be more smooth.
+**Developer Focus**: The platform prioritizes modularity and extensibility of FL Client and FL Server components through environment variable-based parameter injection and derivable Python modules, enabling researchers to implement domain-specific and custom FL systems.
+
+*Author's recommendation*: Use AI tools and agents to understand the system components and their interactions for a smoother initial learning curve.
 
 ## Key Features
 
-- **Network-Aware Federated Learning**: Study FL performance under realistic network conditions including packet loss, latency, and bandwidth constraints using GNS3 integration
+- **Network-Aware FL Simulation**: Study FL behavior under realistic network conditions including packet loss, latency, and bandwidth constraints using GNS3 integration
 - **Policy-Driven Architecture**: Centralized Policy Engine enforces security, compliance, and governance rules across all components with real-time policy evaluation
 - **Comprehensive Network Simulation**: GNS3 integration with SDN controllers (Ryu/OpenFlow) for realistic network topologies and dynamic network conditions
-- **Real-time Observatory**: Web-based dashboard with live monitoring of FL training progress, network performance, and system health metrics
-- **Flower Framework Integration**: Built on the Flower federated learning framework with custom enhancements for network-aware training
+- **Real-time Observatory**: Web-based dashboard with live monitoring of FL simulation progress, network performance, and system health metrics
+- **Scenario-Based Execution**: Complete simulation scenarios defined through JSON configuration files with reproducible experimental setups
 - **Multi-Component Architecture**: Microservices architecture with Policy Engine, Collector Service, FL Server/Clients, SDN Controller, and OpenVSwitch
 - **Comprehensive Metrics Collection**: SQLite-based metrics storage with real-time data aggregation and historical analysis capabilities
 - **Container-based Deployment**: Docker-native platform with scalable microservices architecture and static IP assignment
+- **Extensible FL Framework**: Base FL implementation designed for extension with real ML models and training algorithms
 
 ---
 
@@ -35,8 +38,9 @@ FLOPY-NET follows a layered, microservices architecture with five primary layers
 
 ### 2. Core Services Layer
 - **Policy Engine** (Port 5000, IP 192.168.100.20): Flask-based centralized policy definition, enforcement, and compliance monitoring with real-time event processing
-- **Collector Service** (Port 8000, IP 192.168.100.40): FastAPI-based metrics aggregation, storage, and analytics engine with SQLite persistence
+- **Collector Service** (Port 8083, IP 192.168.100.40): FastAPI-based metrics aggregation, storage, and analytics engine with SQLite persistence
 - **FL Server** (Port 8080, IP 192.168.100.10): Flower-based federated learning coordination and model aggregation with policy integration
+- **FL Metrics** (Port 8081, IP 192.168.100.10): Internal metrics API for FL training monitoring
 
 ### 3. Federated Learning Layer
 - **FL Clients** (IP 192.168.100.101-102): Containerized Flower clients with PyTorch model training, data loading, and metrics reporting
@@ -52,7 +56,7 @@ FLOPY-NET follows a layered, microservices architecture with five primary layers
 - **SQLite Metrics Database**: Time-series performance data, training metrics, and system analytics with historical data retention
 - **JSON Policy Storage**: Hierarchical policy definitions with versioning and dynamic loading capabilities
 - **Event Logs**: Structured system events, audit trails, and policy compliance logs with JSONL format
-- **Configuration Management**: Environment-based configuration with Docker Compose orchestration
+- **Configuration Management**: Docker Compose environment variables with JSON configuration files for complex settings
 
 ---
 
@@ -73,19 +77,16 @@ FLOPY-NET follows a layered, microservices architecture with five primary layers
    cd flopy-net
    ```
 
-2. **Configure environment variables:**
+2. **Configure environment variables (optional):**
    ```bash
-   # Copy and modify the environment template
-   cp .env.example .env
-   # Edit .env with your GNS3 server URL and other settings
+   # All configuration is handled through docker-compose.yml environment variables
+   # Modify docker-compose.yml to customize settings like GNS3 server URL
+   # No separate .env file is needed - configuration is embedded in the compose file
    ```
 
-3. **Start the platform:**
+3. **Start the dashboard:**
    ```bash
-   # Using PowerShell script (Windows)
-   .\docker-run.ps1
-   
-   # Or using Docker Compose directly
+   cd dashboard
    docker-compose up -d
    ```
 
@@ -93,17 +94,12 @@ FLOPY-NET follows a layered, microservices architecture with five primary layers
    ```bash
    # Check service status
    docker-compose ps
-   
-   # Access core services
-   # Policy Engine: http://localhost:5000
-   # Collector API: http://localhost:8000  
-   # Dashboard: http://localhost:8085
    ```
 
-5. **Run a basic experiment:**
+5. **Run a basic simulation scenario:**
    ```bash
-   # Execute basic federated learning scenario
-   python src/main.py scenario run basic
+   # Execute basic federated learning simulation scenario
+   python -m src.scenarios.run_scenario --scenario config/scenarios/basic_main.json
    ```
 
 ---
@@ -141,20 +137,20 @@ The Collector aggregates, stores, and analyzes metrics from all system component
 - **Event Logging**: Structured system events with JSON formatting
 - **Research Data Export**: API endpoints for data extraction and analysis
 
-### 3. Federated Learning Framework
-**Production-Ready FL Implementation**
+### 3. Federated Learning Simulation Framework
+**FL Simulation with Network Integration**
 
-A complete federated learning implementation with custom enhancements for network integration and policy compliance.
+A complete FL simulation framework designed to demonstrate federated learning behavior patterns while studying network effects and policy enforcement.
 
 **FL Server (Port 8080):**
-- **Training Coordination**: Round-based FL orchestration with client management
-- **Model Aggregation**: FedAvg and custom aggregation algorithms
-- **Policy Integration**: Policy Engine queries for all training decisions
-- **Performance Monitoring**: Real-time training metrics and convergence tracking
+- **Simulation Coordination**: Round-based FL simulation orchestration with client management
+- **Mock Model Aggregation**: Simulated FedAvg aggregation using random data for system validation
+- **Policy Integration**: Policy Engine queries for all training decisions and compliance checking
+- **Performance Monitoring**: Real-time simulation metrics and convergence pattern demonstration
 
 **FL Clients (192.168.100.101-255):**
-- **Distributed Training**: Local model training with configurable parameters
-- **Privacy Mechanisms**: Differential privacy and secure aggregation support
+- **Training Simulation**: Local training simulation with configurable parameters and synthetic data generation
+- **Network Integration**: Real network communication patterns demonstrating FL protocol behavior
 - **Network Awareness**: Adaptive behavior based on network conditions
 - **Policy Compliance**: Real-time policy checking and enforcement
 
@@ -208,6 +204,36 @@ FLOPY-NET is specifically designed for researchers studying:
 - **Security Testing**: Byzantine clients, model poisoning, privacy attacks and defenses
 - **Policy Enforcement**: Dynamic rule changes, compliance violations, and remediation actions
 
+## Creating Custom Scenarios
+
+FLOPY-NET provides a comprehensive framework for creating custom federated learning scenarios:
+
+### Configuration Files Required:
+1. **Scenario Config** (`config/scenarios/your_scenario.json`): Defines FL parameters, network settings, GNS3 integration
+2. **Topology Config** (`config/topology/your_topology.json`): Defines network nodes, IP addresses, service templates
+3. **Policy Config** (`config/policies/`): Custom policies for your scenario
+4. **Scenario Class** (`src/scenarios/your_scenario.py`): Python implementation extending BaseScenario
+
+### Key Configuration Parameters:
+- **Network Topology**: Node placement, IP assignments, service types, environmental variables
+- **FL Parameters**: Client counts, training rounds, model types, aggregation methods
+- **GNS3 Integration**: Server URLs, project settings, cleanup actions
+- **Dynamic Events**: Network failures, client dropouts, policy changes during execution
+- **Resource Constraints**: CPU, memory, bandwidth limitations per client type
+
+### Quick Example:
+```bash
+# 1. Copy existing configs as templates
+cp config/scenarios/basic_main.json config/scenarios/my_scenario.json
+cp config/topology/basic_topology.json config/topology/my_topology.json
+
+# 2. Modify configurations for your requirements
+# 3. Run your custom scenario
+python src/scenarios/basic/scenario.py --topology config/topology/my_topology.json --config config/scenarios/my_scenario.json
+```
+
+**📖 Complete Guide**: See `docs/docs/tutorials/custom-scenarios.md` for detailed instructions on creating scenarios with heterogeneous clients, dynamic network conditions, and custom policies.
+
 ## Project Structure
 
 ```
@@ -249,6 +275,9 @@ flopy-net/
 ### Research Documentation
 - **`docs/`**: Comprehensive technical documentation and research guides
 - **LaTeX Report**: Complete technical report in `docs/latex-report/`
+- **Custom Scenarios Guide**: `docs/docs/tutorials/custom-scenarios.md` - Complete guide to creating custom FL scenarios
+- **Scenario Components**: `docs/docs/components/scenarios.md` - Built-in scenarios and architecture
+- **Configuration Templates**: `docs/latex-report/appendices/B-configuration-templates.tex` - JSON config examples
 
 ## Version Information
 
@@ -263,7 +292,7 @@ flopy-net/
 ## Quick Reference
 
 - **System Status**: `docker-compose ps`
-- **Configuration Hierarchy**: CLI Args > Environment Variables > JSON Files > Defaults
+- **Configuration**: Edit environment variables in `docker-compose.yml` (no .env file needed)
 - **Policy Management**: Edit `config/policies/policies.json` for active policies
 - **GNS3 Management**: Use scripts in `scripts/` directory for maintenance
 - **Log Monitoring**: `docker-compose logs -f [service-name]`

@@ -1,0 +1,12 @@
+{
+    "scenario_id": "basic-scenario-45cfe01c",
+    "config_file": "config/scenarios/basic_main.json",
+    "topology_file": "config/topology/basic_topology.json",
+    "start_time": 1750588625.4717793,
+    "end_time": null,
+    "duration_seconds": null,
+    "status": "creating_project",
+    "error": null,
+    "fl_results": null,
+    "topology_summary": null
+}

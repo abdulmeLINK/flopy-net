@@ -1,16 +1,34 @@
-# Monitoring and Troubleshooting
+# Monitoring and Observability
 
-This guide provides comprehensive monitoring capabilities and troubleshooting procedures for FLOPY-NET experiments, helping you identify issues, optimize performance, and maintain system health.
+This guide provides comprehensive monitoring capabilities and troubleshooting procedures for FLOPY-NET experiments, enabling researchers to observe system behavior, network performance, and federated learning simulation dynamics in real-time.
 
-## Monitoring Overview
+## Monitoring Architecture Overview
 
-FLOPY-NET provides multi-layered monitoring through:
+FLOPY-NET provides a multi-layered observability platform designed specifically for federated learning research environments. The monitoring system captures data from simulation components, network infrastructure, policy enforcement, and system resources to provide complete visibility into experimental conditions and system behavior.
 
-- **Real-time Dashboard**: Web-based visualization and alerts
-- **Metrics Collection**: Time-series data aggregation and storage
-- **Log Aggregation**: Centralized logging from all components
-- **Health Checks**: Automated service health monitoring
-- **Alert System**: Proactive issue detection and notification
+The platform's monitoring architecture adapts to different deployment environments, providing consistent observability whether components are running in Docker Compose development environments or distributed across GNS3 network topologies. The Collector service serves as the central aggregation point, gathering metrics from all distributed components and providing unified access through REST APIs and real-time streaming interfaces.
+
+## Current Simulation Monitoring
+
+**Important Context**: The base FLOPY-NET components (v1.0.0-alpha.8) simulate federated learning training behavior using synthetic data generation rather than actual machine learning training. The monitoring system captures these simulation metrics to demonstrate system capabilities, network interactions, and policy enforcement patterns without the computational overhead of real ML training.
+
+Simulation monitoring focuses on system architecture validation, network behavior analysis, and policy enforcement verification. The metrics collected represent realistic federated learning communication patterns, resource utilization, and performance characteristics that researchers can use to understand how network conditions affect distributed machine learning systems.
+
+## Monitoring Components
+
+### 1. Collector Service Integration
+
+The Collector service operates as the central monitoring hub, accessible through multiple interfaces depending on deployment configuration:
+
+**Docker Compose Development Environment:**
+- Collector API: `http://localhost:8083/api/v1`
+- Direct container access via static IP: `192.168.100.40:8000`
+- WebSocket streaming: `ws://localhost:8083/ws/metrics`
+
+**GNS3 Research Environment:**
+- Collector container IP: `192.168.141.40:8000`
+- Port forwarded access: `http://localhost:8083/api/v1`
+- SSH tunnel integration for external monitoring tools
 
 ## Dashboard Monitoring
 
@@ -108,10 +126,10 @@ Query historical metrics using the Collector API:
 
 ```bash
 # Get FL training progress over time
-curl "http://localhost:8081/api/v1/metrics/query?metric=global_accuracy&from=2024-01-15T10:00:00Z&to=2024-01-15T11:00:00Z&granularity=1m"
+curl "http://localhost:8083/api/v1/metrics/query?metric=global_accuracy&from=2024-01-15T10:00:00Z&to=2024-01-15T11:00:00Z&granularity=1m"
 
 # Get network utilization statistics
-curl "http://localhost:8081/api/v1/metrics/summary?metric=bandwidth_utilization&from=2024-01-15T10:00:00Z&to=2024-01-15T11:00:00Z"
+curl "http://localhost:8083/api/v1/metrics/summary?metric=bandwidth_utilization&from=2024-01-15T10:00:00Z&to=2024-01-15T11:00:00Z"
 ```
 
 ### 2. Performance Analytics
@@ -123,7 +141,7 @@ import matplotlib.pyplot as plt
 
 # Fetch convergence data
 response = requests.get(
-    "http://localhost:8081/api/v1/metrics/query",
+    "http://localhost:8083/api/v1/metrics/query",
     params={
         "metric": "global_accuracy",
         "experiment_id": "exp_001",
@@ -269,7 +287,7 @@ Monitor individual service health:
 
 ```bash
 # Check all services - Note: Replace with actual port numbers
-services=("dashboard:3001" "collector:8081" "policy-engine:5000" "fl-server:8080" "sdn-controller:8181")
+services=("collector:8083" "policy-engine:5000" "fl-server:8080" "sdn-controller:8181")
 for service_port in "\${services[@]}"; do
   service_name=\$(echo \$service_port | cut -d: -f1)
   port=\$(echo \$service_port | cut -d: -f2)

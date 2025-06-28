@@ -7,54 +7,65 @@ description: Federated Learning Observatory Platform - Network Emulation & Testi
 
 **Federated Learning Observatory Platform - Network Emulation & Testing**
 
-FLOPY-NET v1.0.0-alpha.8 is a comprehensive research platform for evaluating Flower-based federated learning algorithms under realistic network conditions. It provides a complete containerized testing environment with GNS3 network emulation, SDN control, performance monitoring, and policy enforcement capabilities.
+FLOPY-NET v1.0.0-alpha.8 is a comprehensive research platform for evaluating federated learning systems under realistic network conditions. The platform provides a complete scenario-driven testing environment with GNS3 network emulation, SDN control, comprehensive monitoring, and policy enforcement capabilities for federated learning research.
+
+## Current Implementation Status
+
+**Research & Simulation Focus**: The current v1.0.0-alpha.8 implementation provides federated learning simulation using synthetic data to demonstrate system behavior, network interaction patterns, and policy enforcement. This simulation approach enables comprehensive study of network effects, policy enforcement, and system scalability without the computational overhead of actual machine learning training.
+
+The FL server and client components simulate training rounds, model aggregation, and convergence patterns to provide realistic federated learning behavior for network and system research. For production federated learning research  requiring actual ML training, the base components can be extended with real datasets, models, and training algorithms.
 
 ## 🚀 Quick Start
 
-Get started with FLOPY-NET in minutes:
+Get started with FLOPY-NET scenario-based experiments:
 
 ```bash
 # Clone the repository
 git clone https://github.com/abdulmelink/flopy-net.git
 cd flopy-net
 
-# Start the containerized platform
+# Start with Docker Compose (development)
 docker-compose up -d
 
-# Access the dashboard
+# Or run scenario-based experiments
+python -m src.scenarios.run_scenario --scenario config/scenarios/basic_main.json
+
+# Access system interfaces
 # Dashboard Frontend: http://localhost:8085
 # Policy Engine API: http://localhost:5000
-# Collector API: http://localhost:8000
+# Collector API: http://localhost:8083
 ```
 
 ## 🔧 Key Features
 
-- **Flower Framework Integration**: Production-ready FL server and client implementations with PyTorch models
-- **Container Architecture**: Docker Compose with static IP assignment (192.168.100.0/24 network)
-- **GNS3 Network Emulation**: Realistic network topology simulation with programmable conditions
-- **SDN Integration**: Ryu OpenFlow controllers for programmable network behavior and policy enforcement
-- **Real-time Monitoring**: React dashboard with comprehensive metrics collection and interactive visualization
-- **Policy-Driven Governance**: Centralized Policy Engine for security, compliance, and access control
-- **Comprehensive Metrics**: SQLite-based time-series data with research-ready export capabilities
+- **Scenario-Based FL Simulation**: Comprehensive experiment framework with GNS3 network simulation and policy-driven federated learning simulation coordination
+- **Advanced Network Emulation**: GNS3 VM integration with realistic topology simulation, programmable network conditions, and SDN control capabilities  
+- **Container Architecture**: Docker-based microservices with static IP assignment supporting both development (Docker Compose) and research (GNS3) environments
+- **Policy-Driven Governance**: Centralized Policy Engine providing security, compliance, access control, and automated decision-making across distributed components
+- **Comprehensive Monitoring**: Real-time metrics collection with React dashboard, time-series data storage, and research-ready analytics export
+- **Extensible FL Framework**: Base simulation framework designed for extension with custom federated learning implementations, real ML models, and training algorithms
+- **SDN Integration**: Ryu OpenFlow controllers with programmable network behavior, traffic management, and quality-of-service enforcement
 
 ## 📚 Documentation
 
-- **[Getting Started](./docs/getting-started/installation)** - Docker installation and container setup
-- **[User Guide](./docs/user-guide/running-experiments)** - How to run FL experiments with network simulation
-- **[Architecture](./docs/architecture/overview)** - Microservices architecture and container integration
-- **[API Reference](./docs/api/overview)** - REST API documentation for all services
-- **[GNS3 Integration](./docs/user-guide/gns3-integration)** - Network simulation setup and configuration
+- **[Getting Started](./docs/getting-started/installation)** - Installation guide with Docker Compose and GNS3 VM setup procedures
+- **[User Guide](./docs/user-guide/running-experiments)** - Comprehensive experiment execution with scenario management and network simulation
+- **[Architecture](./docs/architecture/overview)** - System architecture covering microservices, containers, and GNS3 integration
+- **[API Reference](./docs/api/overview)** - Complete REST API documentation for all platform services and components
+- **[GNS3 Integration](./docs/user-guide/gns3-integration)** - Advanced network simulation setup, template management, and custom topology creation
 
 ## 🔬 Research Applications
 
 FLOPY-NET is designed for researchers working on:
 
-- **Network-Aware Federated Learning**: Study FL performance under realistic network conditions (latency, packet loss, bandwidth)
-- **FL Algorithm Comparison**: Test and compare different Flower-based FL approaches with consistent network conditions
-- **Edge Computing Studies**: Evaluate resource-constrained scenarios with container resource limits
-- **Security and Privacy Research**: Test Byzantine-robust algorithms, differential privacy, and threat models
-- **System Optimization**: Evaluate client selection strategies, adaptive algorithms, and network topology effects
-- **Policy and Governance**: Study compliance monitoring, trust management, and regulatory adherence in distributed ML
+- **Network-Aware FL Systems**: Study FL behavior and performance under realistic network conditions (latency, packet loss, bandwidth)
+- **FL Algorithm Development**: Test and compare different federated learning approaches with consistent network simulation conditions
+- **Edge Computing Research**: Evaluate resource-constrained scenarios with container resource limits and mobile network conditions
+- **System Architecture Studies**: Test policy enforcement, monitoring systems, and distributed governance in federated learning environments
+- **Network Optimization**: Evaluate client selection strategies, adaptive algorithms, and network topology effects on FL performance
+- **Security and Policy Research**: Study compliance monitoring, trust management, and security policy enforcement in distributed systems
+
+*Note: For actual ML research requiring real training, the base simulation framework can be extended with custom models, datasets, and training algorithms.*
 
 ## 🛠️ Container Components
 
@@ -63,21 +74,15 @@ FLOPY-NET is designed for researchers working on:
 - **Policy Engine**: `abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8` (192.168.100.20:5000)
 - **Collector Service**: `abdulmelink/flopynet-collector:v1.0.0-alpha.8` (192.168.100.40:8000)
 - **SDN Controller**: `abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.8` (192.168.100.41:6633/8181)
-- **OpenVSwitch**: `abdulmelink/openvswitch:v1.0.0-alpha.8` (192.168.100.60)
+- **OpenVSwitch**: `abdulmelink/flopynet-openvswitch:v1.0.0-alpha.8` (192.168.100.60)
 
-- **FL Framework**: Distributed learning coordination
-- **Network Controller**: SDN-based traffic management
-- **Policy Engine**: Compliance and governance automation
-- **Data Collector**: Metrics aggregation and storage
-- **Dashboard**: Real-time monitoring and control interface
+## 📊 Supported Simulation Scenarios
 
-## 📊 Supported Scenarios
-
-- **Basic FL Training**: Standard federated learning experiments
-- **Network Variations**: Different bandwidth, latency, and loss conditions
-- **Client Heterogeneity**: Diverse device capabilities and data distributions
-- **Dynamic Conditions**: Changing network topology and client availability
-- **Security Testing**: Byzantine and adversarial attack simulations
+- **Basic FL Simulation**: Standard federated learning simulation with synthetic data
+- **Network Condition Studies**: Different bandwidth, latency, and loss conditions
+- **Client Heterogeneity**: Diverse device capabilities and resource constraints
+- **Dynamic Network Conditions**: Changing network topology and client availability
+- **Security Policy Testing**: Policy enforcement and compliance monitoring scenarios
 
 ## 🤝 Contributing
 

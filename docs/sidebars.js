@@ -54,13 +54,12 @@ const sidebars = {
       ],
     },
     {
-      type: 'category',
-      label: 'API Reference',
+      type: 'category',      label: 'API Reference',
       items: [
         'api/overview',
         'api/fl-framework',
         'api/policy-engine-api',
-        'api/collector-api',
+        'api/collector',
         'api/dashboard-api',
         'api/networking-api',
       ],
