@@ -3,8 +3,7 @@
 [![Documentation](https://img.shields.io/badge/Documentation-flopynetdocs--a960.eu.onamber.cloud-blue?style=for-the-badge&logo=readthedocs)](https://flopynetdocs-a960.eu.onamber.cloud/)
 [![Demo Platform](https://img.shields.io/badge/Demo-flopynet.abdulme.link-green?style=for-the-badge&logo=rocket)](https://flopynet.abdulme.link/)
 [![Visitor Badge](https://api.visitorbadge.io/api/VisitorHit?user=abdulmeLINK&repo=flopy-net&countColor=%2379c0ff)](https://github.com/abdulmelink/flopy-net)
-
-**Current Version**: v1.0.0-alpha.8
+[![Version](https://img.shields.io/badge/Version-v1.0.0--alpha.8-red?style=for-the-badge&logo=semver)](https://github.com/abdulmelink/flopy-net/releases)
 
 > ⚠️ **ALPHA VERSION WARNING**  
 > This is an **alpha development version** of FLOPY-NET. Many features are **not fully tested** and may contain bugs or incomplete implementations. The **Policy Engine** in particular has **untrusted policy types** and enforcement mechanisms that are still under development. Use this platform for research and development purposes only - **NOT for production environments**.
