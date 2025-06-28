@@ -17,23 +17,27 @@ docker-compose ps
 # You should see all services with "Up" status:
 # - policy-engine (192.168.100.20:5000)
 # - fl-server (192.168.100.10:8080)  
-# - fl-client-1 (192.168.100.101)
-# - fl-client-2 (192.168.100.102)
-# - collector (192.168.100.40:8000)
+# - fl-client-1 (192.168.100.101:8081)
+# - fl-client-2 (192.168.100.102:8081)
+# - collector (192.168.100.40:8083)
 # - sdn-controller (192.168.100.41:6633)
+# - openvswitch (192.168.100.60)
 
 # Check system health
 curl http://localhost:5000/health  # Policy Engine
+curl http://localhost:8083/health  # Collector Service
 ```
 
 ## Step 2: Access the System
 
 The FLOPY-NET system provides multiple access points:
 
-- **Policy Engine API**: http://localhost:5000 (Core system)
-- **FL Server**: Internal port 8080 (Policy-controlled access)
-- **Collector API**: http://localhost:8000 (Metrics and monitoring)
-- **Dashboard**: Available when dashboard components are running
+- **Policy Engine API**: http://localhost:5000 (Core governance system)
+- **FL Server**: http://localhost:8080 (Federated learning coordination)
+- **FL Metrics API**: http://localhost:8081 (FL training metrics)
+- **Collector API**: http://localhost:8083 (System metrics and monitoring)
+- **Dashboard Backend**: http://localhost:8001 (API endpoints)
+- **Dashboard Frontend**: http://localhost:8085 (Web interface)
 
 ## Step 3: Run Your First Experiment
 
@@ -76,14 +80,20 @@ docker-compose ps
 # Get current policies
 curl http://localhost:5000/policies
 
-# Create a new policy
-curl -X POST "http://localhost:5000/policies" `
+# Check policy engine status
+curl http://localhost:5000/status
+
+# Get system metrics
+curl http://localhost:8083/metrics
+
+# Start a federated learning round
+curl -X POST "http://localhost:5000/fl/start-training" `
   -H "Content-Type: application/json" `
   -d '{
-    "name": "test-policy",
-    "description": "Test policy for FL experiment",
-    "rules": [{"condition": "client_count > 0", "action": "allow"}],
-    "enabled": true
+    "rounds": 5,
+    "min_clients": 2,
+    "dataset": "mnist",
+    "model": "simple_cnn"
   }'
 ```
 
@@ -212,7 +222,7 @@ Now that you've run a basic experiment, try these advanced scenarios:
 ### Scenario 1: Non-IID Data Distribution
 
 ```bash title="Non-IID Experiment"
-python -m src.main \
+python -m src.scenarios.run_scenario \
   --scenario non_iid_fl \
   --clients 5 \
   --rounds 20 \
@@ -224,7 +234,7 @@ python -m src.main \
 ### Scenario 2: Byzantine Fault Tolerance
 
 ```bash title="Byzantine Clients"
-python -m src.main \
+python -m src.scenarios.run_scenario \
   --scenario byzantine_fl \
   --clients 10 \
   --byzantine_clients 2 \
@@ -235,7 +245,7 @@ python -m src.main \
 ### Scenario 3: Edge Computing Simulation
 
 ```bash title="Edge Computing"
-python -m src.main \
+python -m src.scenarios.run_scenario \
   --scenario edge_fl \
   --clients 20 \
   --client_resources heterogeneous \

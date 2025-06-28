@@ -1,60 +1,68 @@
-# Running Experiments
+# Running FL Simulation Experiments
 
-This guide walks you through setting up, running, and monitoring federated learning experiments in FLOPY-NET. You'll learn how to configure experiments, manage clients, and analyze results.
+This guide walks you through setting up, running, and monitoring federated learning simulation experiments in FLOPY-NET using the scenario-based architecture. You'll learn how to configure simulation scenarios, deploy network topologies, and analyze results.
+
+> **Important**: The current FLOPY-NET implementation provides FL simulation using random data to demonstrate system behavior, network effects, and policy enforcement. For actual machine learning research, custom implementations can be built on top of the base framework.
 
 ## Prerequisites
 
-Before running experiments, ensure you have:
+Before running simulation experiments, ensure you have:
 
-- FLOPY-NET system deployed and running
-- Access to the Dashboard (http://localhost:8085)
-- At least 3 FL clients configured and available
-- GNS3 network simulation environment (optional but recommended)
-- Basic understanding of federated learning concepts
+- FLOPY-NET system deployed and running with all components
+- GNS3 VM configured and accessible (required for network simulation)
+- Dashboard access (http://localhost:8085) for monitoring
+- Scenario configuration files available in `config/scenarios/`
+- Basic understanding of the FLOPY-NET scenario architecture
 
 ## Quick Start
 
-### 1. Basic Experiment Setup
+### 1. Basic Scenario Execution
 
-The simplest way to run an experiment is through the Dashboard interface:
+The standard way to run a simulation experiment is through scenario files that define the complete setup:
 
-1. **Access the Dashboard**
-   ```
-   http://localhost:8085
-   ```
-
-2. **Navigate to Experiments**
-   - Click on "Experiments" in the sidebar
-   - Select "Create New Experiment"
-
-3. **Configure Basic Settings**
-   ```yaml
-   Experiment Name: "CIFAR-10 Basic Training"
-   Dataset: CIFAR-10
-   Model: CNN
-   Rounds: 10
-   Minimum Clients: 3
-   ```
-
-4. **Start Experiment**
-   - Review configuration
-   - Click "Start Experiment"
-   - Monitor progress in real-time
-
-### 2. Command Line Experiment
-
-For programmatic control, use the command line interface:
-
+**Execute Predefined Scenario:**
 ```bash
-# Start a basic experiment
-python -m src.main scenario basic_federated_learning \
+# Navigate to FLOPY-NET directory
+cd d:\dev\microfed\codebase
+
+# Execute basic simulation scenario
+python -m src.scenarios.run_scenario --scenario config/scenarios/basic_main.json
+```
+
+**Monitor Through Dashboard:**
+```
+http://localhost:8085
+```
+The dashboard provides real-time monitoring of FL simulation progress, network metrics, and policy compliance during scenario execution.
+
+### 2. Scenario Configuration
+
+Scenarios are defined in JSON files that specify all simulation parameters:
+
+```json
+{
+  "name": "Basic FL Simulation",
+  "description": "Standard FL simulation with 3 clients",
+  "fl_simulation": {
+    "num_clients": 3,
+    "simulation_rounds": 10,
+    "simulate_training": true,
+    "use_random_data": true
+  },
+  "monitoring": {
+    "collect_metrics": true,
+    "metric_interval": 10
+  },
+  "duration": 600
+}
+```
   --rounds 10 \
   --min-clients 3 \
   --dataset cifar10 \
   --model cnn
 
 # Monitor experiment progress
-python -m src.main scenario status --experiment-id exp_2025_001
+python -m src.scenarios.run_scenario --status --experiment-id exp_2025_001
 ```
 
 ## Experiment Configuration
@@ -530,16 +538,16 @@ For realistic network conditions:
 
 ```bash
 # Create experiment from config file
-python -m src.main experiment create --config experiments/my_experiment.json
+python -m src.scenarios.run_scenario --scenario my_experiment --config experiments/my_experiment.json
 
 # Start experiment
-python -m src.main experiment start --id exp_2025_001
+python -m src.scenarios.run_scenario --status --experiment-id exp_2025_001
 
 # Monitor progress
-python -m src.main experiment monitor --id exp_2025_001
+python -m src.scenarios.run_scenario --monitor --experiment-id exp_2025_001
 
 # Stop experiment
-python -m src.main experiment stop --id exp_2025_001
+python -m src.scenarios.run_scenario --stop --experiment-id exp_2025_001
 ```
 
 ### Via Python API

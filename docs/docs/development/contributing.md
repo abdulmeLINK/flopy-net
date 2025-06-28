@@ -2,42 +2,39 @@
 sidebar_position: 2
 ---
 
-# Contributing Guidelines
+# Contributing to FLOPY-NET
 
-Learn how to contribute to FLOPY-NET, including code standards, submission processes, and community guidelines.
+Welcome to the FLOPY-NET contributor community! This guide outlines how to contribute effectively to FLOPY-NET's development, including understanding the current simulation-based architecture and contributing to its evolution toward production federated learning capabilities.
 
-## Getting Started
+## Getting Started with FLOPY-NET Contributions
 
-Thank you for your interest in contributing to FLOPY-NET! This guide will help you understand our development process and how to submit high-quality contributions.
+FLOPY-NET is an active research platform focused on federated learning system architecture, network simulation, and policy enforcement research. The current v1.0.0-alpha.8 implementation provides a solid foundation for studying distributed systems behavior while simulating federated learning workflows with synthetic data.
 
-### Before You Start
+Contributors can engage with FLOPY-NET development in multiple ways, from enhancing the existing simulation framework and network integration capabilities to implementing actual federated learning algorithms and extending the policy enforcement system. Understanding the current architecture helps contributors identify areas where their expertise can make the greatest impact.
 
-1. **Read the Documentation**: Familiarize yourself with FLOPY-NET's architecture and components
-2. **Set Up Development Environment**: Follow the [Development Setup Guide](./setup.md)
-3. **Check Existing Issues**: Look for existing issues or discussions related to your contribution
-4. **Join the Community**: Engage with the community through GitHub Discussions
+### Current Implementation Context
 
-## Types of Contributions
+Before contributing, it's important to understand that FLOPY-NET v1.0.0-alpha.8 currently prioritizes system architecture validation and network behavior research over actual machine learning training. The federated learning components simulate training workflows using synthetic data generation, enabling rapid experimentation with network conditions, policy enforcement, and system scalability without computational overhead.
 
-We welcome various types of contributions:
+This simulation-first approach provides an excellent foundation for contributors interested in distributed systems, network simulation, policy engines, monitoring systems, and the infrastructure required to support federated learning at scale. Contributors looking to implement actual federated learning algorithms can build upon this solid foundation to create production-ready federated learning systems.
 
-### Code Contributions
-- **Bug fixes**: Fix identified issues in the codebase
-- **Feature enhancements**: Add new features or improve existing ones
-- **Performance improvements**: Optimize system performance
-- **Component development**: Create new FL algorithms, scenarios, or policies
+## Contribution Areas and Opportunities
 
-### Documentation Contributions
-- **API documentation**: Improve or add API documentation
-- **Tutorials**: Create new tutorials or improve existing ones
-- **User guides**: Enhance user documentation
-- **Code comments**: Improve inline documentation
+### System Architecture and Infrastructure Contributions
 
-### Community Contributions
-- **Issue reporting**: Report bugs or suggest enhancements
-- **Testing**: Help test new features and bug fixes
-- **Reviews**: Review pull requests from other contributors
-- **Support**: Help other users in discussions and issues
+The current container-based architecture using Docker Compose and GNS3 integration provides numerous opportunities for enhancement. Contributors can improve the container orchestration, enhance the GNS3 integration for more sophisticated network topologies, optimize the service discovery and communication patterns, or develop new deployment strategies for different research environments.
+
+Policy engine development represents another significant contribution area, where contributors can implement advanced policy types, improve the decision-making algorithms, enhance the audit and compliance capabilities, or develop new policy enforcement mechanisms for federated learning governance.
+
+### Federated Learning Implementation Contributions
+
+While the current implementation simulates federated learning behavior, there is tremendous opportunity for contributors to implement actual federated learning algorithms, integrate real datasets and model architectures, develop privacy-preserving mechanisms, or create advanced aggregation strategies that work within the established FLOPY-NET framework.
+
+Contributors can also enhance the metrics collection and analysis systems to support real machine learning experiments, develop benchmarking frameworks for federated learning algorithm comparison, or create tools for automated experiment design and execution.
+
+### Network Simulation and SDN Contributions
+
+The GNS3 and SDN integration provides opportunities for contributors to develop more sophisticated network scenarios, enhance the traffic shaping and QoS capabilities, implement advanced routing algorithms, or create tools for automated network condition generation that mirrors real-world federated learning deployment environments.
 
 ## Code Standards
 

@@ -12,39 +12,43 @@ The FL Framework consists of multiple interconnected components that work togeth
 
 ```mermaid
 graph TB
-    subgraph "FL Server Layer - Port 8080"
-        SERVER[FL Server Container<br/>abdulmelink/flopynet-server]
-        SERVER --> |HTTP API| API[REST Endpoints<br/>Port 8081]
-        SERVER --> |Training| COORD[Training Coordinator]
-        SERVER --> |Aggregation| AGG[Model Aggregator]
+    subgraph "FL Server Layer - Port 8080/8081"
+        SERVER[FL Server Container<br/>abdulmelink/flopynet-server<br/>Flower gRPC: 8080]
+        SERVER --> |Metrics API| API[REST Endpoints<br/>Port 8081]
+        SERVER --> |Strategy| COORD[MetricsTrackingStrategy<br/>extends FedAvg]
+        SERVER --> |Storage| STORAGE[SQLite Round Storage<br/>fl_rounds.db]
+        SERVER --> |Policy Check| POLICY_CHECK[Policy Integration<br/>Real-time checks]
     end
     
     subgraph "FL Client Layer"
-        CLIENT1[FL Client 1<br/>IP 192.168.100.101]
-        CLIENT2[FL Client 2<br/>IP 192.168.100.102]
-        CLIENTN[FL Client N<br/>IP Range 100-255]
+        CLIENT1[FL Client 1<br/>IP 192.168.100.101<br/>Flower Client]
+        CLIENT2[FL Client 2<br/>IP 192.168.100.102<br/>Flower Client]
+        CLIENTN[FL Client N<br/>IP Range 100-255<br/>Dynamic ModelHandler]
     end
     
     subgraph "Integration Layer"
-        POLICY[Policy Engine<br/>Port 5000]
-        COLLECTOR[Collector<br/>Port 8000]
+        POLICY[Policy Engine<br/>Port 5000<br/>Dynamic Policy Eval]
+        COLLECTOR[Collector<br/>Port 8000<br/>Multi-source Metrics]
     end
     
     subgraph "Network Layer"
-        GNS3[GNS3 Network<br/>Port 3080]
-        SDN[SDN Controller<br/>Port 6633/8181]
-        OVS[OpenVSwitch<br/>IP Range 60-99]
+        GNS3[GNS3 Network<br/>Port 3080<br/>Topology Manager]
+        SDN[SDN Controller<br/>Port 6633/8181<br/>Ryu-based OpenFlow]
+        OVS[OpenVSwitch<br/>IP Range 60-99<br/>Software Switch]
     end
     
-    CLIENT1 <--> |FL Protocol| SERVER
-    CLIENT2 <--> |FL Protocol| SERVER
-    CLIENTN <--> |FL Protocol| SERVER
+    CLIENT1 <--> |Flower gRPC| SERVER
+    CLIENT2 <--> |Flower gRPC| SERVER
+    CLIENTN <--> |Flower gRPC| SERVER
     
     SERVER --> |Policy Check| POLICY
-    SERVER --> |Metrics| COLLECTOR
+    SERVER --> |Metrics Push| COLLECTOR
+    CLIENT1 --> |Policy Verify| POLICY
+    CLIENT2 --> |Policy Verify| POLICY
     
-    SDN --> |Traffic Control| OVS
+    SDN --> |Flow Control| OVS
     GNS3 --> |Network Sim| OVS
+    COLLECTOR --> |Monitor| SDN
     
     style SERVER fill:#79c0ff,stroke:#1f6feb,color:#000
     style CLIENT1 fill:#d2a8ff,stroke:#8b5cf6,color:#000
@@ -52,111 +56,259 @@ graph TB
     style CLIENTN fill:#d2a8ff,stroke:#8b5cf6,color:#000
     style POLICY fill:#ffa657,stroke:#fb8500,color:#000
     style SDN fill:#56d364,stroke:#238636,color:#000
+    style STORAGE fill:#f85149,stroke:#da3633,color:#fff
 ```
 
 ## Implementation Structure
 
 ### Source Code Organization
-- **FL Server**: `src/fl/server/` - Server-side coordination and aggregation
-- **FL Client**: `src/fl/client/` - Client-side training and communication  
-- **Common**: `src/fl/common/` - Shared utilities and protocols
-- **Models**: `src/fl/models/` - ML model definitions and utilities
+- **FL Server**: `src/fl/server/fl_server.py` - Server-side coordination and aggregation
+- **FL Client**: `src/fl/client/fl_client.py` - Client-side training and communication  
+- **Common**: `src/fl/common/` - Shared utilities including model_handler.py and utils.py
+- **Models**: `src/fl/common/models/` - ML model definitions and utilities
 - **Utils**: `src/fl/utils/` - Helper functions and data processing
-- **Main Script**: `src/fl/run_flower_federated_learning.py` - Flower framework integration
+- **Main Entry**: `src/main.py` - Main application entry point with scenario management
 
 ### Core Components
 
 #### 1. FL Server (Docker: abdulmelink/flopynet-server)
-- **Container Port**: 8080 (FL protocol), 8081 (HTTP API)
+- **Container Port**: 8080 (FL protocol), 8081 (Metrics/HTTP API)
 - **Static IP**: 192.168.100.10
-- **Technology**: Custom FL server with policy integration
+- **Technology**: Flower framework v1.5.0 with custom MetricsTrackingStrategy
 - **Dependencies**: Policy Engine (health check required)
+- **Features**: SQLite-based round storage, policy integration, comprehensive metrics
 
 #### 2. FL Clients (Docker: abdulmelink/flopynet-client)  
 - **Container IPs**: 192.168.100.101, 192.168.100.102 (expandable to 100-255 range)
-- **Technology**: Containerized training environments
-- **Features**: Isolated data, policy compliance, network resilience
+- **Technology**: Flower client implementation with dynamic model loading
+- **Features**: Isolated data, policy compliance, network resilience, privacy mechanisms
+- **Model Support**: Dynamic model loading via ModelHandler with CNN/ResNet support
 
 #### 3. Training Coordination
-- **Round Management**: Configurable min_clients and available_clients
-- **Client Selection**: Policy-based participant filtering
-- **Network Awareness**: SDN integration for traffic management
-    
-    def _training_loop(self):
-        """Simulated training loop."""
-        for _ in range(10):  # Simulate 10 rounds
-            self.rounds += 1
-            logger.info("Training round " + str(self.rounds))
-            
-            # Simulate metrics improvement
-            accuracy = 0.5 + (self.rounds / 20)  # Increases over time
-            loss = 1.0 - (self.rounds / 15)      # Decreases over time
-            
-            self.metrics["accuracy"].append(accuracy)
-            self.metrics["loss"].append(loss)
-            
-            time.sleep(2)  # Simulate training time
-        
-        self.status = "completed"
+- **Round Management**: Configurable min_clients and available_clients with policy enforcement
+- **Client Selection**: Policy-based participant filtering with real-time policy checks
+- **Network Awareness**: SDN integration for traffic management and QoS
+- **Persistent Storage**: SQLite database for round history and metrics tracking
+- **Strategy**: Custom MetricsTrackingStrategy extending Flower's FedAvg
+
+## System Startup Flow
+
+### Container Initialization Sequence
+
+The FLOPY-NET system follows a specific startup sequence to ensure proper component dependencies:
+
+#### 1. **Policy Engine Startup** (First Priority - No Dependencies)
+```bash
+# Container: policy-engine (192.168.100.20)
+# Entrypoint: entrypoint-policy.sh
+
+1. Environment validation and static IP configuration
+2. Host file updates for service discovery (/etc/hosts)
+3. Policy configuration loading from /app/config/policies/
+4. Policy functions directory validation (/app/config/policy_functions)
+5. Flask API server startup on port 5000
+6. Health check endpoint activation (/health)
+7. Policy function loading and validation
+8. Event buffer initialization for audit logging
+9. Ready state - other services can connect
 ```
+
+#### 2. **FL Server Startup** (Depends on Policy Engine Health Check)
+```bash
+# Container: fl-server (192.168.100.10)
+# Entrypoint: entrypoint-fl-server.sh
+
+1. Wait for policy engine health check (WAIT_FOR_POLICY_ENGINE=true)
+2. Environment variable processing and static IP configuration
+3. Host file updates for container name resolution
+4. Model directory setup and fallback model fetch
+5. SQLite database initialization (fl_rounds.db)
+6. Policy engine connection establishment and validation
+7. Flower server configuration with MetricsTrackingStrategy
+8. Flower gRPC server startup on port 8080
+9. HTTP API server startup on port 8081 (health/metrics)
+10. Health check activation and ready state
+```
+
+#### 3. **FL Client Startup** (Depends on Both FL Server + Policy Engine Health)
+```bash
+# Container: fl-client-1, fl-client-2 (192.168.100.101, 192.168.100.102)
+# Entrypoint: entrypoint-fl-client.sh
+
+1. Wait for FL server and policy engine health checks (Docker Compose)
+2. Environment variable processing and CLIENT_ID validation
+3. Server discovery via NODE_IP_FL_SERVER environment variable
+4. Model directory setup and model synchronization with server
+5. Local data loading and preprocessing (client-specific datasets)
+6. Policy compliance checker initialization
+7. Flower client initialization with server connection
+8. Connection to FL server via gRPC on port 8080
+9. Ready for federated learning participation
+```
+
+#### 4. **Support Services Startup** (Independent/Parallel)
+```bash
+# Collector (192.168.100.40) - Independent startup
+1. Multi-source metrics collection setup
+2. Storage backend initialization (SQLite/file-based)
+3. API endpoint activation on port 8000
+4. Monitoring targets: FL server, policy engine, SDN components
+
+# SDN Controller (192.168.100.41) - Independent startup  
+1. Ryu framework initialization
+2. OpenFlow controller startup on port 6633
+3. REST API activation on port 8181
+4. Waiting for OpenVSwitch connections
+
+# OpenVSwitch (192.168.100.60-99) - Independent startup
+1. OVS daemon initialization
+2. Bridge creation and port configuration
+3. SDN controller connection establishment
+4. Flow table initialization
+```
+
+### Health Check Dependencies
+
+The system uses Docker Compose health checks to ensure proper startup order:
+
+```yaml
+# Health check dependency chain
+policy-engine: 
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+  
+fl-server:
+  depends_on:
+    policy-engine: 
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    
+fl-client-1:
+  depends_on:
+    fl-server: 
+      condition: service_healthy
+    policy-engine: 
+      condition: service_healthy
+
+fl-client-2:
+  depends_on:
+    fl-server: 
+      condition: service_healthy
+    policy-engine: 
+      condition: service_healthy
+```
+
+### Critical Startup Dependencies
+
+1. **Policy Engine** must be fully healthy before FL Server starts
+2. **FL Server** must be fully healthy before any FL Client starts  
+3. **Both Policy Engine and FL Server** must be healthy before FL Clients start
+4. **Support services** (Collector, SDN Controller, OVS) start independently in parallel
+
+### Service Discovery Process
+
+Services discover each other through multiple mechanisms:
+
+1. **Static IP Allocation**: Predefined IP ranges for each service type in docker-compose.yml
+   - Policy Engine: 192.168.100.20-29 range  
+   - FL Server: 192.168.100.10-19 range
+   - FL Clients: 192.168.100.100-255 range
+   - Collector: 192.168.100.40+ range
+   - SDN Controller: 192.168.100.41
+   - OpenVSwitch: 192.168.100.60-99 range
+
+2. **Environment Variables**: `NODE_IP_*` variables provide direct IP addresses
+   - NODE_IP_FL_SERVER=192.168.100.10
+   - NODE_IP_POLICY_ENGINE=192.168.100.20
+   - NODE_IP_SDN_CONTROLLER=192.168.100.41
+   - NODE_IP_COLLECTOR=192.168.100.40
+
+3. **Host File Updates**: Entrypoint scripts update `/etc/hosts` for container name resolution
+
+4. **Container Names**: Docker Compose provides built-in DNS resolution
+   - fl-server resolves to 192.168.100.10
+   - policy-engine resolves to 192.168.100.20
 
 ### API Endpoints
 
-#### Server Status and Control
-- `GET /` - Server information and version
+#### Server Status and Control (Port 8081)
+- `GET /health` - Server health check and basic information
 - `GET /status` - Current training status and round information
-- `POST /start` - Start federated learning training
 - `GET /metrics` - Training metrics and performance data
+- `GET /rounds` - Historical round data with filtering options
+- `GET /rounds/{round_number}` - Specific round information
 
-#### Client Management
-- `GET /clients` - List of registered clients
-- `POST /register` - Register a new FL client
-- `GET /clients/{client_id}` - Get specific client information
+#### Training Management
+- Server is managed through Flower's gRPC protocol on port 8080
+- HTTP metrics endpoint provides monitoring capabilities
+- Policy integration happens automatically during training rounds
 
 ### Request/Response Examples
 
-#### Get Server Status
+#### Get Server Health
 ```http
-GET /status HTTP/1.1
-Host: localhost:8080
+GET /health HTTP/1.1
+Host: localhost:8081
 
 {
-  "status": "training",
-  "rounds": 5,
-  "clients": 3,
-  "current_accuracy": 0.75,
-  "estimated_completion": "2025-06-16T14:30:00Z"
-}
-```
-
-#### Register Client
-```http
-POST /register HTTP/1.1
-Host: localhost:8080
-Content-Type: application/json
-
-{
-  "client_id": "client-1",
-  "ip_address": "192.168.100.100",
-  "capabilities": {
-    "model_types": ["pytorch", "tensorflow"],
-    "compute_power": "gpu",
-    "data_samples": 1000
-  }
+  "status": "healthy",
+  "server_id": "flopynet-fl-server-default",
+  "version": "v1.0.0-alpha.8",
+  "uptime": 1234.56,
+  "current_round": 3
 }
 ```
 
 #### Get Training Metrics
 ```http
 GET /metrics HTTP/1.1
-Host: localhost:8080
+Host: localhost:8081
 
 {
-  "accuracy": [0.5, 0.55, 0.6, 0.65, 0.7, 0.72, 0.75],
-  "loss": [1.0, 0.93, 0.87, 0.8, 0.73, 0.67, 0.6],
-  "rounds": 7,
-  "participants_per_round": [3, 3, 2, 3, 3, 2, 3],
-  "convergence_rate": 0.85
+  "current_round": 5,
+  "connected_clients": 2,
+  "training_complete": false,
+  "rounds_history": [
+    {
+      "round": 1,
+      "accuracy": 0.65,
+      "loss": 0.8,
+      "clients": 2,
+      "timestamp": "2025-06-27T10:30:00Z"
+    }
+  ],
+  "aggregate_fit_count": 5,
+  "policy_checks_performed": 15,
+  "training_duration": 180.5
+}
+```
+
+#### Get Round History
+```http
+GET /rounds?start_round=1&limit=10 HTTP/1.1
+Host: localhost:8081
+
+{
+  "rounds": [
+    {
+      "round": 1,
+      "timestamp": "2025-06-27T10:30:00Z",
+      "status": "complete",
+      "accuracy": 0.65,
+      "loss": 0.8,
+      "training_duration": 45.2,
+      "clients": 2
+    }
+  ],
+  "total_count": 5,
+  "has_more": false
 }
 ```
 
@@ -164,51 +316,72 @@ Host: localhost:8080
 
 ### Client Architecture
 
-FL Clients are containerized applications that participate in federated learning:
+FL Clients are containerized Flower client implementations that participate in federated learning:
 
 ```python
 class FLClient:
-    """Federated Learning Client implementation."""
+    """Federated Learning Client implementation using Flower framework."""
     
-    def __init__(self, client_id: str, server_url: str):
-        self.client_id = client_id
-        self.server_url = server_url
-        self.model = None
-        self.local_data = None
-        self.training_metrics = {}
-    
-    def register_with_server(self):
-        """Register this client with the FL server."""
-        registration_data = {
-            "client_id": self.client_id,
-            "ip_address": self.get_local_ip(),
-            "capabilities": self.get_capabilities()
-        }
-          response = requests.post(self.server_url + "/register", 
-                                 json=registration_data)
-        return response.json()
-    
-    def train_local_model(self, global_model: dict, epochs: int = 5):
-        """Train model locally on private data."""
-        # Load global model
-        self.model = self.load_model(global_model)
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.client_id = config.get("client_id", "default-client")
+        self.server_host = self._determine_server_host()
+        self.server_port = config.get("server_port", 8080)
+        self.model_handler = None
+        self.policy_checker = None
         
-        # Train on local data
-        for epoch in range(epochs):
-            loss = self.model.train_epoch(self.local_data)
-            self.training_metrics["epoch_" + str(epoch)] = {"loss": loss}
+        # Initialize model handler with dynamic loading
+        self._init_model_handler()
         
-        # Return model updates
-        return self.model.get_parameters()
+        # Initialize policy checker
+        self._init_policy_checker()
     
-    def get_capabilities(self) -> dict:
+    def _determine_server_host(self) -> str:
+        """Determine server host from various sources."""
+        # Check GNS3_IP_MAP environment variable
+        gns3_ip_map = os.environ.get("GNS3_IP_MAP", "")
+        if "fl-server:" in gns3_ip_map:
+            return self._parse_server_ip_from_map(gns3_ip_map)
+        
+        # Check NODE_IP_FL_SERVER environment variable
+        if os.environ.get("NODE_IP_FL_SERVER"):
+            return os.environ.get("NODE_IP_FL_SERVER")
+            
+        # Fall back to config
+        return self.config.get("server_host", "localhost")
+    
+    def _init_model_handler(self):
+        """Initialize model handler with dynamic model loading."""
+        from src.fl.common.model_handler import ModelHandler
+        
+        model_type = self.config.get("model_type", "cnn")
+        dataset = self.config.get("dataset", "mnist")
+        
+        self.model_handler = ModelHandler(
+            model_type=model_type,
+            dataset=dataset,
+            num_classes=self.config.get("num_classes", 10)
+        )
+    
+    def check_policy_compliance(self, operation: str, context: Dict[str, Any]) -> bool:
+        """Check operation against policy engine."""
+        if not self.policy_checker:
+            return True
+            
+        return self.policy_checker.check_policy(operation, context)
+    
+    def get_client_capabilities(self) -> Dict[str, Any]:
         """Return client capabilities and resources."""
+        import psutil
+        
         return {
+            "client_id": self.client_id,
             "model_types": ["pytorch"],
             "compute_power": "cpu",
-            "data_samples": len(self.local_data),
-            "memory_gb": 4,
-            "network_bandwidth": "100mbps"
+            "memory_gb": round(psutil.virtual_memory().total / (1024**3), 2),
+            "cpu_cores": psutil.cpu_count(),
+            "dataset": self.config.get("dataset", "mnist"),
+            "model_type": self.config.get("model_type", "cnn")
         }
 ```
 
@@ -232,25 +405,31 @@ fl-client-1:
     - USE_STATIC_IP=true
     - SUBNET_PREFIX=192.168.100
     - CLIENT_IP_RANGE=100-255
+    - NODE_IP_FL_SERVER=192.168.100.10
+    - NODE_IP_POLICY_ENGINE=192.168.100.20
+    - NODE_IP_SDN_CONTROLLER=192.168.100.41
+    - NODE_IP_COLLECTOR=192.168.100.40
+    - MAX_RECONNECT_ATTEMPTS=-1
+    - RETRY_INTERVAL=5
   depends_on:
     fl-server:
       condition: service_healthy
     policy-engine:
       condition: service_healthy
   networks:
-    flopynet:
-      ipv4_address: 192.168.100.100
+    flopynet_network:
+      ipv4_address: 192.168.100.101
 ```
 
 ### Client Lifecycle
 
-1. **Initialization**: Client starts and loads local configuration
-2. **Registration**: Client registers with FL server
-3. **Policy Check**: Client verifies policy compliance
-4. **Training Loop**: Participates in federated learning rounds
-5. **Model Updates**: Sends local model updates to server
-6. **Aggregation**: Receives updated global model
-7. **Evaluation**: Tests global model on local validation data
+1. **Initialization**: Client starts, loads configuration, and initializes ModelHandler
+2. **Server Discovery**: Determines FL server IP from environment variables or GNS3_IP_MAP
+3. **Policy Check**: Verifies policy compliance before connecting
+4. **Flower Connection**: Connects to FL server using Flower's gRPC protocol
+5. **Training Participation**: Participates in federated learning rounds via Flower client
+6. **Model Updates**: Sends/receives model updates through Flower framework
+7. **Evaluation**: Performs local evaluation on private data
 
 ## Federated Learning Algorithms
 
@@ -344,73 +523,70 @@ def fedprox_aggregate(client_updates: List[dict], mu: float = 0.1) -> dict:
 
 ### Round Management
 
-The FL Server orchestrates training rounds with sophisticated coordination:
+The FL Server uses a custom MetricsTrackingStrategy that extends Flower's FedAvg:
 
 ```python
-class TrainingCoordinator:
-    """Coordinates federated learning training rounds."""
+class MetricsTrackingStrategy(FedAvg):
+    """Custom strategy that tracks detailed metrics and integrates with policy engine."""
     
-    def __init__(self, min_clients: int = 2, max_rounds: int = 100):
-        self.min_clients = min_clients
-        self.max_rounds = max_rounds
-        self.current_round = 0
-        self.registered_clients = {}
-        self.active_clients = set()
+    def __init__(self, *args, server_instance=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.server_instance = server_instance
+        self.round_start_time = None
     
-    def start_training_round(self) -> dict:
-        """Start a new federated learning round."""
-        self.current_round += 1
-        
-        # Select participating clients
-        selected_clients = self.select_clients()
-        
-        if len(selected_clients) < self.min_clients:
-            return {"status": "error", "message": "Insufficient clients"}
-        
-        # Send global model to selected clients
-        round_config = {
-            "round_id": self.current_round,
-            "global_model": self.get_global_model(),
-            "training_config": {
-                "epochs": 5,
-                "batch_size": 32,
-                "learning_rate": 0.01
-            },
-            "deadline": time.time() + 300  # 5 minutes
-        }
-        
-        return self.broadcast_to_clients(selected_clients, round_config)
-    
-    def select_clients(self, fraction: float = 0.8) -> List[str]:
-        """Select clients for training round."""
-        available_clients = list(self.active_clients)
-        num_selected = max(self.min_clients, 
-                          int(len(available_clients) * fraction))
-        
-        # Random selection with optional criteria
-        import random
-        return random.sample(available_clients, 
-                           min(num_selected, len(available_clients)))
-    
-    def collect_updates(self, timeout: int = 300) -> List[dict]:
-        """Collect model updates from participating clients."""
-        updates = []
-        start_time = time.time()
-        
-        while time.time() - start_time < timeout:
-            # Check for client updates
-            for client_id in self.active_clients:
-                update = self.get_client_update(client_id)
-                if update and update not in updates:
-                    updates.append(update)
+    def configure_fit(self, server_round: int, parameters: Parameters, client_manager):
+        """Configure the fit round with policy checks."""
+        if self.server_instance:
+            # Check if training was stopped by policy
+            if global_metrics.get("training_stopped_by_policy", False):
+                raise StopTrainingPolicySignal("Training stopped by policy")
             
-            # Break if all clients responded
-            if len(updates) >= len(self.active_clients):
-                break
+            # Wait if training is paused
+            self.server_instance.wait_if_paused(f"Round {server_round}")
             
-            time.sleep(1)
+            # Policy check for client training
+            current_time = time.localtime()
+            training_policy_context = {
+                "operation": "model_training",
+                "server_id": self.server_instance.config.get("server_id"),
+                "current_round": int(server_round),
+                "model": self.server_instance.model_name,
+                "dataset": self.server_instance.dataset,
+                "available_clients": int(client_manager.num_available()),
+                "current_hour": int(current_time.tm_hour),
+                "current_timestamp": time.time()
+            }
+            
+            # Check policy before proceeding
+            policy_result = self.server_instance.check_policy(
+                "fl_client_training", training_policy_context
+            )
+            
+            if not policy_result.get("allowed", True):
+                logger.warning(f"Round {server_round} denied by policy")
+                # Could pause or skip round based on policy
         
-        return updates
+        return super().configure_fit(server_round, parameters, client_manager)
+    
+    def aggregate_fit(self, server_round: int, results, failures):
+        """Aggregate fit results with metrics tracking."""
+        aggregated_result = super().aggregate_fit(server_round, results, failures)
+        
+        # Track round metrics
+        if self.server_instance:
+            round_data = {
+                "round": server_round,
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "clients": len(results),
+                "failures": len(failures),
+                "status": "complete"
+            }
+            
+            # Store in persistent storage
+            if fl_round_storage:
+                fl_round_storage.store_round(round_data)
+        
+        return aggregated_result
 ```
 
 ### Client Selection Strategies
@@ -827,52 +1003,39 @@ class FLMetricsCollector:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `FL_SERVER_HOST` | FL Server hostname | `0.0.0.0` |
+| `FL_SERVER_HOST` | FL Server hostname | `[::]` |
 | `FL_SERVER_PORT` | FL Server port | `8080` |
-| `POLICY_ENGINE_URL` | Policy Engine URL | `http://localhost:5000` |
-| `SDN_CONTROLLER_URL` | SDN Controller URL | `http://localhost:8181` |
-| `MIN_CLIENTS` | Minimum clients for training | `2` |
-| `MAX_ROUNDS` | Maximum training rounds | `100` |
-| `AGGREGATION_STRATEGY` | Model aggregation strategy | `fedavg` |
-| `CLIENT_FRACTION` | Fraction of clients per round | `0.8` |
-| `DIFFERENTIAL_PRIVACY` | Enable differential privacy | `false` |
+| `METRICS_PORT` | Metrics API port | `8081` |
+| `POLICY_ENGINE_HOST` | Policy Engine hostname | `policy-engine` |
+| `POLICY_ENGINE_URL` | Policy Engine URL | `http://policy-engine:5000` |
+| `MIN_CLIENTS` | Minimum clients for training | `1` |
+| `MIN_AVAILABLE_CLIENTS` | Minimum available clients | `1` |
+| `NODE_IP_FL_SERVER` | Static IP for FL server | `192.168.100.10` |
+| `NODE_IP_POLICY_ENGINE` | Static IP for policy engine | `192.168.100.20` |
+| `USE_STATIC_IP` | Enable static IP allocation | `true` |
+| `SUBNET_PREFIX` | Network subnet prefix | `192.168.100` |
+| `CLIENT_IP_RANGE` | IP range for clients | `100-255` |
 
 ### Training Configuration
 
 ```json
 {
-  "training_config": {
-    "algorithm": "fedavg",
-    "min_clients": 2,
-    "max_rounds": 50,
-    "client_fraction": 0.8,
-    "local_epochs": 5,
-    "learning_rate": 0.01,
-    "batch_size": 32,
-    "convergence_threshold": 0.01,
-    "timeout_seconds": 300
-  },
-  "model_config": {
-    "architecture": "cnn",
-    "input_shape": [28, 28, 1],
-    "num_classes": 10,
-    "compression": true,
-    "versioning": true
-  },
-  "privacy_config": {
-    "differential_privacy": false,
-    "epsilon": 1.0,
-    "delta": 1e-5,
-    "secure_aggregation": false,
-    "gradient_clipping": true,
-    "max_grad_norm": 1.0
-  },
-  "network_config": {
-    "sdn_integration": true,
-    "traffic_prioritization": true,
-    "bandwidth_allocation": "adaptive",
-    "qos_enabled": true
-  }
+  "server_id": "flopynet-fl-server-default",
+  "host": "[::]",
+  "port": 8080,
+  "metrics_port": 8081,
+  "model": "cnn",
+  "dataset": "mnist",
+  "rounds": 5,
+  "min_clients": 1,
+  "min_available_clients": 1,
+  "policy_engine_url": "http://policy-engine:5000",
+  "policy_timeout": 10,
+  "policy_max_retries": 3,
+  "strict_policy_mode": true,
+  "stay_alive_after_training": false,
+  "log_level": "INFO",
+  "enable_grpc_verbose": false
 }
 ```
 
@@ -886,60 +1049,75 @@ services:
   fl-server:
     image: abdulmelink/flopynet-server:v1.0.0-alpha.8
     container_name: fl-server
-    ports:
-      - "8080:8080"
-    environment:
-      - SERVICE_TYPE=fl-server
-      - POLICY_ENGINE_HOST=policy-engine
-      - SDN_CONTROLLER_HOST=sdn-controller
-      - MIN_CLIENTS=2
-      - MAX_ROUNDS=50
+    privileged: true
+    cap_add:
+      - NET_ADMIN
     depends_on:
       policy-engine:
         condition: service_healthy
+    environment:
+      - SERVICE_TYPE=fl-server
+      - FL_SERVER_PORT=8080
+      - METRICS_PORT=8081
+      - POLICY_ENGINE_HOST=policy-engine
+      - MIN_CLIENTS=1
+      - MIN_AVAILABLE_CLIENTS=1
+      - USE_STATIC_IP=true
+      - SUBNET_PREFIX=192.168.100
+      - NODE_IP_FL_SERVER=192.168.100.10
+      - NODE_IP_POLICY_ENGINE=192.168.100.20
+      - NODE_IP_SDN_CONTROLLER=192.168.100.41
+      - NODE_IP_COLLECTOR=192.168.100.40
     networks:
-      flopynet:
+      flopynet_network:
         ipv4_address: 192.168.100.10
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   fl-client-1:
     image: abdulmelink/flopynet-client:v1.0.0-alpha.8
     container_name: fl-client-1
+    privileged: true
+    cap_add:
+      - NET_ADMIN
     environment:
+      - SERVICE_TYPE=fl-client
       - CLIENT_ID=client-1
       - SERVER_HOST=fl-server
-      - LOCAL_EPOCHS=5
-      - BATCH_SIZE=32
+      - POLICY_ENGINE_HOST=policy-engine
+      - USE_STATIC_IP=true
+      - NODE_IP_FL_SERVER=192.168.100.10
+      - MAX_RECONNECT_ATTEMPTS=-1
+      - RETRY_INTERVAL=5
     depends_on:
       fl-server:
         condition: service_healthy
-    networks:
-      flopynet:
-        ipv4_address: 192.168.100.100
-
-  fl-client-2:
-    image: abdulmelik/flopynet-client:v1.0.0-alpha.8
-    container_name: fl-client-2
-    environment:
-      - CLIENT_ID=client-2
-      - SERVER_HOST=fl-server
-      - LOCAL_EPOCHS=5
-      - BATCH_SIZE=32
-    depends_on:
-      fl-server:
+      policy-engine:
         condition: service_healthy
     networks:
-      flopynet:
+      flopynet_network:
         ipv4_address: 192.168.100.101
+
+networks:
+  flopynet_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+          gateway: 192.168.100.1
 ```
 
 ### Health Checks
 
 ```yaml
 healthcheck:
-  test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
-  interval: 30s
-  timeout: 10s
-  retries: 3
+  test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
   start_period: 40s
 ```
 

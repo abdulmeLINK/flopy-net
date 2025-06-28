@@ -7,8 +7,8 @@
 #
 # Usage:
 #   ./build-docs.sh build
-#   ./build-docs.sh push abdulmelik myuser mypass
-#   ./build-docs.sh all abdulmelik myuser mypass --clean
+#   ./build-docs.sh push abdulmelink myuser mypass
+#   ./build-docs.sh all abdulmelink myuser mypass --clean
 #
 
 set -e
@@ -74,8 +74,8 @@ function show_usage() {
     echo ""
     echo "Examples:"
     echo "  $0 build"
-    echo "  $0 push abdulmelik myuser mypass"
-    echo "  $0 all abdulmelik myuser mypass --clean"
+    echo "  $0 push abdulmelink myuser mypass"
+    echo "  $0 all abdulmelink myuser mypass --clean"
     echo "  $0 list"
     echo "  $0 clean"
 }

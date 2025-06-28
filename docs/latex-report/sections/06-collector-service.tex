@@ -18,7 +18,7 @@ The Collector Service implements a modular monitoring architecture with speciali
     flow/.style={->, thick, >=stealth}
 ]
     % Data Sources
-    \node[component, fill=primary!20] (fl_server) at (-6,6) {FL Server\\ 8085}; % Corrected port
+    \node[component, fill=primary!20] (fl_server) at (-6,6) {FL Server\\ 8080}; % Corrected port
     \node[component, fill=primary!20] (fl_clients) at (-3,6) {FL Clients\\ 100-255};
     \node[component, fill=primary!20] (policy) at (0,6) {Policy Engine\\ 5000};
     \node[component, fill=primary!20] (sdn) at (3,6) {SDN Controller\\ 8181};
@@ -35,10 +35,13 @@ The Collector Service implements a modular monitoring architecture with speciali
     \node[component, fill=success!20] (policy_monitor) at (-1,2) {Policy\\ Monitor};
     \node[component, fill=success!20] (network_monitor) at (2,2) {Network\\ Monitor};
     \node[component, fill=success!20] (event_monitor) at (5,2) {Event\\ Monitor};
-    
-    % Storage Layer
+      % Storage Layer
     \node[storage, fill=accent!20] (sqlite_db) at (-2,0) {SQLite\\ Database};
     \node[storage, fill=accent!20] (logs) at (2,0) {Log Files\\ (JSON)};
+    
+    % External Access
+    \node[component, fill=warning!20] (cloud_node) at (0,-2) {Cloud Node\\ Bridge};
+    \node[component, fill=info!20] (external_access) at (0,-4) {External\\ Access};
     
     % Data flows from sources to collector
     \draw[flow, color=primary] (fl_server) -- (collector_core);
@@ -58,6 +61,10 @@ The Collector Service implements a modular monitoring architecture with speciali
     \draw[flow, color=success] (policy_monitor) -- (sqlite_db);
     \draw[flow, color=success] (network_monitor) -- (logs);
     \draw[flow, color=success] (event_monitor) -- (logs);
+    
+    % External access flows
+    \draw[flow, color=warning] (collector_core) -- (cloud_node);
+    \draw[flow, color=info] (cloud_node) -- (external_access);
 \end{tikzpicture}
 \caption{Collector Service Architecture}
 \label{fig:collector-architecture}
@@ -321,7 +328,7 @@ The Collector Service is configured through both environment variables and JSON 
 \textbf{Parameter} & \textbf{Default/Configured} & \textbf{Description} \\
 \midrule
 API\_PORT & 8000 & External API port for dashboard and direct access \\
-FL\_SERVER\_URL & http://fl\_server:8085/fl\_server & FL server endpoint for metrics collection \\
+FL\_SERVER\_URL & http://fl\_server:8081/fl\_server & FL server endpoint for metrics collection \\
 POLICY\_ENGINE\_URL & http://policy\_engine:5000/policy\_engine & Policy engine endpoint for metrics collection \\
 SDN\_CONTROLLER\_URL & http://sdn\_controller:8181/sdn\_controller & SDN controller REST API for metrics collection \\
 STORAGE\_DB\_PATH & /app/data/collector.db & Path to the SQLite\\database file \\

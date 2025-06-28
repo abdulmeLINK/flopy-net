@@ -5,23 +5,14 @@ The Policy Engine provides REST APIs for managing security policies, compliance 
 ## Base URL
 
 ```
-http://localhost:5000/api/v1
+http://localhost:5000
 ```
 
 ## Authentication
 
-The Policy Engine supports multiple authentication methods:
+Currently, the Policy Engine API does not implement authentication. All endpoints are accessible without authorization headers.
 
-```http
-# API Key Authentication
-Authorization: Bearer <api-key>
-
-# Basic Authentication  
-Authorization: Basic <base64-encoded-credentials>
-
-# JWT Token Authentication
-Authorization: JWT <jwt-token>
-```
+**Note**: Authentication features are planned for future releases.
 
 ## Core Endpoints
 
@@ -35,17 +26,33 @@ GET /health
 **Response:**
 ```json
 {
-  "status": "healthy",
+  "status": "ok",
+  "version": 0
+}
+```
+
+#### System Metrics
+```http
+GET /metrics
+```
+
+**Response:**
+```json
+{
   "version": "1.0.0",
-  "timestamp": "2025-01-16T10:30:00Z",
-  "uptime": 3600,
-  "active_policies": 15,
-  "policy_evaluations_per_minute": 45,
-  "components": {
-    "rule_engine": "operational",
-    "trust_calculator": "operational",
-    "event_processor": "operational"
-  }
+  "uptime_seconds": 3600,
+  "policy_count": 15,
+  "enabled_policy_count": 12,
+  "policy_version": 5,
+  "policy_history_count": 150,
+  "policy_applications_count": 2450,
+  "policy_checks_total": 2450,
+  "policy_checks_allowed": 2200,
+  "policy_checks_denied": 250,
+  "policy_components": ["fl_server", "collector", "sdn_controller"],
+  "policy_types": ["fl_training_parameters", "model_size", "network_security"],
+  "policy_requesters": ["fl_server", "collector", "ryu_controller"],
+  "latest_application_timestamp": 1642765200.123
 }
 ```
 
@@ -81,91 +88,122 @@ GET /status
 
 #### List All Policies
 ```http
-GET /policies
+GET /api/v1/policies
 ```
 
 **Query Parameters:**
-- `status` (optional): Filter by status (`enabled`, `disabled`, `draft`)
-- `category` (optional): Filter by category (`security`, `performance`, `compliance`)
-- `limit` (optional): Number of results (default: 50)
-- `offset` (optional): Pagination offset
+- `type` (optional): Filter by policy type
 
 **Response:**
 ```json
 {
   "policies": [
     {
-      "id": 1,
-      "name": "Client Trust Threshold",
-      "description": "Minimum trust score required for client participation",
-      "category": "security",
-      "status": "enabled",
-      "priority": 100,
+      "id": "fl_training_parameters",
+      "enabled": true,
       "conditions": [
         {
-          "field": "client.trust_score",
-          "operator": ">=",
-          "value": 0.7
+          "field": "server_id",
+          "operator": "==",
+          "value": "default-server"
         }
       ],
-      "actions": [
-        {
-          "type": "allow_participation",
-          "parameters": {}
-        }
-      ],
-      "created_at": "2025-01-15T10:00:00Z",
-      "updated_at": "2025-01-16T08:30:00Z",
-      "evaluation_count": 245,
-      "success_rate": 0.92
+      "parameters": {
+        "total_rounds": 10,
+        "min_clients": 2,
+        "max_clients": 5,
+        "client_fraction": 1.0
+      }
     }
-  ],
-  "total_count": 15,
-  "has_more": false
+  ]
 }
 ```
 
 #### Get Policy by ID
 ```http
-GET /policies/{policy_id}
+GET /api/v1/policies/{policy_id}
 ```
 
 **Response:**
 ```json
 {
-  "id": 1,
-  "name": "Client Trust Threshold",
-  "description": "Minimum trust score required for client participation",
-  "category": "security",
-  "status": "enabled",
-  "priority": 100,
+  "id": "fl_training_parameters",
+  "enabled": true,
   "conditions": [
     {
-      "field": "client.trust_score",
-      "operator": ">=",
-      "value": 0.7,
-      "description": "Trust score must be at least 0.7"
+      "field": "server_id",
+      "operator": "==",
+      "value": "default-server"
     }
   ],
-  "actions": [
+  "parameters": {
+    "total_rounds": 10,
+    "min_clients": 2,
+    "max_clients": 5,
+    "client_fraction": 1.0
+  }
+}
+```
+
+#### Create Policy
+```http
+POST /api/v1/policies
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "id": "new_policy",
+  "enabled": true,
+  "conditions": [
     {
-      "type": "allow_participation",
-      "parameters": {},
-      "description": "Allow client to participate in training"
-    },
-    {
-      "type": "log_event",
-      "parameters": {
-        "level": "info",
-        "message": "Client allowed based on trust score"
-      }
+      "field": "client_id",
+      "operator": "!=",
+      "value": "blocked_client"
     }
   ],
-  "metadata": {
-    "author": "admin",
-    "version": "1.2",
-    "tags": ["trust", "security", "client-validation"]
-  },
+  "parameters": {
+    "allow_participation": true
+  }
+}
+```
+
+#### Update Policy
+```http
+PUT /api/v1/policies/{policy_id}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "enabled": false,
+  "parameters": {
+    "total_rounds": 15
+  }
+}
+```
+
+#### Enable Policy
+```http
+POST /api/v1/policies/{policy_id}/enable
+```
+
+#### Disable Policy
+```http
+POST /api/v1/policies/{policy_id}/disable
+```
+
+### Policy Management
+
+**Response Example:**
+```json
+{
+  "policy_id": "trust-validator-001",
+  "name": "Trust Validator",
+  "status": "enabled",
+  "tags": ["trust", "security", "client-validation"],
   "evaluation_history": {
     "total_evaluations": 245,
     "successful_evaluations": 226,
@@ -258,42 +296,89 @@ DELETE /policies/{policy_id}
 
 ### Policy Evaluation
 
-#### Evaluate Policy
+#### Check Policy
 ```http
-POST /policies/evaluate
+POST /api/v1/check
+Content-Type: application/json
 ```
 
 **Request Body:**
 ```json
 {
+  "policy_type": "fl_client_training",
   "context": {
-    "event_type": "client_registration",
-    "client": {
-      "id": "client-001",
-      "trust_score": 0.85,
-      "location": "us-east-1",
-      "capabilities": {
-        "compute_power": "high",
-        "memory": "8GB"
-      }
-    },
-    "experiment": {
-      "id": "exp_2025_001",
-      "sensitivity": "medium"
-    }
-  },
-  "policies": [1, 2, 5],  // Optional: specific policies to evaluate
-  "evaluation_mode": "strict"  // strict, permissive, advisory
+    "operation": "model_training",
+    "server_id": "default-server",
+    "current_round": 5,
+    "current_hour": 14,
+    "available_clients": 2,
+    "model": "cnn",
+    "dataset": "cifar10"
+  }
 }
 ```
 
 **Response:**
 ```json
 {
-  "evaluation_id": "eval_12345",
-  "timestamp": "2025-01-16T10:30:00Z",
-  "overall_decision": "allow",
-  "confidence": 0.92,
+  "allowed": true,
+  "reason": "Training permitted during business hours",
+  "parameters": {
+    "total_rounds": 15
+  },
+  "timestamp": 1642765200.0,
+  "policy_version": 5
+}
+```
+
+#### Legacy Policy Check
+```http
+POST /check
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "policy_type": "fl_server_control",
+  "context": {
+    "operation": "decide_next_round",
+    "current_round": 5,
+    "max_rounds": 10,
+    "accuracy": 0.87,
+    "accuracy_improvement": 0.05,
+    "available_clients": 2
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "allowed": false,
+  "reason": "Training blocked outside business hours (current: 22:30)",
+  "retry_after": 600
+}
+```
+
+#### Simple Policy Check (GET)
+```http
+GET /check?component=fl_server&action=training
+```
+
+**Response:**
+```json
+{
+  "allowed": true,
+  "reason": "Default allow policy"
+}
+```
+
+**Detailed Response:**
+```json
+{
+  "allowed": true,
+  "reason": "Default allow policy",
   "policy_results": [
     {
       "policy_id": 1,

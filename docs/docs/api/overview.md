@@ -4,80 +4,131 @@ FLOPY-NET provides REST APIs for its core components, enabling programmatic acce
 
 ## API Architecture
 
+FLOPY-NET provides a comprehensive REST API architecture that supports both Docker Compose (development) and GNS3 (research) deployment environments. The API services maintain consistent interfaces while adapting to different network topologies and deployment scenarios.
+
 ```mermaid
 graph TB
     subgraph "External Clients"
-        CLI[CLI Tools<br/>src/main.py]
-        Script[Scripts & Automation]
-        Curl[HTTP Clients<br/>curl, Postman]
+        CLI[FLOPY-NET CLI<br/>src/main.py]
+        DASH[Dashboard<br/>React Frontend]
+        CURL[HTTP Clients<br/>curl, Postman]
+        SCRIPT[Automation Scripts<br/>Python/PowerShell]
+    end
+      subgraph "API Gateway Layer"
+        CLOUD[Cloud Node<br/>Bridge Interface]
+        ROUTES[API Routing<br/>Local/GNS3]
     end
     
-    subgraph "Service APIs"
-        PolicyEngine[Policy Engine API<br/>Port 5000]
-        Collector[Collector API<br/>Port 8000]
-        FLServer[FL Server API<br/>Port 8080/8081]
-        SDN[SDN Controller API<br/>Port 8181]
+    subgraph "Service APIs - 192.168.141.0/24 (GNS3) / 192.168.100.0/24 (Docker)"
+        PE[Policy Engine API<br/>Port 5000<br/>192.168.141.20]
+        COL[Collector API<br/>Port 8000<br/>192.168.141.40]
+        FL[FL Server gRPC<br/>Port 8080<br/>192.168.141.10]
+        FLM[FL Metrics API<br/>Port 8081<br/>192.168.141.10]
+        SDN[SDN Controller<br/>Port 8181<br/>192.168.141.41]
     end
     
-    subgraph "Data Layer"
-        SQLite[(SQLite<br/>metrics.db)]
-        JSON[(JSON Files<br/>events.jsonl)]
-        Config[(Config Files<br/>config/)]
+    subgraph "Storage Layer"
+        JSONL[(JSONL Files<br/>logs/events.jsonl)]
+        SQLITE[(SQLite DB<br/>logs/metrics.db)]
+        FILES[(Config Files<br/>config/*.json)]
     end
     
-    CLI --> PolicyEngine
-    Script --> PolicyEngine
-    Curl --> PolicyEngine
+    CLI --> PROXY
+    DASH --> PROXY
+    CURL --> ROUTES
+    SCRIPT --> ROUTES
     
-    CLI --> Collector
-    Script --> Collector
-    Curl --> Collector
+    PROXY --> PE
+    PROXY --> COL
+    ROUTES --> PE
+    ROUTES --> COL
     
-    PolicyEngine --> Config
-    Collector --> SQLite
-    Collector --> JSON
-    FLServer --> PolicyEngine
+    PE --> FILES
+    COL --> JSONL
+    COL --> SQLITE
+    FL --> PE
+    FLM --> COL
+    SDN --> COL
+    
+    style PE fill:#d2a8ff,stroke:#8b5cf6,color:#000
+    style COL fill:#7ce38b,stroke:#1a7f37,color:#000
+    style FL fill:#ffa7c4,stroke:#bf8700,color:#000
+    style PROXY fill:#f0ad4e,stroke:#ec971f,color:#000
 ```
 
 ## Service Endpoints
 
-### Core Services
+FLOPY-NET provides APIs across multiple deployment environments with consistent interfaces but different network configurations.
 
-| Service | Port | Base URL | Description | Status |
-|---------|------|----------|-------------|--------|
-| Policy Engine API | 5000 | `/` | Policy management and enforcement | ✅ Active |
-| Collector API | 8000 | `/` | Metrics collection and aggregation | ✅ Active |
-| FL Server API | 8080/8081 | `/` | Federated learning coordination | ✅ Active |
-| SDN Controller API | 8181 | `/onos/v1` | Network management (if enabled) | 🔶 Optional |
+### Deployment Environment Overview
+
+**Development Environment (Docker Compose):**
+- All services accessible via localhost with port mapping
+- Simplified networking with static container IPs
+- Direct API access without tunneling
+
+**Research Environment (GNS3 VM):**
+- Services deployed within GNS3 network topology
+- External access via cloud node bridge interface
+- Realistic network conditions affecting API performance
+
+### Core API Services
+
+| Service | Development Port | GNS3 Access | Base URL | Description | Status |
+|---------|-----------------|-------------|----------|-------------|--------|
+| **Policy Engine** | 5000 | Via cloud node | `/api/v1` | Policy management and enforcement | ✅ Active |
+| **Collector** | 8083 | Via cloud node | `/api/v1` | Metrics collection and monitoring | ✅ Active |
+| **FL Server gRPC** | 8080 | Direct/tunnel | `/` | Federated learning coordination | ✅ Active |
+| **FL Metrics** | 8081 | Via collector | `/metrics` | FL training metrics (internal) | ✅ Active |
+| **Dashboard Backend** | 8001 | Via tunnel | `/api/v1` | Web dashboard backend | ✅ Active |
+| **SDN Controller** | - | Network only | `/onos/v1` | Network management (optional) | 🔶 Optional |
 
 ### Network Configuration
 
-All services run on the `192.168.100.0/24` network with static IPs:
+#### Docker Compose Environment
+```yaml
+services:
+  policy-engine:
+    ports: ["5000:5000"]
+    networks:
+      flopynet: 
+        ipv4_address: 192.168.100.20
+  
+  collector:
+    ports: ["8083:8000"]
+    networks:
+      flopynet:
+        ipv4_address: 192.168.100.40
+```
 
-| Service | Container IP | External Port | Internal Port |
-|---------|-------------|---------------|---------------|
-| Policy Engine | 192.168.100.20 | 5000 | 5000 |
-| Collector | 192.168.100.40 | 8000 | 8000 |
-| FL Server | 192.168.100.10 | - | 8080/8081 |
-| SDN Controller | 192.168.100.41 | - | 6633/8181 |
+#### GNS3 Environment
+```json
+{
+  "gns3_topology": {
+    "policy_engine": {
+      "ip": "192.168.141.20",      "port": 5000,
+      "external_access": "cloud node bridge"
+    },
+    "collector": {
+      "ip": "192.168.141.40", 
+      "port": 8000,
+      "external_access": "cloud node bridge"
+    }
+  }
+}
+```
 
 ### Authentication
 
-All APIs use JWT-based authentication with the following header:
+Currently, the APIs do not implement authentication. All endpoints are accessible without authorization headers.
 
-```http
-Authorization: Bearer <jwt_token>
-```
+**Note**: Authentication and authorization features are planned for future releases.
 
 ### Rate Limiting
 
-APIs implement rate limiting to ensure fair usage:
+Currently, the APIs do not implement rate limiting.
 
-- **Dashboard API**: 1000 requests/hour per IP
-- **Collector API**: 5000 requests/hour per IP
-- **Policy Engine API**: 500 requests/hour per IP
-- **FL Server API**: 100 requests/hour per IP
-- **SDN Controller API**: 200 requests/hour per IP
+**Note**: Rate limiting features are planned for future releases to ensure fair usage and system stability.
 
 ### Error Handling
 
@@ -168,7 +219,7 @@ npm run api-docs
 ## Next Steps
 
 - [Dashboard API Reference](./dashboard-api.md) - Web dashboard backend API
-- [Collector API Reference](./collector-api.md) - Metrics collection API
+- [Collector API Reference](./collector.md) - Metrics collection API
 - [Policy Engine API Reference](./policy-engine-api.md) - Policy management API
 - [FL Framework API Reference](./fl-framework.md) - Federated learning API
 - [SDN Controller API Reference](./networking-api.md) - Network management API

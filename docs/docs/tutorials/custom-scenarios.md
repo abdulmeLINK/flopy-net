@@ -10,11 +10,11 @@ Learn how to create and configure custom federated learning scenarios to test di
 
 FLOPY-NET scenarios allow you to simulate realistic federated learning environments with:
 
-- **Custom Network Topologies**: Define complex network structures
-- **Realistic Network Conditions**: Simulate latency, bandwidth limitations, packet loss
+- **Custom Network Topologies**: Define complex network structures using GNS3 VM integration
+- **Realistic Network Conditions**: Simulate latency, bandwidth limitations, packet loss using SDN
 - **Diverse Client Behaviors**: Configure different client capabilities and data distributions
 - **Policy Variations**: Test different governance and security policies
-- **Failure Scenarios**: Simulate network failures, client dropouts, and attacks
+- **Failure Scenarios**: Simulate network failures, client dropouts, and adversarial attacks
 
 ## Scenario Architecture
 
@@ -22,14 +22,14 @@ FLOPY-NET scenarios allow you to simulate realistic federated learning environme
 graph TB
     subgraph "Scenario Definition"
         SD[Scenario Class] --> NC[Network Config]
-        SD --> CC[Client Config]
+        SD --> CC[Client Config] 
         SD --> PC[Policy Config]
         SD --> EC[Experiment Config]
     end
     
     subgraph "Execution Engine"
-        EE[Scenario Engine] --> GNS3[GNS3 Integration]
-        EE --> FL[FL Framework]
+        EE[Scenario Engine] --> GNS3[GNS3 VM Integration]
+        EE --> FL[Custom FL Framework]
         EE --> PE[Policy Engine]
         EE --> COL[Collector]
     end
@@ -48,85 +48,242 @@ graph TB
     style MON fill:#56d364,stroke:#238636,color:#000
 ```
 
+## Important Network Configuration Notes
+
+### Subnet Requirements for GNS3 VM Integration
+
+When using GNS3 VM with cloud node topologies, **all FLOPY-NET components must be in the same subnet** for proper communication:
+
+```json
+{
+  "network": {
+    // ...existing network config...
+    "subnet": "192.168.100.0/24",
+    "gateway": "192.168.100.1",
+    "dns_servers": ["8.8.8.8", "8.8.4.4"],
+    
+    // All components in same subnet - REQUIRED for GNS3 VM
+    "ip_map": {
+      "policy-engine": "192.168.100.20",
+      "fl-server": "192.168.100.10", 
+      "collector": "192.168.100.40",
+      "sdn-controller": "192.168.100.41",
+      "openvswitch": "192.168.100.60",
+      "fl-client-1": "192.168.100.101",
+      "fl-client-2": "192.168.100.102",
+      "fl-client-3": "192.168.100.103",      "fl-client-4": "192.168.100.104",
+      "fl-client-5": "192.168.100.105"
+    },
+    
+    // Cloud node configuration for external access
+    "external_access": {
+      "cloud_node": {
+        "enabled": true,
+        "bridge_interface": "ens192"
+      },
+      "services": [
+        {
+          "name": "policy-engine",
+          "ip": "192.168.100.20",
+          "port": 5000
+        },
+        {
+          "name": "collector",
+          "ip": "192.168.100.40", 
+          "port": 8000
+        },
+        {
+          "name": "sdn-controller",
+          "ip": "192.168.100.41",
+          "port": 8181
+        }
+      ]
+    }
+  }
+}
+```
+
+### Important: Same Subnet Configuration
+
+**Critical for GNS3 VM Integration**: All FLOPY-NET components must be deployed in the same subnet (192.168.100.0/24) when using GNS3 VM. Cloud nodes provide external access without requiring complex port forwarding configurations and ensure:
+
+- **Direct Communication**: All containers can communicate directly without NAT
+- **Service Discovery**: Components can resolve each other by IP address
+- **Policy Enforcement**: Policy engine can reach all components without forwarding
+- **Simplified Networking**: No complex routing or port mapping required
+- **Better Performance**: Reduced network overhead with cloud node access
+- **External Connectivity**: Cloud node provides seamless host-to-GNS3 network access
+
+### Why Same Subnet is Required
+
+1. **Container Communication**: Docker containers in GNS3 VM need layer 2 connectivity
+2. **Service Discovery**: Components discover each other via broadcast/multicast in same subnet
+3. **Policy Engine Access**: Policy enforcement requires direct IP connectivity
+4. **SDN Control**: OpenFlow controller needs to reach all switches in same broadcast domain
+
 ## Creating Your First Custom Scenario
 
-### Step 1: Define the Scenario Class
+### Step 1: Define the Scenario Configuration
 
-Create a new scenario class that extends the base scenario:
+Create a new scenario configuration file that follows the FLOPY-NET format:
+
+```json
+{
+  "scenario_type": "custom_heterogeneous",
+  "scenario_name": "Heterogeneous Network FL",
+  "description": "FL with diverse client capabilities and network conditions",
+    "gns3": {
+    "server_url": "http://192.168.56.100:3080",
+    "project_name": "heterogeneous_fl_scenario",
+    "reset_project": true,
+    "cleanup_action": "stop",
+    "vm_integration": true,
+    "ssh_config": {
+      "host": "192.168.56.100",
+      "port": 22,
+      "username": "gns3",
+      "password": "gns3"
+    }
+  },
+    "network": {
+    "gns3": {
+        "host": "192.168.56.100", 
+        "port": 3080 
+    },
+    "gns3_ssh": { 
+        "user": "gns3", 
+        "password": "gns3", 
+        "port": 22 
+    },    "topology_file": "config/topology/heterogeneous_topology.json",
+    "use_static_ip": true,
+    "host_mapping": true,
+    "subnet": "192.168.100.0/24",
+    "gns3_network": true,
+    "wait_for_network": true,
+    "network_timeout": 120,
+    "same_subnet_mode": true,
+    "note": "All components must be in same subnet for direct communication",
+    "ip_map": {
+      "policy-engine": "192.168.100.20",
+      "fl-server": "192.168.100.10",
+      "collector": "192.168.100.40", 
+      "sdn-controller": "192.168.100.41",
+      "openvswitch": "192.168.100.60",
+      "fl-client-1": "192.168.100.101",
+      "fl-client-2": "192.168.100.102",
+      "fl-client-3": "192.168.100.103",      "fl-client-4": "192.168.100.104",
+      "fl-client-5": "192.168.100.105"
+    }
+  },
+
+  "federation": {
+    "rounds": 20,
+    "min_clients": 3,
+    "max_clients": 5,
+    "client_selection_strategy": "random",
+    "aggregation_strategy": "FedAvg",
+    "server_config": {
+      "host": "0.0.0.0",
+      "port": 8080,
+      "metrics_port": 8081
+    }
+  },
+
+  "clients": {
+    "total_clients": 5,
+    "client_types": {
+      "cloud": {
+        "count": 1,
+        "data_size": 5000,
+        "local_epochs": 5,
+        "batch_size": 64,
+        "learning_rate": 0.01
+      },
+      "edge": {
+        "count": 2,
+        "data_size": 2000,
+        "local_epochs": 3,
+        "batch_size": 32,
+        "learning_rate": 0.015
+      },
+      "mobile": {
+        "count": 2,
+        "data_size": 800,
+        "local_epochs": 2,
+        "batch_size": 16,
+        "learning_rate": 0.02
+      }
+    }
+  },
+
+  "data_distribution": {
+    "type": "non_iid_dirichlet",
+    "alpha": 0.5,
+    "num_classes": 10,
+    "dataset": "cifar10"
+  },
+
+  "network_conditions": {
+    "enable_realistic_simulation": true,
+    "base_latency_ms": 50,
+    "bandwidth_variation": 0.2,
+    "packet_loss_rate": 0.001,
+    "events": [
+      {
+        "type": "network_congestion",
+        "trigger_round": 5,
+        "duration": 3,
+        "affected_clients": ["fl-client-3", "fl-client-4"],
+        "bandwidth_reduction": 0.5
+      },
+      {
+        "type": "client_dropout",
+        "trigger_round": 8,
+        "duration": 2,
+        "affected_clients": ["fl-client-5"],
+        "recovery_probability": 0.7
+      }
+    ]
+  },
+
+  "policies": {
+    "enable_custom_policies": true,
+    "trust_threshold": 0.8,
+    "max_model_size_mb": 50,
+    "resource_monitoring": true,
+    "custom_rules": [
+      {
+        "name": "heterogeneous_resource_policy",
+        "type": "resource_management",
+        "conditions": {
+          "client_type": "mobile",
+          "cpu_usage": "> 80%"
+        },
+        "actions": {
+          "reduce_batch_size": 0.5,
+          "extend_deadline": 10
+        }
+      }
+    ]
+  },
+
+  "monitoring": {
+    "enable_detailed_logging": true,
+    "collect_system_metrics": true,
+    "export_results": true,
+    "visualization": {
+      "real_time_charts": true,
+      "export_format": ["json", "csv"]
+    }
+  }
+}
+```
+
+Save this as `config/scenarios/heterogeneous_fl_scenario.json`.
+
+## Running Custom Scenarios
 
 ```python
-# scenarios/custom_heterogeneous_fl.py
-from src.scenarios.base_scenario import BaseScenario
-from src.scenarios.network_conditions import NetworkCondition
-from src.scenarios.client_profiles import ClientProfile
-import json
-import time
-from typing import Dict, List, Any
-
-class HeterogeneousNetworkFL(BaseScenario):
-    """
-    Custom scenario simulating federated learning with heterogeneous 
-    network conditions and diverse client capabilities.
-    """
-    
-    def __init__(self, scenario_config: Dict[str, Any]):
-        super().__init__(scenario_config)
-        self.scenario_id = "heterogeneous_network_fl"
-        self.name = "Heterogeneous Network FL"
-        self.description = "FL with diverse client capabilities and network conditions"
-        
-        # Scenario-specific parameters
-        self.total_clients = scenario_config.get("total_clients", 12)
-        self.rounds = scenario_config.get("rounds", 20)
-        self.client_types = ["mobile", "edge", "cloud", "iot"]
-        
-    def setup_network_topology(self) -> Dict[str, Any]:
-        """Define the network topology for this scenario."""
-        return {
-            "topology_type": "hierarchical",
-            "regions": [
-                {
-                    "region_id": "region_1",
-                    "name": "Urban Area",
-                    "gateway": "gw-urban",
-                    "characteristics": {
-                        "base_latency_ms": 20,
-                        "bandwidth_mbps": 1000,
-                        "reliability": 0.99
-                    }
-                },
-                {
-                    "region_id": "region_2", 
-                    "name": "Suburban Area",
-                    "gateway": "gw-suburban",
-                    "characteristics": {
-                        "base_latency_ms": 45,
-                        "bandwidth_mbps": 100,
-                        "reliability": 0.95
-                    }
-                },
-                {
-                    "region_id": "region_3",
-                    "name": "Rural Area", 
-                    "gateway": "gw-rural",
-                    "characteristics": {
-                        "base_latency_ms": 80,
-                        "bandwidth_mbps": 25,
-                        "reliability": 0.90
-                    }
-                }
-            ],
-            "connections": [
-                {"from": "fl-server", "to": "gw-urban", "latency_ms": 5, "bandwidth_mbps": 10000},
-                {"from": "gw-urban", "to": "gw-suburban", "latency_ms": 15, "bandwidth_mbps": 500},
-                {"from": "gw-suburban", "to": "gw-rural", "latency_ms": 25, "bandwidth_mbps": 100}
-            ]
-        }
-    
-    def create_client_profiles(self) -> List[ClientProfile]:
-        """Create diverse client profiles for the scenario."""
-        profiles = []
-        
         # High-end cloud clients (2 clients)
         for i in range(2):
             profiles.append(ClientProfile({
@@ -633,16 +790,16 @@ class ScenarioAnalyzer:
 
 ```bash
 # List available scenarios
-python -m src.main scenario --list
+python -m src.scenarios.run_scenario --list-scenarios
 
 # Run your custom scenario
-python -m src.main scenario --run heterogeneous_network_fl --config scenarios/configs/heterogeneous_network_fl.json
+python -m src.scenarios.run_scenario --scenario heterogeneous_network_fl --config scenarios/configs/heterogeneous_network_fl.json
 
 # Monitor scenario progress
-python -m src.main scenario --status heterogeneous_network_fl
+python -m src.scenarios.run_scenario --status heterogeneous_network_fl
 
 # Get scenario results
-python -m src.main scenario --results heterogeneous_network_fl
+python -m src.scenarios.run_scenario --results heterogeneous_network_fl
 ```
 
 ### Using the Python API
@@ -737,4 +894,4 @@ After mastering custom scenarios:
 3. **Integrate External Data**: Use real-world datasets and network traces
 4. **Contribute Scenarios**: Share your scenarios with the FLOPY-NET community
 
-For more advanced scenario development, see the [Advanced Configuration Tutorial](./advanced-configuration.md) and [Development Setup Guide](../development/setup.md).
+For more advanced scenario development, see the [Advanced Configuration Tutorial](./advanced-configuration.md) and [Development Setup Guide](../development/setup.md)

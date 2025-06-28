@@ -5,6 +5,15 @@
 
 This section provides comprehensive configuration templates based on the actual configuration files used in the FLOPY-NET framework. These templates represent real, tested configurations from the project.
 
+\textbf{Important Note on IP Configuration:} FLOPY-NET uses static IP assignment for all components. DHCP is not preferred or supported as it can cause inconsistent network behavior in federated learning experiments. All IP addresses shown in these templates are fully customizable and can be modified to match your network environment requirements. The system supports two main deployment modes:
+
+\begin{itemize}
+\item \textbf{Docker Compose Environment:} Uses 192.168.100.0/24 subnet by default
+\item \textbf{GNS3 VM Environment:} Uses 192.168.141.0/24 subnet by default
+\end{itemize}
+
+Both subnets can be customized in the configuration files to avoid conflicts with existing network infrastructure.
+
 \subsubsection{Network Topology Configuration}
 
 The following template shows the complete structure of a basic federated learning topology as implemented in \texttt{config/topology/basic\_topology.json}:
@@ -145,29 +154,28 @@ The following template shows the complete structure of a scenario configuration 
         "user": "gns3", 
         "password": "gns3", 
         "port": 22 
-    },
-    "topology_file": "config/topology/basic_topology.json",
+    },    "topology_file": "config/topology/basic_topology.json",
     "use_static_ip": true,
     "host_mapping": true,
-    "subnet": "192.168.100.0/24",
+    "subnet": "192.168.141.0/24",
     "gns3_network": true,
     "wait_for_network": true,
     "network_timeout": 120,
     "ip_map": {
-      "policy-engine": "192.168.100.20",
-      "fl-server": "192.168.100.10",
-      "collector": "192.168.100.40",
-      "sdn-controller": "192.168.100.41",
-      "openvswitch": "192.168.100.42",
-      "fl-client-1": "192.168.100.101",
-      "fl-client-2": "192.168.100.102",
-      "fl-client-3": "192.168.100.103"
+      "policy-engine": "192.168.141.20",
+      "fl-server": "192.168.141.10",
+      "collector": "192.168.141.40",
+      "sdn-controller": "192.168.141.41",
+      "openvswitch": "192.168.141.60",
+      "fl-client-1": "192.168.141.101",
+      "fl-client-2": "192.168.141.102",
+      "fl-client-3": "192.168.141.103"
     }
   },
 
   "collector_forwarding": {
     "node_name": "collector",
-    "internal_ip": "192.168.100.40", 
+    "internal_ip": "192.168.141.40",
     "internal_port": 8000, 
     "external_port": 8001  
   },
@@ -271,7 +279,7 @@ The following template shows the structure of policy configurations as implement
 
 \subsubsection{Docker Template Mapping}
 
-The system uses the following Docker templates that correspond to images in the \texttt{abdulmelik} Docker Hub registry:
+The system uses the following Docker templates that correspond to images in the \texttt{abdulmelink} Docker Hub registry:
 
 \begin{table}[H]
 \centering
@@ -281,28 +289,31 @@ The system uses the following Docker templates that correspond to images in the 
 \toprule
 \textbf{Template Name} & \textbf{Docker Image} & \textbf{Dockerfile} \\
 \midrule
-flopynet-PolicyEngine & abdulmelik/flopynet-policy-engine & flopynet\_policy\_engine.Dockerfile \\
-flopynet-FLServer & abdulmelik/flopynet-fl-server & flopynet\_fl\_server.Dockerfile \\
-flopynet-FLClient & abdulmelik/flopynet-fl-client & flopynet\_fl\_client.Dockerfile \\
-flopynet-Collector & abdulmelik/flopynet-collector & flopynet\_collector.Dockerfile \\
-flopynet-Controller & abdulmelik/flopynet-controller & flopynet\_controller.Dockerfile \\
-OpenVSwitch & abdulmelik/flopynet-openvswitch & flopynet\_openvswitch.Dockerfile \\
+flopynet-PolicyEngine & abdulmelink/flopynet-policy-engine & flopynet\_policy\_engine.Dockerfile \\
+flopynet-FLServer & abdulmelink/flopynet-fl-server & flopynet\_fl\_server.Dockerfile \\
+flopynet-FLClient & abdulmelink/flopynet-fl-client & flopynet\_fl\_client.Dockerfile \\
+flopynet-Collector & abdulmelink/flopynet-collector & flopynet\_collector.Dockerfile \\
+flopynet-Controller & abdulmelink/flopynet-controller & flopynet\_controller.Dockerfile \\
+OpenVSwitch & abdulmelink/flopynet-openvswitch & flopynet\_openvswitch.Dockerfile \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsubsection{Environment Variable Templates}
 
-Common environment variables used across different node types in the actual system:
+Common environment variables used across different node types in the actual system. Note that all IP ranges and subnet configurations are fully customizable:
 
 \begin{lstlisting}[style=bashcode, caption=Common Environment Variables]
-# Network Configuration
+# Network Configuration (Customizable - Examples for GNS3 VM Environment)
 SUBNET_PREFIX=192.168.141
 CLIENT_IP_RANGE=100-255
 SERVER_IP_RANGE=10-19
 POLICY_IP_RANGE=20-29
 CONTROLLER_IP_RANGE=30-49
 OVS_IP_RANGE=60-99
+
+# For Docker Compose Environment, use:
+# SUBNET_PREFIX=192.168.100
 
 # Service Configuration
 LOG_LEVEL=INFO
