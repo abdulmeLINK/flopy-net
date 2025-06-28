@@ -1,5 +1,9 @@
 # FLOPY-NET: Federated Learning Observatory Platform - Network Emulation & Testing
 
+[![Documentation](https://img.shields.io/badge/Documentation-flopynetdocs--a960.eu.onamber.cloud-blue?style=for-the-badge&logo=readthedocs)](https://flopynetdocs-a960.eu.onamber.cloud/)
+[![Demo Platform](https://img.shields.io/badge/Demo-flopynet.abdulme.link-green?style=for-the-badge&logo=rocket)](https://flopynet.abdulme.link/)
+[![GitHub Views](https://komarev.com/ghpvc/?username=abdulmelink&repo=flopy-net&style=for-the-badge&color=orange)](https://github.com/abdulmelink/flopy-net)
+
 **Current Version**: v1.0.0-alpha.8
 
 > ⚠️ **ALPHA VERSION WARNING**  
