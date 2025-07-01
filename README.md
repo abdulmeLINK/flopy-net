@@ -23,28 +23,29 @@ Follow the results from the dashboard. Here are the clarifications and possibili
 
 
 
-> 🚀 **DEVELOPER'S CALL - SEEKING CONTRIBUTORS - HIGH PRIORITY AREAS**  
+**🚀 DEVELOPER'S CALL - SEEKING CONTRIBUTORS - HIGH PRIORITY AREAS**  
+
 FLOPY-NET is actively seeking contributions in **critical areas** that would significantly improve the platform's usability and adoption:
-> 
-> **🎯 Architecture & Complexity Reduction**
-> - Our architecture is similart to microservice nature. Simplify microservices architecture and reduce inter-service dependencies
-> - Streamline configuration management and reduce config file redundancy
-> - Improve code organization and software pattern consistency
-> - Standardize file structures across components
-> 
-> **🔧 FL Framework Extensibility**
-> - Create truly generic base FL client/server classes for general-purpose FL projects
-> - Develop plug-and-play ML model integration system
-> - Design standardized interfaces for custom FL algorithms and aggregation methods
-> 
-> **⚠️ Critical Stability & Usability Issues**
-> - Comprehensive testing suite and CI/CD pipeline implementation
-> - Policy Engine reliability and security improvements
-> - Documentation gaps and setup complexity reduction
-> - Network simulation stability and GNS3 integration robustness
-> - Error handling and logging standardization
-> 
-> **📖 See [Contributing](#contributing) section below for detailed guidelines.**
+
+**Architecture & Complexity Reduction**
+- Simplify microservices architecture and reduce inter-service dependencies
+- Streamline configuration management and reduce config file redundancy
+- Improve code organization and software pattern consistency
+- Standardize file structures across components
+
+**FL Framework Extensibility**
+- Create truly generic base FL client/server classes for general-purpose FL projects
+- Develop plug-and-play ML model integration system
+- Design standardized interfaces for custom FL algorithms and aggregation methods
+
+**⚠️ Critical Stability & Usability Issues**
+- Comprehensive testing suite and CI/CD pipeline implementation
+- Policy Engine reliability and security improvements
+- Documentation gaps and setup complexity reduction
+- Network simulation stability and GNS3 integration robustness
+- Error handling and logging standardization
+
+**📖 See [Contributing](#contributing) section below for detailed guidelines.**
 
 > ⚠️ **ALPHA VERSION WARNING**  
 > This is an **alpha development version** of FLOPY-NET. Many features are **not fully tested** and may contain bugs or incomplete implementations. The **Policy Engine** in particular has **untrusted policy types** and enforcement mechanisms that are still under development. Use this platform for research and development purposes only - **NOT for production environments**.
