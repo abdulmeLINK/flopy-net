@@ -1,14 +1,57 @@
-# FLOPY-NET: Federated Learning Observatory Platform - Network Emulation & Testing
+# FLOPY-NET: Federated Learning Platform - Network Emulation & Testing
 
 [![Documentation](https://img.shields.io/badge/Documentation-flopynetdocs--a960.eu.onamber.cloud-blue?style=for-the-badge&logo=readthedocs)](https://flopynetdocs-a960.eu.onamber.cloud/)
 [![Demo Platform](https://img.shields.io/badge/Demo-flopynet.abdulme.link-green?style=for-the-badge&logo=rocket)](https://flopynet.abdulme.link/)
 [![Visitor Badge](https://api.visitorbadge.io/api/VisitorHit?user=abdulmeLINK&repo=flopy-net&countColor=%2379c0ff)](https://github.com/abdulmelink/flopy-net)
 [![Version](https://img.shields.io/badge/Version-v1.0.0--alpha.8-red?style=for-the-badge&logo=semver)](https://github.com/abdulmelink/flopy-net/releases)
 
+## Developer's Note
+
+Federated Learning is a new key concept for preserving privacy in Machine Learning, but you will have a hard time fitting your task into this concept. FLOPY-NET is a starting point for your FL projects.
+
+**FLOPY-NET is intended for:** Prepare and Deploy your scenario.
+
+As you read the source code, you will notice some slight differences in standardization between containerization of the components, the architectural coherence and integrity, file structures, and configuration formats due to the very intense modification rate I had to put to evolve into this generic framework since it is a matter of tradeoffs. Due to the engineering project nature, it was made in a tight time frame and schedule, and these flaws exist.
+
+It is important to keep the pipelines and architectures simple and straightforward so it will be easier to debug for the user base this project will have. The components need to be as atomized as possible so they can act as building blocks to allow more possibilities in research and deployments.
+
+Follow the results from the dashboard. Here are the clarifications and possibilities for high-end usage:
+
+- **Can I put AI-based Policy Engine synthesis and analysis?** **Yes**
+- **Can I use the dashboard for my real-world deployment?** **Yes**, It is not intended for that, but as long as the format and endpoints match, why not?
+- **How do I use SDN management in real-world deployments?** Edge device + VPN → Manage and monitor network + Run policies on network
+
+
+
+> 🚀 **DEVELOPER'S CALL - SEEKING CONTRIBUTORS - HIGH PRIORITY AREAS**  
+FLOPY-NET is actively seeking contributions in **critical areas** that would significantly improve the platform's usability and adoption:
+> 
+> **🎯 Architecture & Complexity Reduction**
+> - Our architecture is similart to microservice nature. Simplify microservices architecture and reduce inter-service dependencies
+> - Streamline configuration management and reduce config file redundancy
+> - Improve code organization and software pattern consistency
+> - Standardize file structures across components
+> 
+> **🔧 FL Framework Extensibility**
+> - Create truly generic base FL client/server classes for general-purpose FL projects
+> - Develop plug-and-play ML model integration system
+> - Design standardized interfaces for custom FL algorithms and aggregation methods
+> 
+> **⚠️ Critical Stability & Usability Issues**
+> - Comprehensive testing suite and CI/CD pipeline implementation
+> - Policy Engine reliability and security improvements
+> - Documentation gaps and setup complexity reduction
+> - Network simulation stability and GNS3 integration robustness
+> - Error handling and logging standardization
+> 
+> **📖 See [Contributing](#contributing) section below for detailed guidelines.**
+
 > ⚠️ **ALPHA VERSION WARNING**  
 > This is an **alpha development version** of FLOPY-NET. Many features are **not fully tested** and may contain bugs or incomplete implementations. The **Policy Engine** in particular has **untrusted policy types** and enforcement mechanisms that are still under development. Use this platform for research and development purposes only - **NOT for production environments**.
 
 FLOPY-NET is a comprehensive research platform for evaluating federated learning systems under realistic network conditions. The current implementation provides FL simulation using random data to demonstrate network effects, policy enforcement, and system monitoring capabilities. It bridges the gap between theoretical federated learning research and real-world network dynamics by integrating network emulation, performance monitoring, and policy enforcement capabilities.
+
+
 
 > **Current Implementation Status**: The FL client and server components simulate federated learning training using randomly generated data to demonstrate system behavior, network interaction patterns, and policy enforcement. For actual machine learning research, these components can be extended with real ML models and datasets.
 
@@ -302,15 +345,49 @@ flopy-net/
 
 ## Contributing
 
-FLOPY-NET is an open-source research platform. Contributions are welcome!
+FLOPY-NET is an open-source research platform actively seeking contributors to address critical development priorities and enhance platform usability.
 
-1. **Fork the repository** and create a feature branch
-2. **Follow the coding standards** defined in the development documentation
-3. **Add tests** for new functionality
-4. **Update documentation** for any changes
-5. **Submit a pull request** with detailed description
+### 🎯 **Priority Contribution Areas**
 
-See `docs/development/contributing.md` for detailed contribution guidelines.
+**Architecture & Complexity Reduction (High Impact)**
+- **Microservices Simplification**: Reduce inter-service dependencies and communication overhead
+- **Configuration Consolidation**: Merge redundant config files and standardize parameter management
+- **Code Organization**: Implement consistent software patterns and improve module structure
+- **File Structure Standardization**: Establish coherent directory layouts across all components
+
+**FL Framework Extensibility (Research Impact)**
+- **Generic Base Classes**: Develop truly reusable FL client/server foundations for any ML project
+- **Model Integration System**: Create plug-and-play interfaces for PyTorch, TensorFlow, JAX models
+- **Algorithm Interfaces**: Design standardized APIs for custom aggregation methods and FL algorithms
+- **Dataset Abstraction**: Build flexible data loading and preprocessing pipelines
+
+**Critical Stability & Usability (Adoption Impact)**
+- **Testing Infrastructure**: Implement comprehensive unit, integration, and end-to-end testing
+- **Policy Engine Hardening**: Fix reliability issues and security vulnerabilities
+- **Setup Simplification**: Reduce installation complexity and improve error messages
+- **GNS3 Integration Stability**: Resolve network simulation crashes and connectivity issues
+- **Logging Standardization**: Implement consistent error handling and debugging capabilities
+
+### 📋 **Contribution Guidelines**
+
+1. **Review Priority Areas**: Check the high-priority areas listed above and in the top README section
+2. **Fork and Branch**: Create a feature branch from the main repository
+3. **Follow Standards**: Adhere to existing code patterns and documentation requirements
+4. **Add Tests**: Include comprehensive tests for new functionality and bug fixes
+5. **Update Documentation**: Ensure all changes are properly documented
+6. **Submit PR**: Provide detailed description of changes and impact assessment
+
+### 🛠️ **Development Setup**
+- Review `docs/development/contributing.md` for detailed setup instructions
+- Join discussions for architecture decisions and design reviews
+- Test changes against multiple scenarios before submission
+
+### 💡 **Ideas & Discussions**
+- **GitHub Issues**: Report bugs, request features, or propose architectural improvements
+- **Discussions**: Architecture decisions, design patterns, and research directions
+- **Discord/Slack**: Real-time collaboration and quick questions (coming soon)
+
+**Priority contributions addressing architecture simplification and FL framework extensibility will receive expedited review and integration.**
 
 ## License
 
