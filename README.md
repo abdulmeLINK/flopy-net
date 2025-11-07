@@ -32,8 +32,8 @@ Unlike pure FL frameworks, FLOPY-NET bridges the gap between theoretical federat
 - **Scenario-Based Experiments**: Reproducible experiments defined via JSON configuration files
 - **Extensible Architecture**: Modular design allows researchers to plug in custom ML models, aggregation algorithms, and network policies
 
-![FLOPY-NET Dashboard Overview](docs/images/dashboard-overview.png)
-*Real-time dashboard showing FL training progress and network topology*
+![FLOPY-NET Dashboard Overview](docs/images/flopynet-dashboard-overview-start.png)
+*Real-time dashboard showing system overview and FL training status*
 
 ### Current Implementation Status
 
@@ -80,7 +80,7 @@ Want to see FLOPY-NET in action? Check out the live demo:
 2. **Deploy** (5 min): Run one command to deploy FL server, clients, and network infrastructure
 3. **Monitor** (Real-time): Watch federated learning training in your browser with live metrics
 
-![FL Training Progress](docs/images/fl-training-progress.png)
+![FL Training Progress](docs/images/flopynet-dashboard-fl-charts.png)
 *Live federated learning training rounds with accuracy/loss metrics*
 
 ---
@@ -391,7 +391,7 @@ The dashboard will be available at:
 - **Frontend**: http://localhost:8085
 - **Backend API**: http://localhost:8001
 
-> ✅ **If you completed Step 3 correctly**, the `dashboard/docker-compose.yml` file already has the correct IPs for your GNS3 VM and subnet. The environment variables should now point to your actual GNS3 VM IP and subnet (e.g., `http://192.168.50.10:3080` instead of `http://192.168.141.128:3080`).
+> ✅ **If you completed Step 3 correctly**, the `dashboard/docker-compose.yml` file already has the correct IPs for your GNS3 VM and subnet. The environment variables should now point to your actual GNS3 VM IP and subnet (e.g., `http://192.168.50.10:80` instead of `http://192.168.141.128:80`).
 
 ### Step 6: Deploy a Scenario
 
@@ -409,16 +409,17 @@ This will:
 3. Start federated learning training
 4. Collect metrics and events
 
-### Step 7: Monitor via Dashboard
+### Step 7: Monitor & Control via Dashboard
 
 Open http://localhost:8085 in your browser to:
 - View FL training progress in real-time
 - Explore network topology
 - Monitor metrics and events
 - Analyze performance data
+- Edit policies
 
-![Dashboard Monitoring](docs/images/dashboard-monitoring.png)
-*Real-time FL monitoring with network topology visualization*
+![Dashboard Monitoring](docs/images/flopynet-dashboard-policy-engine-edit.png)
+*Editing round stop rule*
 
 ---
 
@@ -460,7 +461,7 @@ Open http://localhost:8085 in your browser to:
    - Download and install [GNS3 GUI 2.2.54](https://github.com/GNS3/gns3-gui/releases/tag/v2.2.54) on your host machine
    - On first launch, the **Setup Wizard** will appear:
      - Choose "Run appliances on a remote server"
-     - Enter your GNS3 VM IP address and port 3080
+     - Enter your GNS3 VM IP address and port 80
      - Test the connection
    - Verify: GNS3 GUI → Edit → Preferences → Server
      - Should show your GNS3 VM server as connected (green indicator)
@@ -527,7 +528,7 @@ This creates GNS3 templates for:
 ```json
 {
   "host": "192.168.50.10",  # Your actual GNS3 VM IP
-  "port": 3080,
+  "port": 80,
   "protocol": "http"
 }
 ```
@@ -552,7 +553,7 @@ This creates GNS3 templates for:
 **`dashboard/docker-compose.yml`**: ✅ Should now have your VM IP and subnet
 ```yaml
 environment:
-  - GNS3_URL=http://192.168.50.10:3080        # Your VM IP
+  - GNS3_URL=http://192.168.50.10:80        # Your VM IP
   - COLLECTOR_URL=http://192.168.50.40:8000   # Your subnet
   - POLICY_ENGINE_URL=http://192.168.50.20:5000  # Your subnet
 ```
@@ -584,6 +585,9 @@ python src/scenarios/basic/scenario.py `
 | 4. Container Start | 2 min | Start all Docker containers in GNS3 |
 | 5. FL Training | 5-10 min | Execute 5 federated learning rounds |
 | 6. Metrics Collection | Ongoing | Continuous metrics gathering |
+
+![Scenario Topology](docs/images/flopynet-dashboard-scenario-basic-topology.png)
+*Basic scenario network topology with FL components and network infrastructure*
 
 ### Dashboard-Based Deployment
 
@@ -708,6 +712,12 @@ Access at **http://localhost:8085** after starting: `cd dashboard && docker comp
 | **Events Log** | Component events, filtering, debugging context | Troubleshoot issues |
 | **Scenario Management** | Deploy/stop scenarios, configuration preview | Control experiments |
 
+![FL Monitoring Dashboard](docs/images/flopynet-dashboard-fl-overview.png)
+*FL monitoring dashboard showing training progress and client statistics*
+
+![Network Topology View](docs/images/flopynet-dashboard-network-topology-overview.png)
+*Interactive network topology visualization with node details*
+
 ### Quick Actions
 
 | Task | Location | How |
@@ -718,6 +728,12 @@ Access at **http://localhost:8085** after starting: `cd dashboard && docker comp
 | Check policy events | Policy Engine → Events | Filter by time/type |
 | Export metrics | Metrics Explorer → Export | Download JSON/CSV |
 | Deploy scenario | Scenario Management | Click "Deploy" button |
+
+![Network Metrics Dashboard](docs/images/flopynet-dashboard-network-network-metrics.png)
+*Network performance metrics and traffic analysis*
+
+![System Events Log](docs/images/flopynet-dashboard-events.png)
+*Real-time system events and activity monitoring*
 
 ### Dashboard API
 
@@ -937,7 +953,7 @@ flopy-net/
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `GNS3_URL` | GNS3 API endpoint | `http://192.168.50.10:3080` |
+| `GNS3_URL` | GNS3 API endpoint | `http://192.168.50.10:80` |
 | `COLLECTOR_URL` | Collector service | `http://192.168.50.40:8000` |
 | `POLICY_ENGINE_URL` | Policy Engine API | `http://192.168.50.20:5000` |
 | `SUBNET_PREFIX` | Network subnet | `192.168.50` |
@@ -1269,7 +1285,7 @@ docker compose up -d
 
 # 4. Verify connectivity
 ping 192.168.50.10  # Your VM IP
-curl http://192.168.50.10:3080/v2/version
+curl http://192.168.50.10:80/v2/version
 ```
 
 ### GNS3 Connection Issues
@@ -1279,12 +1295,12 @@ curl http://192.168.50.10:3080/v2/version
 | Connection refused | VM running? | Start GNS3 VM |
 | Timeout | Network reachable? | `ping VM_IP`, check firewall |
 | Wrong endpoint | Correct IP in config? | Update `config/gns3_connection.json` |
-| Port blocked | Port 3080 accessible? | Check firewall rules |
+| Port blocked | Port 80 accessible? | Check firewall rules |
 
 **Verify GNS3 Server**:
 ```powershell
 # Test GNS3 API
-curl http://YOUR_VM_IP:3080/v2/version
+curl http://YOUR_VM_IP:80/v2/version
 
 # Should return GNS3 version info
 ```
@@ -1747,36 +1763,48 @@ If you use FLOPY-NET in your research, please cite:
 
 ## 💬 Frequently Asked Questions
 
-> Click on any question to expand the answer.
+### 🚀 Getting Started & Setup
+
+| Question | Answer |
+|----------|--------|
+| **Why can't dashboard connect to services?** | **Cause:** Example IP addresses in config files don't match your GNS3 VM IP.<br><br>**Solution:** Get your GNS3 VM IP from the VM console (e.g., `192.168.50.10`), then use Find & Replace in VS Code (`Ctrl+Shift+H`) to replace `192.168.141.128` with your actual VM IP and `192.168.141` with your subnet prefix. Restart dashboard: `cd dashboard && docker compose restart`<br><br>See: [IP Configuration Issue](#ip-configuration-issue) |
+| **Can I use FLOPY-NET in production?** | **No.** v1.0.0-alpha.8 is a research platform only.<br><br>**Missing for production:** Authentication & authorization, TLS/SSL encryption, input validation, secret management, rate limiting, security audit of Policy Engine (experimental code), real ML training (currently synthetic data).<br><br>**Current state:** Alpha software with experimental features and no security hardening. |
+| **Does FLOPY-NET support other FL frameworks?** | **No, Flower only** (v1.5.0).<br><br>The modular architecture would allow framework adapters, but none are implemented. You'd need to create adapter in `src/fl/adapters/`, implement common FL interface, update configuration system, and maintain Policy Engine & metrics integration. This is a high-priority contribution opportunity. |
+| **Can I run FLOPY-NET without GNS3?** | **Yes.** Use the root `docker-compose.yml`:<br>`docker-compose up -d`<br><br>**You get:** FL Server, Clients, Policy Engine, Collector, Dashboard and monitoring, Basic FL experiments<br><br>**You lose:** Network emulation (latency, packet loss, bandwidth control), SDN integration, Topology visualization, Network failure injection<br><br>**Use case:** Quick testing, development, when network effects aren't your research focus. |
+| **Is FLOPY-NET cross-platform?** | **Yes** - Windows, Linux, macOS<br><br>Windows 10/11: Fully tested (PowerShell, VMware Workstation Player)<br>Linux (Ubuntu): Should work (Native Docker, KVM for GNS3 VM)<br>macOS: Should work (VMware Fusion, some path adjustments needed) |
+
+### 🔄 Federated Learning & Data
+
+| Question | Answer |
+|----------|--------|
+| **What datasets are supported?** | **Currently: Synthetic data**, with MNIST/CIFAR-10 loaders available but not wired up.<br><br>**Implemented:** `FederatedMNIST` and `FederatedCIFAR10` classes in `src/fl/client/data_loader.py` with torchvision downloads, federated partitioning (IID/non-IID), PyTorch DataLoader integration<br><br>**Not connected:** Clients use `np.random.randn()` for parameters (line ~1015-1050 in `fl_client.py`)<br><br>**Status:** Infrastructure 80% ready, needs integration work. See [Extending FLOPY-NET](#extending-flopy-net) |
+| **Can I use real ML models?** | **Infrastructure exists but not wired up.**<br><br>To enable: Replace `MinimalModelInterface` in `src/fl/client/fl_client.py` with data loaders from `data_loader.py`, replace `time.sleep()` simulation (line ~1062-1130) with actual PyTorch training loop.<br><br>**Why synthetic currently?** Demonstrates federated architecture without ML dependencies, faster experiments (10-20s vs minutes), no dataset downloads, easier debugging. |
+| **How do FL clients communicate?** | **Communication stack:** gRPC (HTTP/2) on port 8080, Protocol Buffers serialization, TCP/IP through GNS3 network<br><br>**Framework:** Flower's gRPC implementation<br>**Connection:** Persistent during rounds<br>**Messages:** ClientConnect, FitIns, FitRes, EvaluateIns/Res<br><br>All traffic experiences configured latency, loss, and bandwidth constraints. |
+| **What is the FL protocol workflow?** | **Training rounds:**<br>1. **Registration** - Client connects, sends capabilities<br>2. **Instructions** - Server broadcasts training parameters<br>3. **Local training** - Client trains on local data<br>4. **Updates** - Client sends model weights back<br>5. **Aggregation** - Server aggregates using FedAvg (`w_global = Σ(n_k/n_total × w_k)`)<br>6. **Distribution** - Server sends updated global model<br><br>Policy Engine validates actions at each step. |
+| **How do I add more FL clients?** | **Steps:**<br>1. Edit `config/topology/basic_topology.json` to add client node with IP<br>2. Update `config/scenarios/basic_main.json` with IP mapping<br>3. Ensure resources: 8GB RAM minimum, 16GB recommended (each client ~1GB)<br>4. Redeploy: `python src/scenarios/basic/scenario.py --config config/scenarios/basic_main.json`<br><br>**Note:** GNS3 VM resource allocation is critical. Adjust in VMware before adding clients. |
+
+### 🌐 Network & SDN
+
+| Question | Answer |
+|----------|--------|
+| **Why use SDN in federated learning?** | **SDN = Software-Defined Networking** enables programmable network control<br><br>**Benefits:** Dynamic QoS (prioritize FL traffic), Policy enforcement (bandwidth/latency limits), Traffic monitoring (real-time bandwidth, packet loss), Failure injection (drop connections, simulate congestion), Topology control (change paths during training)<br><br>**Note:** SDN implementation is experimental. Some features may not work as expected. |
+| **What does the SDN Controller do?** | **Role:** Programs OpenFlow switches for network control<br><br>**Stack:** Ryu framework (Python), OpenFlow 1.3 protocol, Ports 6633 (OpenFlow) and 8181 (REST API)<br><br>**Functions:** Flow rule installation, Topology discovery (LLDP), QoS policy enforcement, Traffic monitoring, Dynamic reconfiguration<br><br>**Status:** Implemented but testing is limited. Complex policy scenarios may not work reliably. |
+| **Can I run FL without SDN?** | **Yes.** SDN is optional.<br><br>**Without SDN:** ✅ Run FL training, Test aggregation algorithms, Experiment with client selection, Use Docker Compose or basic GNS3 networking<br><br>**With SDN:** Network-aware FL research, Programmable QoS, Policy-driven routing, Advanced failure injection<br><br>**To skip SDN:** Don't deploy the SDN controller node in your topology. |
+| **What network conditions can I simulate?** | **Supported:** Latency (fixed or variable 10-100ms), Bandwidth (56Kbps to 10Gbps), Packet loss (0-100%), Jitter (delay variation), Link failures (intermittent disconnections)<br><br>**Example scenarios:**<br>5G: 10-30ms latency, 100+ Mbps, <1% loss<br>WiFi: 20-50ms latency, 10-100 Mbps, 2-5% loss<br>Satellite: 500-700ms latency, 1-10 Mbps, 0-5% loss<br><br>Configure in topology JSON. Use SDN for dynamic changes during training. |
+| **GNS3 vs Docker Compose?** | **Docker Compose (Simple):** `docker-compose up -d`<br>✅ Simple, fast, low resources, easy debugging<br>❌ No network emulation, flat topology, no SDN<br>**Use for:** Development, quick testing, learning<br><br>**GNS3 (Advanced):** Full scenario deployment<br>✅ Network emulation, configurable conditions, SDN, visual topology<br>❌ Complex setup, high resources, slower, harder to debug<br>**Use for:** Network research, realistic testing |
+
+### 🔐 Policy Engine & Debugging
+
+| Question | Answer |
+|----------|--------|
+| **How does Policy Engine affect FL?** | **Role:** Centralized decision authority for FL system<br><br>**Functions:** Client selection (decides participation based on trust, resources), Model validation (checks size, detects anomalies), Security rules (flags Byzantine attacks, privacy violations), Compliance (enforces GDPR, data residency)<br><br>**Integration:** FL Server queries before client selection and aggregation, FL Clients query before sending updates, SDN Controller queries for routing decisions<br><br>⚠️ **Status:** Experimental with untested policy types. Many enforcement mechanisms are not fully implemented or reliable. |
+| **How do I debug FL issues?** | **Systematic approach:**<br>1. Check services: `python scripts/gns3_docker_shell.py PROJECT_ID NODE_ID` then `curl http://localhost:8080/health`<br>2. Verify network: `ping 192.168.100.10` and `telnet 192.168.100.10 8080`<br>3. Check logs: `python scripts/get_gns3_container_logs.py PROJECT_ID NODE_ID`<br>4. Policy Engine: `curl -X POST http://192.168.100.20:5000/evaluate`<br>5. Capture traffic: Right-click link in GNS3 → Start capture → Analyze in Wireshark (filter: `tcp.port == 8080`) |
+| **How scalable is FLOPY-NET?** | **Current scale:** 2-10 FL clients (network research, not production)<br><br>**Resource requirements:**<br>2-3 clients: 8 GB RAM, 4 cores, 5-10 min<br>4-6 clients: 16 GB RAM, 6 cores, 10-20 min<br>7-10 clients: 24-32 GB RAM, 8 cores, 20-40 min<br><br>**Designed for:** Network research (2-10 clients with deep analysis), Protocol testing, Algorithm development under network constraints<br><br>**Not designed for:** Production deployments, 100+ clients, Real-world edge orchestration |
+| **How do I export results?** | **Method 1:** Dashboard http://localhost:8085 → Metrics Explorer → Export CSV/JSON<br>**Method 2:** Direct database: `sqlite3 src/collector/metrics.db` then `SELECT * FROM training_metrics`<br>**Method 3:** API: `curl http://localhost:8001/api/fl/rounds > fl_rounds.json`<br><br>**Note:** Metrics collection depends on Collector service running and FL components properly reporting data. |
 
 ---
 
 ### 🚀 Getting Started & Setup
-
-<details>
-<summary><strong>Why can't dashboard connect to services?</strong></summary>
-
-<br>
-
-**Problem:** Dashboard shows "disconnected" or services can't communicate.
-
-**Cause:** Example IP addresses in config files don't match your GNS3 VM IP.
-
-**Solution:**
-1. Get your GNS3 VM IP from the VM console (e.g., `192.168.50.10`)
-2. Open VS Code, use Find & Replace (`Ctrl+Shift+H`)
-3. Replace `192.168.141.128` → Your actual VM IP
-4. Replace `192.168.141` → Your subnet prefix
-5. Restart dashboard: `cd dashboard && docker compose restart`
-
-See: [IP Configuration Issue](#ip-configuration-issue)
-
-</details>
-
-<details>
-<summary><strong>Can I use FLOPY-NET in production?</strong></summary>
-
-<br>
 
 **No.** v1.0.0-alpha.8 is a research platform only.
 
@@ -2406,6 +2434,9 @@ The Policy Engine serves as the centralized authority for all system decisions, 
 - Event-driven policy evaluation with real-time updates
 - Integration with all system components for decision queries
 
+![Policy Engine Decision Metrics](docs/images/flopynet-dashboard-policy-engine-decision-metrics.png)
+*Policy Engine decision metrics and governance analytics dashboard*
+
 ### 2. Collector Service (Port 8000)
 **Comprehensive Metrics and Analytics Engine**
 
@@ -2440,7 +2471,7 @@ A complete FL simulation framework designed to demonstrate federated learning be
 
 Advanced network simulation capabilities combining GNS3 with SDN controllers for realistic experimentation.
 
-**GNS3 Integration (Port 3080):**
+**GNS3 Integration (Port 80):**
 - **Topology Management**: Dynamic network topology creation and modification
 - **Container Deployment**: Automated FL component deployment in network nodes
 - **Network Conditions**: Configurable packet loss, latency, and bandwidth constraints
