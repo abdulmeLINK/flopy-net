@@ -25,7 +25,7 @@ RUN npm config set registry https://registry.npmjs.org/ \
     && npm config set fetch-retries 3
 
 # Copy package.json and package-lock.json (or yarn.lock)
-COPY dashboard/frontend/package*.json ./
+COPY package*.json ./
 
 # Install dependencies with proper error handling (including devDependencies for build)
 RUN npm install --include=dev --no-audit --no-fund --loglevel=error || \
@@ -34,7 +34,7 @@ RUN npm install --include=dev --no-audit --no-fund --loglevel=error || \
     npm install --include=dev --no-audit --no-fund --loglevel=error)
 
 # Copy the rest of the code
-COPY dashboard/frontend/ .
+COPY . .
 
 # Build the application with environment variables available
 RUN echo "Building with VITE_APP_VERSION=${VITE_APP_VERSION} and VITE_BUILD_DATE=${VITE_BUILD_DATE}" && \
@@ -44,7 +44,7 @@ RUN echo "Building with VITE_APP_VERSION=${VITE_APP_VERSION} and VITE_BUILD_DATE
 FROM nginx:stable-alpine
 
 # Copy the custom nginx config
-COPY dashboard/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy the build output from Stage 1
 COPY --from=build /app/dist /usr/share/nginx/html

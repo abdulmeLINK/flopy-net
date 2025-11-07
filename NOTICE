@@ -1,0 +1,28 @@
+FLOPY-NET: Federated Learning Platform - Network Emulation & Testing
+Copyright (c) 2025 Abdulmelik Saylan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+================================================================================
+
+This software includes third-party components with their own licensing terms:
+
+- Flower (Federated Learning Framework) - Apache License 2.0
+- GNS3 (Network Emulation Platform) - GPL v3
+- Flask (Web Framework) - BSD License
+- React (Frontend Framework) - MIT License
+- Docker - Apache License 2.0
+- OpenVSwitch - Apache License 2.0
+
+For complete license information of all dependencies, see their respective
+LICENSE files or documentation.

@@ -110,5 +110,9 @@ cover/
 **/runs/
 **/checkpoints/
 
+# Scenario results
+**/scenarios/**/results/
+*.json
+
 # Cursor
 .cursor/*
