@@ -6,11 +6,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy and install requirements first (for better caching)
-COPY dashboard/backend/requirements.txt ./
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY dashboard/backend/app /app/app
+COPY app /app/app
 
 # Create a directory for src
 RUN mkdir -p /app/src

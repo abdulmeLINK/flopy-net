@@ -268,9 +268,9 @@ class AsyncPolicyEngineClient:
 
 | Variable | Description | Default | Docker Default |
 |----------|-------------|---------|---------------|
-| `COLLECTOR_URL` | Collector service URL | `http://localhost:8083` | `http://192.168.1.109:8003` |
-| `POLICY_ENGINE_URL` | Policy Engine URL | `http://localhost:5000` | `http://192.168.1.109:8002` |
-| `GNS3_URL` | GNS3 server URL | `http://localhost:3080` | `http://192.168.1.109:8001` |
+| `COLLECTOR_URL` | Collector service URL | `http://localhost:8083` | `http://192.168.141.128:8003` |
+| `POLICY_ENGINE_URL` | Policy Engine URL | `http://localhost:5000` | `http://192.168.141.128:8002` |
+| `GNS3_URL` | GNS3 server URL | `http://localhost:3080` | `http://192.168.141.128:8001` |
 | `GNS3_API_VERSION` | GNS3 API version | `v2` | `v2` |
 | `LOG_LEVEL` | Logging level | `INFO` | `DEBUG` |
 | `CONNECTION_TIMEOUT` | Connection timeout (seconds) | `10` | `10` |
@@ -303,9 +303,9 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - GNS3_URL=${GNS3_URL:-http://192.168.1.109:8001}
-      - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.1.109:8003}
-      - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.1.109:8002}
+      - GNS3_URL=${GNS3_URL:-http://192.168.141.128:8001}
+      - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.141.128:8003}
+      - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.141.128:8002}
     volumes:
       - ../src:/app/src
       - ../config:/app/config
@@ -495,9 +495,9 @@ services:
     ports:
       - "8001:8001"    
     environment:
-      - GNS3_URL=${GNS3_URL:-http://192.168.1.109:8001}
-      - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.1.109:8003}
-      - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.1.109:8002}
+      - GNS3_URL=${GNS3_URL:-http://192.168.141.128:8001}
+      - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.141.128:8003}
+      - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.141.128:8002}
       - LOG_LEVEL=DEBUG
       - APP_VERSION=v1.0.0-alpha.8
       - BUILD_DATE=2025-06-10

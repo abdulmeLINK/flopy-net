@@ -281,8 +281,8 @@ Content-Type: application/json
 {
   "type": "network_security",
   "context": {
-    "src_ip": "192.168.1.100",
-    "dst_ip": "192.168.1.200",
+    "src_ip": "192.168.141.100",
+    "dst_ip": "192.168.141.200",
     "dst_port": 8080,
     "protocol": "tcp"
   }
@@ -314,8 +314,8 @@ Content-Type: application/json
 {
   "policy_type": "network_security",
   "context": {
-    "src_ip": "192.168.1.100",
-    "dst_ip": "192.168.1.200",
+    "src_ip": "192.168.141.100",
+    "dst_ip": "192.168.141.200",
     "dst_port": 8080,
     "protocol": "tcp"
   }
