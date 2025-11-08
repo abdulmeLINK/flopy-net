@@ -1529,7 +1529,15 @@ docker network ls
 
 ## Contributing
 
-FLOPY-NET welcomes contributions! The platform has several areas where community involvement can make a significant impact.
+FLOPY-NET welcomes contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
+
+### Quick Links
+
+- **[Contributing Guide](CONTRIBUTING.md)**: Coding standards, commit conventions, and PR process
+- **[Issue Templates](.github/ISSUE_TEMPLATE/)**: Bug reports, feature requests, and documentation issues
+- **[Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md)**: PR submission checklist
+
+FLOPY-NET has several areas where community involvement can make a significant impact.
 
 ### Priority Contribution Areas
 
@@ -1713,7 +1721,7 @@ The codebase is well-structured for AI-assisted development with clear component
 
 ## License
 
-FLOPY-NET is released under [LICENSE_TYPE - TODO: Specify license].
+FLOPY-NET is released under the [Apache License 2.0](LICENSE).
 
 ### Third-Party Components
 
