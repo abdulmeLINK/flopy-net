@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+/**
 // Simplified FL Data Manager for direct API access
 class FLDataManager {
   private baseUrl = '/api/fl-monitoring';

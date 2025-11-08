@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
 """
-Copyright (c) 2025 Abdulmelik Saylan
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -24,9 +21,11 @@ This package provides repository implementations for storing and retrieving doma
 from src.core.repositories.client_repository import IClientRepository
 from src.core.repositories.in_memory_client_repository import InMemoryClientRepository
 from src.core.repositories.file_model_repository import FileModelRepository
+from src.core.repositories.model_cleanup import ModelCleanupService
 
 __all__ = [
     'IClientRepository',
     'InMemoryClientRepository',
-    'FileModelRepository'
-]
+    'FileModelRepository',
+    'ModelCleanupService'
+] 

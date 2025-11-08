@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
 """
-Copyright (c) 2025 Abdulmelik Saylan
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -103,10 +100,10 @@ def handle_run_command(args):
         
         services.append(f"API server on {args.host}:{args.api_port}")
         
-        # Print helpful information for testing        
+        # Print helpful information for testing
         if args.debug:
             logger.info("API Debug Info:")
-            logger.info("- API Endpoints: http://localhost:5000 (Flask routes, no automatic docs)")
+            logger.info("- API Docs: http://localhost:5000/docs")
             logger.info("- Health Check: http://localhost:5000/health")
             logger.info("- Metrics: http://localhost:5000/api/metrics")
             logger.info("- Generate Test Metrics: POST http://localhost:5000/api/metrics/generate-test")

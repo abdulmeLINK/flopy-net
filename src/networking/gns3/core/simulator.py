@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
 """
-Copyright (c) 2025 Abdulmelik Saylan
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -651,7 +648,6 @@ class GNS3Simulator(INetworkSimulator):
             str: Script content
         """
         if component_type == "fl_server":
-            return """#!/usr/bin/env python3
 import os
 import sys
 import json
@@ -714,7 +710,6 @@ except Exception as e:
 """
 
         elif component_type == "fl_client":
-            return """#!/usr/bin/env python3
 import os
 import sys
 import json
@@ -798,7 +793,6 @@ except Exception as e:
 """
 
         elif component_type == "policy_engine":
-            return """#!/usr/bin/env python3
 import os
 import sys
 import json
@@ -884,7 +878,6 @@ except Exception as e:
 """
         else:
             logger.warning(f"Unknown component type: {component_type}")
-            return """#!/usr/bin/env python3
 import time
 import logging
 

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+/**
 // Mermaid diagram definitions for FLOPY-NET landing page
 
 // Initialize Mermaid with GitHub-inspired futuristic theme

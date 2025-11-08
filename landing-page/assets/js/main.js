@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+/**
 // Main JavaScript for FLOPY-NET landing page
 // Enhanced with performance optimizations and fixed diagram positioning
 

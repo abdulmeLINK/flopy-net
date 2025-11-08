@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+/**
 export { NetworkOverviewTab } from './NetworkOverviewTab';
 export { NetworkTopologyTab } from './NetworkTopologyTab';
 export { NetworkSwitchesTab } from './NetworkSwitchesTab';

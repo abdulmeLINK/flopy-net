@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+/**
 // GSAP ScrollTrigger animations for FLOPY-NET landing page
 
 document.addEventListener('DOMContentLoaded', function() {
