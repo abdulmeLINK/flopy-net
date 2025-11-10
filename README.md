@@ -1801,12 +1801,12 @@ This section provides concise answers to common questions about FLOPY-NET.
 
 | Question | Answer |
 | :--- | :--- |
-| **What datasets and models are supported?** | **Currently: Synthetic data only** (using `np.random.randn()`) to focus on architecture and network effects. However, the infrastructure for real data is **80% ready**, with **MNIST** and **CIFAR-10** loaders implemented in `src/fl/client/data_loader.py`. Needs integration work to wire them into the training loop. |
+| **What datasets and models are supported?** | **Currently: Synthetic data only** (using `np.random.randn()`) to focus on architecture and network effects. However, the infrastructure for real data is **80% ready**, with **MNIST** and **CIFAR-10** loaders implemented in **src/fl/client/data_loader.py**. Needs integration work to wire them into the training loop. |
 | **Why does training use random data?** | It is a **design decision to prioritize platform architecture over ML research**. This allows for faster experiments (10-20s), no large dataset downloads, predictable resource usage, and easier debugging of the distributed system. |
 | **How do FL clients communicate?** | Clients and the Server use **gRPC (HTTP/2)** on port 8080, leveraging **Protocol Buffers** serialization over **TCP/IP** through the GNS3 network. All traffic is subject to configured network conditions (latency, loss, bandwidth). |
-| **What is the FL protocol workflow?** | It follows the standard Flower protocol: **Registration** $\to$ **Instructions** $\to$ **Local Training** $\to$ **Updates** $\to$ **Aggregation** (FedAvg: $w_{global} = \Sigma(n_k/n_{total} \times w_k)$) $\to$ **Distribution**. The Policy Engine validates actions at each step. |
+| **What is the FL protocol workflow?** | It follows the standard Flower protocol: **Registration** $\to$ **Instructions** $\to$ **Local Training** $\to$ **Updates** $\to$ **Aggregation** (FedAvg is calculated using the weighted sum of client updates) $\to$ **Distribution**. The Policy Engine validates actions at each step. |
 | **Does FLOPY-NET support other FL frameworks?** | **No, Flower only** (v1.5.0). The modular design would allow for framework adapters, but none are currently implemented. This is a high-priority contribution opportunity. |
-| **How do I add more FL clients?** | You must: 1. Edit `config/topology/basic_topology.json` to define the new client node and IP. 2. Update `config/scenarios/basic_main.json` with the IP mapping. 3. **Ensure resources** (8GB minimum, 16GB+ recommended, as each client uses $\sim$1GB of RAM). Then redeploy. |
+| **How do I add more FL clients?** | You must: 1. Edit `config/topology/basic_topology.json` to define the new client node and IP. 2. Update `config/scenarios/basic_main.json` with the IP mapping. 3. **Ensure resources** (8GB minimum, 16GB+ recommended, as each client uses **approx. 1GB** of RAM). Then redeploy. |
 
 ---
 
@@ -1823,7 +1823,7 @@ This section provides concise answers to common questions about FLOPY-NET.
 
 | Question | Answer |
 | :--- | :--- |
-| **How scalable is FLOPY-NET?** | The platform is designed for **2-10 FL clients** for network research, not production use. Resource requirements are high due to emulation overhead ($\sim$1GB RAM per client). It is **not designed for 100+ clients**. |
+| **How scalable is FLOPY-NET?** | The platform is designed for **2-10 FL clients** for network research, not production use. Resource requirements are high due to emulation overhead (**approx. 1GB** RAM per client). It is **not designed for 100+ clients**. |
 | **Can I use FLOPY-NET in production?** | **No.** v1.0.0-alpha.8 is a research platform only and is missing critical features like **Authentication, TLS/SSL encryption, Input Validation, Secret Management, and a security audit** of the experimental Policy Engine. |
 | **How do I export experiment results?** | You have three methods: 1. **Dashboard Export** (Metrics Explorer $\to$ CSV/JSON). 2. **Direct Database Query** (`sqlite3 src/collector/metrics.db`). 3. **API Access** (e.g., `curl http://localhost:8001/api/fl/rounds`). |
 | **What data storage layers are used?** | **SQLite** for time-series performance data, **JSON** for hierarchical policy definitions, **JSONL** for event logs/audit trails, and **Docker Compose environment variables/JSON files** for configuration. |
