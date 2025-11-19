@@ -27,10 +27,11 @@ interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
   value: number;
+  title?: string;
 }
 
 function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
+  const { children, value, index, title, ...other } = props;
   return (
     <div
       role="tabpanel"
@@ -221,48 +222,48 @@ const NetworkPage: React.FC = () => {
           <Tab label="Topology" {...a11yProps(2)} />
           <Tab label="Switches" {...a11yProps(3)} />
           <Tab label="Hosts" {...a11yProps(4)} />
-          <Tab label="Links" {...a11yProps(5)} />
+          <Tab label="Switch Links" {...a11yProps(5)} />
           <Tab label="Flows" {...a11yProps(6)} />
-        </Tabs>        <TabPanel value={tabValue} index={0}>
+        </Tabs>        <TabPanel value={tabValue} index={0} title="Network Overview">
           <NetworkOverviewTab 
             networkStats={networkStats}
             refreshing={refreshing}
           />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={1}>
+        <TabPanel value={tabValue} index={1} title="Network Metrics">
           <NetworkMetricsTab />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={2}>
+        <TabPanel value={tabValue} index={2} title="Network Topology">
           <NetworkTopologyTab 
             liveTopology={liveTopology}
             selectedNode={selectedNode}
             setSelectedNode={setSelectedNode}
             refreshing={refreshing}
           />
-        </TabPanel>        <TabPanel value={tabValue} index={3}>
+        </TabPanel>        <TabPanel value={tabValue} index={3} title="Network Switches">
           <NetworkSwitchesTab 
             switchesList={switchesList}
             refreshing={refreshing}
           />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={4}>
+        <TabPanel value={tabValue} index={4} title="Network Hosts">
           <NetworkHostsTab 
             hostsList={hostsList}
             refreshing={refreshing}
           />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={5}>
+        <TabPanel value={tabValue} index={5} title="Network Links">
           <NetworkLinksTab 
             linksList={linksList}
             refreshing={refreshing}
           />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={6}>
+        <TabPanel value={tabValue} index={6} title="Network Flows">
           <NetworkFlowsTab 
             flowsData={flowsData}
             refreshing={refreshing}
