@@ -1,0 +1,41 @@
+{
+  "subnet": "192.168.100.0/24",
+  "subnet_prefix": "192.168.100",
+  "gateway": "192.168.100.1",
+  "services": {
+    "fl_server": {
+      "ip": "192.168.100.10",
+      "port": 8080,
+      "range": "192.168.100.10-19"
+    },
+    "policy_engine": {
+      "ip": "192.168.100.20",
+      "port": 5000,
+      "range": "192.168.100.20-29"
+    },
+    "collector": {
+      "ip": "192.168.100.40",
+      "port": 8000,
+      "range": "192.168.100.40-49"
+    },
+    "sdn_controller": {
+      "ip": "192.168.100.41",
+      "ports": [6633, 8181],
+      "range": "192.168.100.30-49"
+    },
+    "openvswitch": {
+      "base_ip": "192.168.100.60",
+      "range": "192.168.100.60-99"
+    },
+    "fl_clients": {
+      "base_ip": "192.168.100.101",
+      "range": "192.168.100.100-255",
+      "max_clients": 155
+    }
+  },
+  "gns3": {
+    "vm_ip": "192.168.141.128",
+    "api_port": 3080,
+    "note": "User must configure this for their environment"
+  }
+}
