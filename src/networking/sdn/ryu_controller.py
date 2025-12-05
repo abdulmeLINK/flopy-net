@@ -34,6 +34,7 @@ from urllib3.util.retry import Retry
 from src.core.common.logger import LoggerMixin
 from src.networking.interfaces.sdn_controller import ISDNController
 from src.networking.sdn.config_loader import load_sdn_config
+from src.networking.sdn.statistics import StatsCollector
 from ryu.ofproto import ofproto_v1_3
 
 class RyuController(LoggerMixin, ISDNController):
@@ -98,11 +99,18 @@ class RyuController(LoggerMixin, ISDNController):
         self.hosts = []
         self.connected = False
         
-        # Initialize statistics tracking for real performance metrics
-        self.port_stats_cache = {}  # Cache for port statistics
-        self.flow_stats_cache = {}  # Cache for flow statistics
-        self.last_stats_collection = 0  # Timestamp of last collection
-        self.stats_collection_interval = 10  # Collect stats every 10 seconds
+        # Initialize statistics collector for real performance metrics
+        self.stats_collector = StatsCollector(
+            session=self.session,
+            base_url=self.base_url,
+            timeout=self.timeout
+        )
+        
+        # Expose stats cache references for backward compatibility
+        self.port_stats_cache = self.stats_collector.port_stats_cache
+        self.flow_stats_cache = self.stats_collector.flow_stats_cache
+        self.last_stats_collection = self.stats_collector.last_stats_collection
+        self.stats_collection_interval = self.stats_collector.stats_collection_interval
 
         # Initialize connection
         self.logger.info(f"Initialized Ryu controller interface at {self.host}:{self.port}")
@@ -1512,367 +1520,57 @@ class RyuController(LoggerMixin, ISDNController):
     def get_port_statistics(self, dpid: str = None) -> Dict[str, Any]:
         """
         Get real port statistics from OpenFlow switches.
-        
-        Args:
-            dpid: Switch DPID (hex string). If None, get stats from all switches.
-            
-        Returns:
-            Dict containing port statistics with bandwidth calculations
+        Delegates to StatsCollector.
         """
         if not self.connected:
             self.logger.warning("Not connected to Ryu controller")
             return {}
-            
-        try:
-            current_time = time.time()
-            port_stats = {}
-            
-            # Get switches to query
-            switches_to_query = [dpid] if dpid else [sw.get('dpid', sw.get('id')) for sw in self.get_switches()]
-            
-            for switch_dpid in switches_to_query:
-                if not switch_dpid:
-                    continue
-                    
-                # Query port stats from Ryu REST API
-                url = f"{self.base_url}/stats/port/{switch_dpid}"
-                response = self.session.get(url, timeout=self.timeout)
-                
-                if response.status_code == 200:
-                    switch_port_stats = response.json().get(switch_dpid, [])
-                    
-                    # Calculate bandwidth for each port
-                    for port_stat in switch_port_stats:
-                        port_no = port_stat.get('port_no')
-                        cache_key = f"{switch_dpid}_{port_no}"
-                        
-                        # Get previous stats for bandwidth calculation
-                        prev_stats = self.port_stats_cache.get(cache_key)
-                        
-                        if prev_stats and current_time > prev_stats['timestamp']:
-                            time_delta = current_time - prev_stats['timestamp']
-                            
-                            # Calculate byte deltas
-                            rx_bytes_delta = port_stat.get('rx_bytes', 0) - prev_stats.get('rx_bytes', 0)
-                            tx_bytes_delta = port_stat.get('tx_bytes', 0) - prev_stats.get('tx_bytes', 0)
-                            
-                            # Calculate bandwidth in Mbps
-                            rx_mbps = (rx_bytes_delta * 8) / (time_delta * 1_000_000) if time_delta > 0 else 0
-                            tx_mbps = (tx_bytes_delta * 8) / (time_delta * 1_000_000) if time_delta > 0 else 0
-                            
-                            port_stat['rx_mbps'] = round(max(0, rx_mbps), 4)
-                            port_stat['tx_mbps'] = round(max(0, tx_mbps), 4)
-                            port_stat['total_mbps'] = round(port_stat['rx_mbps'] + port_stat['tx_mbps'], 4)
-                        else:
-                            # First collection, no bandwidth calculation possible
-                            port_stat['rx_mbps'] = 0.0
-                            port_stat['tx_mbps'] = 0.0
-                            port_stat['total_mbps'] = 0.0
-                        
-                        # Cache current stats for next calculation
-                        self.port_stats_cache[cache_key] = {
-                            'timestamp': current_time,
-                            'rx_bytes': port_stat.get('rx_bytes', 0),
-                            'tx_bytes': port_stat.get('tx_bytes', 0)
-                        }
-                    
-                    port_stats[switch_dpid] = switch_port_stats
-                else:
-                    self.logger.warning(f"Failed to get port stats for switch {switch_dpid}: {response.status_code}")
-            
-            self.last_stats_collection = current_time
-            self.logger.debug(f"Collected port statistics for {len(port_stats)} switches")
-            return port_stats
-            
-        except Exception as e:
-            self.logger.error(f"Error collecting port statistics: {e}")
-            return {}
+        return self.stats_collector.get_port_statistics(dpid, get_switches_func=self.get_switches)
 
     def get_flow_statistics(self, dpid: str = None) -> Dict[str, Any]:
         """
         Get real flow statistics from OpenFlow switches.
-        
-        Args:
-            dpid: Switch DPID (hex string). If None, get stats from all switches.
-            
-        Returns:
-            Dict containing flow statistics with proper match fields and actions
+        Delegates to StatsCollector.
         """
         if not self.connected:
             self.logger.warning("Not connected to Ryu controller")
             return {}
-            
-        try:
-            current_time = time.time()
-            flow_stats = {}
-            
-            # Get switches to query
-            switches_to_query = [dpid] if dpid else [sw.get('dpid', sw.get('id')) for sw in self.get_switches()]
-            
-            for switch_dpid in switches_to_query:
-                if not switch_dpid:
-                    continue
-                    
-                # Query flow stats from Ryu REST API
-                url = f"{self.base_url}/stats/flow/{switch_dpid}"
-                response = self.session.get(url, timeout=self.timeout)
-                
-                if response.status_code == 200:
-                    switch_flow_stats = response.json().get(switch_dpid, [])
-                    
-                    # Process and enhance flow stats
-                    processed_flows = []
-                    for flow_stat in switch_flow_stats:
-                        processed_flow = self._process_flow_entry(flow_stat)
-                        processed_flows.append(processed_flow)
-                    
-                    flow_stats[switch_dpid] = processed_flows
-                    
-                    # Cache flow stats
-                    self.flow_stats_cache[switch_dpid] = {
-                        'timestamp': current_time,
-                        'flows': processed_flows
-                    }
-                else:
-                    self.logger.warning(f"Failed to get flow stats for switch {switch_dpid}: {response.status_code}")
-            
-            self.logger.debug(f"Collected flow statistics for {len(flow_stats)} switches")
-            return flow_stats
-            
-        except Exception as e:
-            self.logger.error(f"Error collecting flow statistics: {e}")
-            return {}
+        return self.stats_collector.get_flow_statistics(dpid, get_switches_func=self.get_switches)
 
     def _process_flow_entry(self, flow_entry: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process a flow entry to extract meaningful match criteria and actions.
-        
-        Args:
-            flow_entry: Raw flow entry from OpenFlow
-            
-        Returns:
-            Processed flow entry with readable match and action descriptions
+        Delegates to StatsCollector.
         """
-        processed = flow_entry.copy()
-        
-        # Process match fields
-        match = flow_entry.get('match', {})
-        match_description = []
-        
-        # Common match fields
-        if 'in_port' in match:
-            match_description.append(f"in_port={match['in_port']}")
-        if 'eth_src' in match:
-            match_description.append(f"eth_src={match['eth_src']}")
-        if 'eth_dst' in match:
-            match_description.append(f"eth_dst={match['eth_dst']}")
-        if 'eth_type' in match:
-            eth_type = match['eth_type']
-            if eth_type == 0x0800:
-                match_description.append("eth_type=IPv4")
-            elif eth_type == 0x0806:
-                match_description.append("eth_type=ARP")
-            else:
-                match_description.append(f"eth_type=0x{eth_type:04x}")
-        if 'ipv4_src' in match:
-            match_description.append(f"ipv4_src={match['ipv4_src']}")
-        if 'ipv4_dst' in match:
-            match_description.append(f"ipv4_dst={match['ipv4_dst']}")
-        if 'tcp_src' in match:
-            match_description.append(f"tcp_src={match['tcp_src']}")
-        if 'tcp_dst' in match:
-            match_description.append(f"tcp_dst={match['tcp_dst']}")
-        if 'udp_src' in match:
-            match_description.append(f"udp_src={match['udp_src']}")
-        if 'udp_dst' in match:
-            match_description.append(f"udp_dst={match['udp_dst']}")
-        
-        processed['match_description'] = ', '.join(match_description) if match_description else "any"
-        
-        # Process actions
-        instructions = flow_entry.get('instructions', [])
-        action_descriptions = []
-        
-        for instruction in instructions:
-            if instruction.get('type') == 'APPLY_ACTIONS':
-                actions = instruction.get('actions', [])
-                for action in actions:
-                    action_type = action.get('type', 'unknown')
-                    if action_type == 'OUTPUT':
-                        port = action.get('port', 'unknown')
-                        if port == 'CONTROLLER':
-                            action_descriptions.append("send_to_controller")
-                        elif port == 'FLOOD':
-                            action_descriptions.append("flood")
-                        elif port == 'NORMAL':
-                            action_descriptions.append("normal_processing")
-                        else:
-                            action_descriptions.append(f"output_port_{port}")
-                    elif action_type == 'SET_FIELD':
-                        field = action.get('field', 'unknown')
-                        value = action.get('value', 'unknown')
-                        action_descriptions.append(f"set_{field}={value}")
-                    elif action_type == 'DROP':
-                        action_descriptions.append("drop")
-                    else:
-                        action_descriptions.append(action_type.lower())
-        
-        processed['action_description'] = ', '.join(action_descriptions) if action_descriptions else "unknown"
-        
-        return processed
+        return self.stats_collector.process_flow_entry(flow_entry)
 
     def get_performance_metrics(self) -> Dict[str, Any]:
         """
         Get comprehensive performance metrics including bandwidth, latency estimates, and flow counts.
-        
-        Returns:
-            Dict containing performance metrics
+        Delegates to StatsCollector.
         """
         if not self.connected:
             return {"error": "Not connected to SDN controller"}
-        
-        try:
-            current_time = time.time()
-            
-            # Collect fresh statistics if needed
-            if current_time - self.last_stats_collection > self.stats_collection_interval:
-                port_stats = self.get_port_statistics()
-                flow_stats = self.get_flow_statistics()
-            else:
-                # Use cached data
-                port_stats = {}
-                flow_stats = {}
-                for dpid in [sw.get('dpid', sw.get('id')) for sw in self.get_switches()]:
-                    if f"{dpid}_1" in self.port_stats_cache:  # Check if we have cached port stats
-                        # Reconstruct port stats from cache
-                        switch_ports = []
-                        for key, cached_stats in self.port_stats_cache.items():
-                            if key.startswith(f"{dpid}_"):
-                                port_no = key.split('_')[1]
-                                switch_ports.append({
-                                    'port_no': int(port_no),
-                                    'rx_mbps': 0,  # No real-time calculation from cache
-                                    'tx_mbps': 0,
-                                    'total_mbps': 0
-                                })
-                        if switch_ports:
-                            port_stats[dpid] = switch_ports
-                    
-                    if dpid in self.flow_stats_cache:
-                        flow_stats[dpid] = self.flow_stats_cache[dpid]['flows']
-            
-            # Aggregate metrics
-            total_bandwidth = 0.0
-            max_bandwidth = 0.0
-            active_flows = 0
-            total_switches = len(self.get_switches())
-            
-            # Calculate bandwidth metrics from port statistics
-            for dpid, ports in port_stats.items():
-                for port in ports:
-                    port_bandwidth = port.get('total_mbps', 0)
-                    total_bandwidth += port_bandwidth
-                    max_bandwidth = max(max_bandwidth, port_bandwidth)
-            
-            # Count active flows
-            for dpid, flows in flow_stats.items():
-                active_flows += len([f for f in flows if f.get('packet_count', 0) > 0])
-            
-            # Calculate average bandwidth (non-zero aggregation)
-            non_zero_ports = sum(1 for dpid, ports in port_stats.items() 
-                               for port in ports if port.get('total_mbps', 0) > 0)
-            avg_bandwidth = total_bandwidth / non_zero_ports if non_zero_ports > 0 else 0
-            
-            # Estimate latency based on flow processing (simplified heuristic)
-            avg_latency = 0.0
-            if active_flows > 0:
-                # Simple heuristic: more flows = higher processing latency
-                avg_latency = min(5 + (active_flows * 0.1), 100)  # Cap at 100ms
-            
-            metrics = {
-                "timestamp": current_time,
-                "bandwidth": {
-                    "total_mbps": round(total_bandwidth, 4),
-                    "average_mbps": round(avg_bandwidth, 4),
-                    "max_mbps": round(max_bandwidth, 4)
-                },
-                "latency": {
-                    "average_ms": round(avg_latency, 2),
-                    "estimated": True  # Indicate this is estimated, not measured
-                },
-                "flows": {
-                    "total_active": active_flows,
-                    "per_switch_avg": round(active_flows / total_switches, 1) if total_switches > 0 else 0
-                },
-                "switches": {
-                    "total": total_switches,
-                    "with_traffic": len([dpid for dpid, ports in port_stats.items() 
-                                       if any(p.get('total_mbps', 0) > 0 for p in ports)])
-                }
-            }
-            
-            self.logger.debug(f"Generated performance metrics: {metrics}")
-            return metrics
-            
-        except Exception as e:
-            self.logger.error(f"Error getting performance metrics: {e}")
-            return {"error": str(e)}
+        return self.stats_collector.get_performance_metrics(get_switches_func=self.get_switches)
     
     def get_network_statistics(self) -> Dict[str, Any]:
         """
         Get comprehensive network statistics including performance metrics.
-        
-        Returns:
-            Dict containing network statistics with real performance data
+        Delegates to StatsCollector.
         """
         if not self.connected:
             return {"error": "Not connected to SDN controller"}
         
-        try:
-            # Collect real-time statistics
-            switches = self.get_switches()
-            port_stats = self.get_port_statistics()
-            flow_stats = self.get_flow_statistics()
-            performance_metrics = self.get_performance_metrics()
-            
-            # Calculate network-wide statistics
-            total_switches = len(switches)
-            total_ports = sum(len(switch.get('ports', [])) for switch in switches)
-            total_flows = sum(len(flows) for flows in flow_stats.values())
-            
-            # Calculate active flows (flows with packet count > 0)
-            active_flows = 0
-            for switch_flows in flow_stats.values():
-                active_flows += len([f for f in switch_flows if f.get('packet_count', 0) > 0])
-            
-            statistics = {
-                "timestamp": time.time(),
-                "controller": {
-                    "type": "Ryu",
-                    "host": self.host,
-                    "port": self.port,
-                    "connected": self.connected
-                },
-                "topology": {
-                    "switches": total_switches,
-                    "ports": total_ports,
-                    "flows": {
-                        "total": total_flows,
-                        "active": active_flows,
-                        "efficiency": round((active_flows / max(total_flows, 1)) * 100, 2)
-                    }
-                },
-                "performance": performance_metrics,
-                "detailed_stats": {
-                    "switches": switches,
-                    "port_statistics": port_stats,
-                    "flow_statistics": flow_stats
-                }
+        # Get base statistics from StatsCollector
+        stats = self.stats_collector.get_network_statistics(get_switches_func=self.get_switches)
+        
+        # Add controller-specific information
+        if "error" not in stats:
+            stats["controller"] = {
+                "type": "Ryu",
+                "host": self.host,
+                "port": self.port,
+                "connected": self.connected
             }
-            
-            self.logger.debug(f"Generated network statistics: {total_switches} switches, {total_flows} flows")
-            return statistics
-            
-        except Exception as e:
-            self.logger.error(f"Error getting network statistics: {e}")
-            return {"error": str(e)}
+        
+        return stats

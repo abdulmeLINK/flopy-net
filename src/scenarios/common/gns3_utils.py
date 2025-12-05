@@ -298,17 +298,35 @@ def manage_socat_port_forwarding(
 if __name__ == '__main__':
     # Example usage / basic test
     # This part will only run if you execute this script directly
-    # Replace with your actual GNS3 server details and desired ports for testing
+    
+    import json
+    import os
     
     # Configure a basic logger for direct script execution testing
     logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s')
 
-    GNS3_IP = "192.168.141.128"  # Replace with your GNS3 server IP
-    GNS3_SSH_PORT = 22
-    GNS3_USER = "gns3"           # Replace with your GNS3 SSH username
-    GNS3_PASS = "gns3"           # Replace with your GNS3 SSH password
-
-    COLLECTOR_INTERNAL_IP = "192.168.100.40" # Example internal IP of a GNS3 node
+    # Load from centralized config
+    config_path = os.path.join(os.path.dirname(__file__), '../../../config/network_addressing.json')
+    gns3_config_path = os.path.join(os.path.dirname(__file__), '../../../config/gns3_connection.json')
+    
+    try:
+        with open(config_path, 'r') as f:
+            network_config = json.load(f)
+        with open(gns3_config_path, 'r') as f:
+            gns3_config = json.load(f)
+        
+        GNS3_IP = gns3_config.get('gns3', {}).get('host', '192.168.141.128')
+        GNS3_SSH_PORT = gns3_config.get('gns3', {}).get('ssh', {}).get('port', 22)
+        GNS3_USER = gns3_config.get('gns3', {}).get('ssh', {}).get('username', 'gns3')
+        GNS3_PASS = gns3_config.get('gns3', {}).get('ssh', {}).get('password', 'gns3')
+        COLLECTOR_INTERNAL_IP = network_config.get('services', {}).get('collector', {}).get('ip', '192.168.100.40')
+    except FileNotFoundError:
+        logger.warning("Config files not found, using defaults")
+        GNS3_IP = os.environ.get('GNS3_VM_IP', '192.168.141.128')
+        GNS3_SSH_PORT = 22
+        GNS3_USER = 'gns3'
+        GNS3_PASS = 'gns3'
+        COLLECTOR_INTERNAL_IP = os.environ.get('NODE_IP_COLLECTOR', '192.168.100.40')
     COLLECTOR_INTERNAL_PORT = 8000
     EXTERNAL_PORT_ON_GNS3_HOST = 8001
 

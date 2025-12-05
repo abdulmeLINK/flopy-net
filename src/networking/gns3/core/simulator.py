@@ -32,10 +32,12 @@ import uuid
 from src.networking.interfaces.network_simulator import INetworkSimulator
 from src.networking.gns3.core.api import GNS3API
 from src.networking.gns3.topology.creator import GNS3TopologyCreator
+from src.networking.gns3.core.component_deployer import ComponentDeployer
+from src.networking.gns3.core.host_operations import HostOperationsMixin
 
 logger = logging.getLogger(__name__)
 
-class GNS3Simulator(INetworkSimulator):
+class GNS3Simulator(INetworkSimulator, HostOperationsMixin):
     """GNS3 Network Simulator implementation."""
     
     def __init__(self, gns3_server_url: str = None):
@@ -92,6 +94,13 @@ class GNS3Simulator(INetworkSimulator):
                 # Create the topology creator
                 self.topology_creator = GNS3TopologyCreator(self.api, self.project_id)
                 
+                # Create the component deployer
+                self.component_deployer = ComponentDeployer(
+                    run_cmd_func=self.run_cmd_on_node,
+                    api=self.api,
+                    project_id=self.project_id
+                )
+                
             except Exception as e:
                 self._logger.error(f"Failed to initialize GNS3 simulator: {str(e)}")
                 raise RuntimeError(f"Failed to initialize GNS3 simulator: {str(e)}")
@@ -101,6 +110,7 @@ class GNS3Simulator(INetworkSimulator):
             self.project = None
             self.project_id = None
             self.topology_creator = None
+            self.component_deployer = None
 
     def _cleanup_existing_project(self, project_name: str) -> bool:
         """Clean up existing project with the same name.
@@ -526,6 +536,8 @@ class GNS3Simulator(INetworkSimulator):
         """
         Deploy a component to a node.
         
+        Delegates to ComponentDeployer.
+        
         Args:
             component_type: Type of component ('fl_server', 'fl_client', 'policy_engine')
             node_name: Name of the node
@@ -535,101 +547,26 @@ class GNS3Simulator(INetworkSimulator):
             bool: True if successful, False otherwise
         """
         try:
-            logger.info(f"Deploying {component_type} to node {node_name}")
-            
             # Get the node object by name
             node = self._get_node_by_name(node_name)
             if not node:
                 logger.error(f"Node {node_name} not found")
                 return False
             
-            # Ensure node is started
-            logger.info(f"Ensuring node {node_name} is started")
-            if not self.api.start_node(self.project_id, node.node_id):
-                logger.error(f"Failed to start node {node_name}")
-                return False
+            # Initialize component deployer if needed
+            if not self.component_deployer:
+                self.component_deployer = ComponentDeployer(
+                    run_cmd_func=self.run_cmd_on_node,
+                    api=self.api,
+                    project_id=self.project_id
+                )
             
-            # Wait for node to be ready
-            if not self.api.wait_for_node_started(self.project_id, node.node_id):
-                logger.error(f"Node {node_name} did not start in time")
-                return False
-                
-            # Get the script content for the component
-            script_content = self._get_component_script(component_type)
-            if not script_content:
-                logger.error(f"Failed to get script for {component_type}")
-                return False
-            
-            # Create a configuration file
-            config_content = json.dumps(config, indent=2)
-            
-            # Define requirements
-            requirements = ["requests", "flask", "cryptography", "numpy", "pandas"]
-            if component_type == "fl_server":
-                requirements.extend(["scikit-learn", "torch"])
-            elif component_type == "fl_client":
-                requirements.extend(["scikit-learn", "torch"])
-            elif component_type == "policy_engine":
-                requirements.append("policyengine")
-            
-            # Create the app directory
-            app_dir = f"/app/{component_type}"
-            mkdir_cmd = f"mkdir -p {app_dir}"
-            
-            # Create a temporary version of required commands to run on the node
-            setup_commands = [
-                mkdir_cmd,
-                f"echo '{script_content}' > {app_dir}/app.py",
-                f"echo '{config_content}' > {app_dir}/config.json",
-                "apk update",
-                "apk add --no-cache python3 py3-pip curl",
-                f"cd {app_dir} && python3 -m pip install --upgrade pip"
-            ]
-            
-            # Add requirements installation
-            for req in requirements:
-                setup_commands.append(f"cd {app_dir} && python3 -m pip install {req}")
-            
-            # Run each command with retry logic
-            max_retries = 3
-            
-            for cmd in setup_commands:
-                logger.info(f"Running command on {node_name}: {cmd[:30]}...")
-                
-                for retry in range(max_retries):
-                    try:
-                        result = self.run_cmd_on_node(node.node_id, cmd)
-                        if isinstance(result, tuple) and len(result) == 2:
-                            success, output = result
-                        else:
-                            success = result
-                            output = "Unknown output"
-                        
-                        if success:
-                            # Command succeeded, break retry loop
-                            break
-                        else:
-                            logger.warning(f"Command failed (attempt {retry+1}/{max_retries}): {cmd}")
-                            logger.warning(f"Output: {output}")
-                            
-                            # If we're not on the last retry, wait before trying again
-                            if retry < max_retries - 1:
-                                time.sleep(2)
-                    except Exception as e:
-                        logger.error(f"Exception running command (attempt {retry+1}/{max_retries}): {e}")
-                        if retry < max_retries - 1:
-                            time.sleep(2)
-                        else:
-                            # Failed after all retries
-                            return False
-                
-                # Check if all retries were exhausted without success
-                if not success:
-                    logger.error(f"Failed to run command after {max_retries} attempts: {cmd}")
-                    return False
-            
-            logger.info(f"Successfully deployed {component_type} to {node_name}")
-            return True
+            return self.component_deployer.deploy_component(
+                node_id=node.node_id,
+                node_name=node_name,
+                component_type=component_type,
+                config=config
+            )
                 
         except Exception as e:
             logger.error(f"Error deploying {component_type} to {node_name}: {e}")
@@ -641,261 +578,27 @@ class GNS3Simulator(INetworkSimulator):
         """
         Get a default script for a component type.
         
+        Delegates to ComponentDeployer.
+        
         Args:
             component_type: Type of component ('fl_server', 'fl_client', 'policy_engine')
             
         Returns:
             str: Script content
         """
-        if component_type == "fl_server":
-import os
-import sys
-import json
-import time
-import logging
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('server.log')
-    ]
-)
-logger = logging.getLogger("fl_server")
-
-# Load config
-logger.info("Starting Federated Learning Server")
-config_path = 'config.json'
-
-if not os.path.exists(config_path):
-    logger.error(f"Config file {config_path} not found")
-    sys.exit(1)
-
-with open(config_path, 'r') as f:
-    config = json.load(f)
-    
-logger.info(f"Loaded configuration: {config}")
-
-# Setup server parameters
-host = config.get('host', '0.0.0.0')
-port = config.get('port', 8080)
-num_rounds = config.get('num_rounds', 3)
-min_clients = config.get('min_clients', 2)
-model_name = config.get('model', 'cnn')
-
-logger.info(f"Starting FL server on {host}:{port}")
-logger.info(f"Expecting {min_clients} clients, running {num_rounds} rounds")
-
-# In real implementation, start the actual server
-try:
-    import flwr as fl
-    from flwr.server import strategy
-    
-    strategy = strategy.FedAvg(min_fit_clients=min_clients, min_evaluate_clients=min_clients)
-    
-    # Start server
-    fl.server.start_server(
-        server_address=f"{host}:{port}",
-        config=fl.server.ServerConfig(num_rounds=num_rounds),
-        strategy=strategy
-    )
-except Exception as e:
-    logger.error(f"Error starting Flower server: {e}")
-    # Keep the script running as fallback
-    while True:
-        logger.info("Server is running (fallback mode)...")
-        time.sleep(60)
-"""
-
-        elif component_type == "fl_client":
-import os
-import sys
-import json
-import time
-import random
-import logging
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('client.log')
-    ]
-)
-logger = logging.getLogger("fl_client")
-
-# Load config
-logger.info("Starting Federated Learning Client")
-config_path = 'config.json'
-
-if not os.path.exists(config_path):
-    logger.error(f"Config file {config_path} not found")
-    sys.exit(1)
-
-with open(config_path, 'r') as f:
-    config = json.load(f)
-    
-logger.info(f"Loaded configuration: {config}")
-
-# Setup client parameters
-server_host = config.get('server_host', 'localhost')
-server_port = config.get('server_port', 8080)
-client_id = config.get('client_id', 'client1')
-model_name = config.get('model', 'cnn')
-dataset = config.get('dataset', 'medical_mnist')
-local_epochs = config.get('local_epochs', 1)
-
-logger.info(f"Client {client_id} connecting to server at {server_host}:{server_port}")
-logger.info(f"Using model {model_name} on {dataset} with {local_epochs} local epochs")
-
-# In real implementation, start the actual client
-try:
-    import flwr as fl
-    import numpy as np
-    
-    # Define a simple NumPy client
-    class MedicalClient(fl.client.NumPyClient):
-        def get_parameters(self, config):
-            # Return random parameters (in a real client, return actual model params)
-            return [np.random.rand(10, 10), np.random.rand(10)]
-            
-        def fit(self, parameters, config):
-            # Simulate training
-            logger.info(f"Client {client_id} training for {local_epochs} epochs")
-            time.sleep(2)  # Simulate training time
-            
-            # Return updated parameters
-            new_params = [p + np.random.normal(0, 0.01, p.shape) for p in parameters]
-            return new_params, 100, {"accuracy": random.random()}
-            
-        def evaluate(self, parameters, config):
-            # Simulate evaluation
-            logger.info(f"Client {client_id} evaluating model")
-            
-            # Return loss and metrics
-            return random.random(), 100, {"accuracy": random.random()}
-    
-    # Start the client
-    fl.client.start_numpy_client(
-        server_address=f"{server_host}:{server_port}",
-        client=MedicalClient()
-    )
-except Exception as e:
-    logger.error(f"Error starting Flower client: {e}")
-    # Keep the script running as fallback
-    while True:
-        logger.info(f"Client {client_id} attempting to connect to server...")
-        time.sleep(10)
-"""
-
-        elif component_type == "policy_engine":
-import os
-import sys
-import json
-import time
-import logging
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('policy.log')
-    ]
-)
-logger = logging.getLogger("policy_engine")
-
-# Load config
-logger.info("Starting Policy Engine")
-config_path = 'config.json'
-
-if not os.path.exists(config_path):
-    logger.error(f"Config file {config_path} not found")
-    sys.exit(1)
-
-with open(config_path, 'r') as f:
-    config = json.load(f)
-    
-logger.info(f"Loaded configuration: {config}")
-
-# Setup policy engine parameters
-host = config.get('host', '0.0.0.0')
-port = config.get('port', 5000)
-policies = config.get('policies', [])
-
-logger.info(f"Starting policy engine on {host}:{port}")
-logger.info(f"Loaded {len(policies)} policies")
-
-# Simple HTTP server for policy enforcement
-class PolicyRequestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        response = {
-            "status": "ok",
-            "message": "Policy engine running",
-            "policies": policies
-        }
-        self.wfile.write(json.dumps(response).encode())
-        
-    def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        request = json.loads(post_data.decode())
-        
-        logger.info(f"Received policy check request: {request}")
-        
-        # Check policy compliance
-        result = {
-            "allowed": True,
-            "reason": "All checks passed",
-            "policy_id": request.get("policy_id", "default")
-        }
-        
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        self.wfile.write(json.dumps(result).encode())
-
-# Start HTTP server
-try:
-    server = HTTPServer((host, port), PolicyRequestHandler)
-    logger.info(f"Policy engine started at http://{host}:{port}")
-    server.serve_forever()
-except Exception as e:
-    logger.error(f"Error starting policy engine: {e}")
-    # Keep the script running as fallback
-    while True:
-        logger.info("Policy engine is running (fallback mode)...")
-        time.sleep(60)
-"""
-        else:
-            logger.warning(f"Unknown component type: {component_type}")
-import time
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("component")
-
-logger.info(f"Started unknown component type: {component_type}")
-
-# Keep the process running
-while True:
-    logger.info("Component is running...")
-    time.sleep(60)
-"""
+        if not self.component_deployer:
+            self.component_deployer = ComponentDeployer(
+                run_cmd_func=self.run_cmd_on_node,
+                api=self.api,
+                project_id=self.project_id
+            )
+        return self.component_deployer.get_component_script(component_type)
     
     def start_component(self, component_type: str, node_name: str) -> bool:
         """
         Start a deployed component on a node.
+        
+        Delegates to ComponentDeployer.
         
         Args:
             component_type: Type of component ('fl_server', 'fl_client', 'policy_engine')
@@ -905,47 +608,25 @@ while True:
             bool: True if successful, False otherwise
         """
         try:
-            logger.info(f"Starting {component_type} on node {node_name}")
-            
             # Get the node object by name
             node = self._get_node_by_name(node_name)
             if not node:
                 logger.error(f"Node {node_name} not found")
                 return False
             
-            # Create the app directory path
-            app_dir = f"/app/{component_type}"
+            # Initialize component deployer if needed
+            if not self.component_deployer:
+                self.component_deployer = ComponentDeployer(
+                    run_cmd_func=self.run_cmd_on_node,
+                    api=self.api,
+                    project_id=self.project_id
+                )
             
-            # Run the component in background with output redirection
-            cmd = f"cd {app_dir} && nohup python3 app.py > {component_type}.log 2>&1 &"
-            
-            # Execute the command
-            try:
-                result = self.run_cmd_on_node(node.node_id, cmd)
-                if isinstance(result, tuple) and len(result) == 2:
-                    success, output = result
-                else:
-                    success = result
-                    output = "Unknown output"
-                
-                if success:
-                    logger.info(f"Successfully started {component_type} on {node_name}")
-                    
-                    # Check if component is running
-                    check_cmd = "ps aux | grep python3"
-                    check_result = self.run_cmd_on_node(node.node_id, check_cmd)
-                    if isinstance(check_result, tuple) and len(check_result) == 2:
-                        check_success, check_output = check_result
-                        if check_success:
-                            logger.info(f"Process check on {node_name}: {check_output}")
-                    
-                    return True
-                else:
-                    logger.error(f"Failed to start {component_type} on {node_name}: {output}")
-                    return False
-            except Exception as e:
-                logger.error(f"Exception starting {component_type} on {node_name}: {e}")
-                return False
+            return self.component_deployer.start_component(
+                node_id=node.node_id,
+                node_name=node_name,
+                component_type=component_type
+            )
                 
         except Exception as e:
             logger.error(f"Error starting {component_type} on {node_name}: {e}")
@@ -957,6 +638,8 @@ while True:
         """
         Stop a deployed component on a node.
         
+        Delegates to ComponentDeployer.
+        
         Args:
             component_type: Type of component ('fl_server', 'fl_client', 'policy_engine')
             node_name: Name of the node
@@ -965,27 +648,25 @@ while True:
             bool: True if successful, False otherwise
         """
         try:
-            logger.info(f"Stopping {component_type} on node {node_name}")
-            
             # Get the node object by name
             node = self._get_node_by_name(node_name)
             if not node:
                 logger.error(f"Node {node_name} not found")
                 return False
             
-            # Create command to find and kill the Python process
-            script_file = f"{component_type.replace('fl_', '')}.py"
-            cmd = f"pkill -f 'python3 .*{script_file}'"
+            # Initialize component deployer if needed
+            if not self.component_deployer:
+                self.component_deployer = ComponentDeployer(
+                    run_cmd_func=self.run_cmd_on_node,
+                    api=self.api,
+                    project_id=self.project_id
+                )
             
-            # Execute the command
-            success, result = self.run_cmd_on_node(node.node_id, cmd)
-            if success:
-                logger.info(f"Successfully stopped {component_type} on {node_name}")
-                return True
-            else:
-                logger.warning(f"Failed to stop {component_type} on {node_name}: {result}")
-                # Consider this successful anyway, as the process might not be running
-                return True
+            return self.component_deployer.stop_component(
+                node_id=node.node_id,
+                node_name=node_name,
+                component_type=component_type
+            )
                 
         except Exception as e:
             logger.error(f"Error stopping {component_type} on {node_name}: {e}")
@@ -1190,195 +871,8 @@ while True:
             logger.error(f"Error getting node by name: {e}")
             return None
             
-    def get_hosts(self) -> List[str]:
-        """Get list of host names in the project."""
-        try:
-            # Get all nodes
-            success, nodes = self.api.get_nodes(self.project_id)
-            if not success:
-                error_msg = "Failed to get nodes from GNS3 API"
-                logger.error(error_msg)
-                raise RuntimeError(error_msg)
-            
-            # Filter Docker or VPCS nodes that can act as hosts
-            host_nodes = []
-            for node in nodes:
-                # We only want Docker or VPCS nodes as hosts
-                node_type = node.get('node_type', '').lower()
-                if node_type in ['docker', 'vpcs']:
-                    host_nodes.append(node)
-            
-            # Get node names
-            host_names = [node.get('name') for node in host_nodes]
-            
-            # Log the results
-            logger.info(f"Found {len(host_names)} hosts: {host_names}")
-            
-            # Check if we found any hosts and raise exception if not
-            if not host_names:
-                # This is an error - we expected to find nodes
-                error_msg = "No Docker or VPCS nodes found in the project"
-                logger.error(error_msg)
-                raise RuntimeError(error_msg)
-                
-            return host_names
-            
-        except Exception as e:
-            # Log error and raise exception - no fallbacks
-            error_msg = f"Error getting hosts: {e}"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)
-
-    def run_cmd_on_host(self, host: str, cmd: str) -> Tuple[bool, str]:
-        """Run command on a host."""
-        try:
-            if not self.project_id:
-                logger.error("No project ID available")
-                return False, "No project ID available"
-                
-            # Get node ID from host name
-            success, nodes = self.api.get_nodes(self.project_id)
-            if not success:
-                logger.error(f"Failed to get nodes: {nodes}")
-                return False, str(nodes)
-                
-            node_id = None
-            for node in nodes:
-                if node['name'] == host:
-                    node_id = node['node_id']
-                    break
-                    
-            if not node_id:
-                logger.error(f"Node not found for host: {host}")
-                return False, f"Node not found for host: {host}"
-                
-            # Ensure node is started
-            success, _ = self.api.start_node(self.project_id, node_id)
-            if not success:
-                logger.error(f"Failed to start node {host}")
-                return False, f"Failed to start node {host}"
-                
-            # Wait for node to be ready
-            if not self.api.wait_for_node_started(self.project_id, node_id):
-                logger.error(f"Node {host} did not start in time")
-                return False, f"Node {host} did not start in time"
-                
-            # Run command
-            success, result = self.api.run_command(self.project_id, node_id, cmd)
-            if not success:
-                logger.error(f"Failed to run command on {host}: {result}")
-                return False, str(result)
-                
-            return True, result
-            
-        except Exception as e:
-            logger.error(f"Error running command on host: {e}")
-            return False, str(e)
-
-    def configure_link(self, src: str, dst: str, bandwidth: float, latency: float, packet_loss: float) -> bool:
-        """Configure link parameters between two nodes."""
-        try:
-            # Find the link between the nodes
-            links = self.topology_creator.get_links()
-            link_id = None
-            
-            for link in links:
-                nodes = link.get('nodes', [])
-                if len(nodes) == 2:
-                    node1, node2 = nodes
-                    if ((node1.get('name') == src and node2.get('name') == dst) or
-                        (node1.get('name') == dst and node2.get('name') == src)):
-                        link_id = link.get('link_id')
-                        break
-            
-            if not link_id:
-                logger.error(f"Link between {src} and {dst} not found")
-                return False
-            
-            # Configure the link
-            return self.api.configure_link(
-                self.project_id,
-                link_id,
-                bandwidth=bandwidth,
-                latency=latency,
-                packet_loss=packet_loss
-            )
-            
-        except Exception as e:
-            logger.error(f"Error configuring link: {e}")
-            return False
-
-    def test_connectivity(self, source_node: str, target_node: str, timeout: int = 10) -> bool:
-        """
-        Test network connectivity between two nodes using ping.
-        
-        Args:
-            source_node: Name of the source node
-            target_node: Name of the target node
-            timeout: Timeout in seconds
-            
-        Returns:
-            bool: True if connectivity test passes, False otherwise
-        """
-        try:
-            self._logger.info(f"Testing connectivity from {source_node} to {target_node}")
-            
-            # Get node IDs
-            success, nodes = self.api.get_nodes(self.project_id)
-            if not success:
-                self._logger.error("Failed to get nodes")
-                return False
-            
-            # Find source and target nodes
-            source_id = None
-            target_id = None
-            target_ip = None
-            
-            for node in nodes:
-                if node.get('name') == source_node:
-                    source_id = node.get('node_id')
-                elif node.get('name') == target_node:
-                    target_id = node.get('node_id')
-                    # Get target node IP
-                    try:
-                        target_ip = self.get_node_ip(target_node)
-                    except:
-                        pass
-            
-            if not source_id or not target_id:
-                self._logger.error(f"Could not find nodes: source={source_node}, target={target_node}")
-                return False
-            
-            # If we couldn't get target IP, use hostname
-            if not target_ip:
-                target_ip = target_node
-            
-            # Test connectivity using ping
-            ping_cmd = f"ping -c 3 -W {timeout} {target_ip}"
-            
-            # Execute ping command on source node
-            url = f"{self.api.server_url}/v2/projects/{self.project_id}/nodes/{source_id}/exec"
-            data = {"command": ping_cmd}
-            response = self.api.post(url, data)
-            
-            if not response or response.status_code not in [200, 201, 204]:
-                self._logger.error(f"Failed to execute ping command: {response.text if response else 'No response'}")
-                return False
-            
-            # Check ping output
-            output = response.text if response else ""
-            if "3 packets transmitted" in output and "0% packet loss" in output:
-                self._logger.info(f"Connectivity test passed: {source_node} -> {target_node}")
-                return True
-            else:
-                self._logger.warning(f"Connectivity test failed: {source_node} -> {target_node}")
-                return False
-            
-        except Exception as e:
-            self._logger.error(f"Error testing connectivity: {str(e)}")
-            self._logger.error(traceback.format_exc())
-            return False
-
+    # Host operations (get_hosts, run_cmd_on_host, configure_link, test_connectivity)
+    # are provided via HostOperationsMixin
     def initialize_simulator(self, gns3_server_url: str) -> None:
         """Initialize the GNS3 simulator.
         

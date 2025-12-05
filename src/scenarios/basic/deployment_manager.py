@@ -33,9 +33,15 @@ from typing import Dict, List, Any, Optional
 # Import topology manager
 from src.utils.topology_manager import TopologyManager
 
+# Import link manager for link creation and port management
+from src.scenarios.basic.link_manager import LinkManager
+
+# Import node creation mixin
+from src.scenarios.basic.node_manager import NodeCreationMixin
+
 logger = logging.getLogger(__name__)
 
-class DeploymentManager:
+class DeploymentManager(NodeCreationMixin):
     """
     Manages deployment of federated learning components for basic scenario.
     
@@ -91,6 +97,9 @@ class DeploymentManager:
         
         # Set up auto-fix flag for topology issues
         self.auto_fix_conflicts = config.get('auto_fix_conflicts', True)
+        
+        # Initialize link manager (will be fully configured after nodes are created)
+        self.link_manager = None
         
         # Check if GNS3 project is available
         if gns3_manager and gns3_manager.project_id:
@@ -348,305 +357,8 @@ class DeploymentManager:
             logger.debug(traceback.format_exc())
             return False
             
-    def _create_nodes(self) -> bool:
-        """
-        Create nodes in the topology.
-        
-        Returns:
-            bool: True if all nodes were created successfully, False otherwise
-        """
-        if not self.topology:
-            logger.error("Cannot create nodes: Topology not available")
-            return False
-        
-        # Get the topology nodes
-        nodes = self.topology.get("nodes", [])
-        if not nodes:
-            logger.warning("No nodes found in the topology")
-            return False
-        
-        # Log required adapters based on links
-        required_adapters = self._calculate_required_adapters()
-        logger.info(f"Required adapters calculated: {required_adapters}")
-        
-        # First, create all Ethernet switch nodes to ensure they are ready for connections
-        for node_config in nodes:
-            node_name = node_config.get("name")
-            service_type = node_config.get("service_type", "").lower()
-            template_name = node_config.get("template_name")
-            
-            if service_type != "switch" or template_name != "Ethernet switch":
-                continue  # Skip non-switch nodes in this pass
-                
-            # Find the template ID for this node type
-            template_id = None
-            success, templates = self.gns3_manager.api._make_request('GET', 'templates')
-            
-            if success:
-                for template in templates:
-                    if template.get('name') == template_name:
-                        template_id = template.get('template_id')
-                        break
-            
-            if not template_id:
-                logger.error(f"Template not found for node {node_name}: {template_name}")
-                return False
-            
-            # Create the Ethernet switch with our special method
-            logger.info(f"Creating Ethernet switch node: {node_name} (template: {template_name})")
-            success, node_data = self._create_ethernet_switch(node_name, template_id, node_config)
-            
-            if not success:
-                logger.error(f"Failed to create Ethernet switch node: {node_name}")
-                continue
-            
-            # Store the node ID for linking later
-            node_id = node_data.get('node_id')
-            if node_id:
-                self.node_ids[node_name] = node_id
-                logger.info(f"Created Ethernet switch node: {node_name} (ID: {node_id})")
-            else:
-                logger.error(f"Node created but no node_id returned: {node_name}")
-                
-        # Now create the rest of the nodes
-        for node_config in nodes:
-            node_name = node_config.get("name")
-            service_type = node_config.get("service_type", "").lower()
-            template_name = node_config.get("template_name")
-            
-            # Skip Ethernet switches since we already created them
-            if service_type == "switch" and template_name == "Ethernet switch":
-                continue
-                
-            # Skip if node already exists in our list (might happen if node was created previously)
-            if node_name in self.node_ids:
-                logger.info(f"Node {node_name} already exists, skipping creation")
-                continue
-                
-            # Find the template ID for this node type
-            template_id = None
-            success, templates = self.gns3_manager.api._make_request('GET', 'templates')
-            
-            if success:
-                for template in templates:
-                    if template.get('name') == template_name:
-                        template_id = template.get('template_id')
-                        break
-            
-            if not template_id:
-                logger.error(f"Template not found for node {node_name}: {template_name}")
-                continue
-            
-            # Set up node parameters
-            node_params = {}
-            
-            # Add x, y coordinates if available
-            if 'x' in node_config:
-                node_params['x'] = node_config['x']
-            if 'y' in node_config:
-                node_params['y'] = node_config['y']
-                
-            # Check if this node needs specific adapter count
-            if node_name in required_adapters:
-                adapters_needed = required_adapters[node_name]
-                logger.info(f"Node {node_name} needs {adapters_needed} adapter(s)")
-
-                # Special case for Cloud node type
-                if node_config.get("service_type", "").lower() == "cloud" or node_config.get("node_type", "").lower() == "cloud" or template_name.lower() == "cloud":
-                    # Cloud nodes don't accept the adapters parameter directly
-                    logger.info(f"Setting up Cloud node {node_name} with minimal properties")
-                    # Remove any adapters property for Cloud nodes
-                    node_params = {
-                        'name': node_name,
-                        'template_id': template_id,
-                        'compute_id': 'local',
-                        'x': node_config.get('x', 0),
-                        'y': node_config.get('y', 0),
-                        'node_type': 'cloud'
-                    }
-                    # We've completely replaced the node_params for Cloud node
-                else:
-                    # Handle adapters for different node types
-                    current_adapters = 1 # Default
-                    if service_type == "openvswitch":
-                        # For OpenVSwitch nodes, use template value (typically 16)
-                        # And ensure it's at least as high as our topology needs
-                        success, template = self.gns3_manager.api.get_template(template_id)
-                        if success and template and 'adapters' in template:
-                            template_adapters = template.get('adapters', 8)
-                            current_adapters = max(adapters_needed, template_adapters)
-                            logger.info(f"Using OpenVSwitch with {current_adapters} adapters (template specifies {template_adapters})")
-                        else:
-                            # Fallback to at least 16 for OpenVSwitch
-                            current_adapters = max(adapters_needed, 16)
-                            logger.info(f"Using default of {current_adapters} adapters for OpenVSwitch")
-                    elif service_type == "sdn-controller":
-                        # For SDN controller, ensure we have at least 2 adapters
-                        # and respect any explicitly configured adapters in topology
-                        explicit_adapters = node_config.get('adapters', 0)
-                        if explicit_adapters > 0:
-                            current_adapters = max(adapters_needed, explicit_adapters)
-                            logger.info(f"Using SDN controller with {current_adapters} adapters (topology specifies {explicit_adapters})")
-                        else:
-                            current_adapters = max(adapters_needed, 2)  # Minimum 2 adapters for SDN controller
-                            logger.info(f"Using default of {current_adapters} adapters for SDN controller")
-                    elif service_type in ["switch", "ethernet_switch"] and "adapters" in node_config:
-                        # Ethernet switch port count is handled in _create_ethernet_switch
-                        ports_needed = max(adapters_needed, node_config.get("adapters", 8))
-                        logger.info(f"Ethernet switch {node_name} will need {ports_needed} ports (handled separately)")
-                        # Don't set 'adapters' param directly for switches here
-                        current_adapters = 0 # Reset to avoid setting it below
-                    else:
-                        # For all other nodes (like Docker containers)
-                        explicit_adapters = node_config.get('adapters', 0)
-                        if explicit_adapters > 0:
-                            current_adapters = max(adapters_needed, explicit_adapters)
-                            logger.info(f"Using explicitly configured {current_adapters} adapters for {node_name}")
-                        else:
-                            # Check template for default adapter count
-                            success, template = self.gns3_manager.api.get_template(template_id)
-                            if success and template and 'adapters' in template:
-                                template_adapters = template.get('adapters', 1)
-                                if template_adapters > 1:  # Only set if > 1
-                                    current_adapters = max(adapters_needed, template_adapters)
-                                    logger.info(f"Using {current_adapters} adapters for {node_name} (template default is {template_adapters})")
-                            # For OpenVSwitch, ensure minimum 16
-                            if service_type == "openvswitch":
-                                current_adapters = 16
-                                logger.info(f"Setting default 16 adapters for OpenVSwitch {node_name}")
-                            # For SDN controller, ensure minimum 2
-                            elif service_type == "sdn-controller":
-                                current_adapters = 2
-                                logger.info(f"Setting default 2 adapters for SDN controller {node_name}")
-                            # Otherwise, check ports in node config
-                            elif 'ports' in node_config and len(node_config['ports']) > 1:
-                                # If node has multiple ports defined, ensure adapters >= ports
-                                min_adapters = len(node_config['ports'])
-                                current_adapters = min_adapters
-                                logger.info(f"Setting {min_adapters} adapters based on ports config for {node_name}")
-
-                # Set the adapters parameter at the root level if needed
-                if current_adapters > 0:
-                    node_params['adapters'] = current_adapters
-                    logger.info(f"Setting {current_adapters} adapters for {node_name} in node_params")
-            else:
-                # If node wasn't in required_adapters, still check if it has explicit adapter count
-                explicit_adapters = node_config.get('adapters', 0)
-                if explicit_adapters > 0:
-                    node_params['adapters'] = explicit_adapters
-                    logger.info(f"Setting explicitly configured {explicit_adapters} adapters for {node_name}")
-                else:
-                    # Check template for default adapter count
-                    success, template = self.gns3_manager.api.get_template(template_id)
-                    if success and template and 'adapters' in template:
-                        template_adapters = template.get('adapters', 1)
-                        if template_adapters > 1:  # Only set if > 1
-                            node_params['adapters'] = template_adapters
-                            logger.info(f"Using template's default {template_adapters} adapters for {node_name}")
-                        # For OpenVSwitch, ensure minimum 16
-                        if service_type == "openvswitch":
-                            node_params['adapters'] = 16
-                            logger.info(f"Setting default 16 adapters for OpenVSwitch {node_name}")
-                        # For SDN controller, ensure minimum 2
-                        elif service_type == "sdn-controller":
-                            node_params['adapters'] = 2
-                            logger.info(f"Setting default 2 adapters for SDN controller {node_name}")
-                        # Otherwise, check ports in node config
-                        elif 'ports' in node_config and len(node_config['ports']) > 1:
-                            # If node has multiple ports defined, ensure adapters >= ports
-                            min_adapters = len(node_config['ports'])
-                            node_params['adapters'] = min_adapters
-                            logger.info(f"Setting {min_adapters} adapters based on ports config for {node_name}")
-
-            # Create environment variables dict if needed
-            if "environment" in node_config:
-                env_vars = self._create_environment_variables(node_config)
-                if env_vars:
-                    node_params['environment'] = env_vars
-                    
-            # Special case for OpenVSwitch
-            if service_type == "openvswitch":
-                # Add OVS-specific parameters
-                node_params['ports_mapping'] = []
-                for port_num in range(16):  # Create 16 ports by default for OVS nodes
-                    node_params['ports_mapping'].append({
-                        'name': f'Ethernet{port_num}',
-                        'port_number': port_num,
-                        'type': 'access',
-                        'vlan': 1
-                    })
-                    
-            # Fetch actual template to check its adapter count
-            success, template = self.gns3_manager.api.get_template(template_id)
-            if success and template:
-                template_adapters = template.get('adapters', 1)
-                if template_adapters > node_params.get('adapters', 1):
-                    # Ensure we respect template's minimum adapters
-                    node_params['adapters'] = template_adapters
-                    logger.info(f"Using template adapter count: {template_adapters} for {node_name}")
-            
-            # Special handling for Cloud nodes - make sure adapters is not included
-            if (node_config.get("service_type", "").lower() == "cloud" or 
-                node_config.get("node_type", "").lower() == "cloud" or
-                template_name.lower() == "cloud"):
-                # Remove adapters from node_params
-                if 'adapters' in node_params:
-                    del node_params['adapters']
-                    logger.info(f"Removed adapters property from Cloud node {node_name} params")
-                
-                # Also remove properties if it exists
-                if 'properties' in node_params:
-                    del node_params['properties']
-                    logger.info(f"Removed properties field from Cloud node {node_name} params")
-            
-            logger.debug(f"Creating node with params: {node_params}")
-            
-            # Use the GNS3Manager's create_node method, which wraps the API call
-            try:
-                # Prepare node_config with all necessary details
-                full_node_config = {
-                    **node_config,  # Include original topology config
-                    **node_params   # Add calculated params like adapters, env, x, y
-                }
-                
-                logger.debug(f"Calling GNS3Manager.create_node for {node_name} with config: {full_node_config}")
-                
-                success, node_data = self.gns3_manager.create_node(
-                    node_name=node_name,
-                    template_name=template_name,
-                    node_config=full_node_config, # Pass the combined configuration
-                    environment=full_node_config.get('environment') # Also pass env separately if needed by manager
-                )
-            except Exception as e:
-                logger.error(f"Error calling gns3_manager.create_node for {node_name}: {e}")
-                logger.debug(traceback.format_exc())
-                success = False
-                node_data = None
-
-            if not success:
-                logger.error(f"Failed to create node: {node_name}")
-                continue
-            
-            # Store the node ID for linking later
-            node_id = node_data.get('node_id')
-            if node_id:
-                self.node_ids[node_name] = node_id
-                logger.info(f"Created node: {node_name} (ID: {node_id})")
-            else:
-                logger.error(f"Node created but no node_id returned: {node_name}")
-                
-        # Verify all nodes were created
-        expected_nodes = [n['name'] for n in nodes]
-        created_nodes = list(self.node_ids.keys())
-        missing_nodes = [n for n in expected_nodes if n not in created_nodes]
-        
-        if missing_nodes:
-            logger.error(f"Failed to create the following nodes: {missing_nodes}")
-            return False
-        
-        logger.info(f"Successfully created {len(self.node_ids)} nodes")
-        return True # All nodes created
-    
+    # Node creation methods (_create_nodes, _create_switch_nodes, _create_regular_nodes, etc.)
+    # are provided via NodeCreationMixin from node_manager.py
     def _create_ethernet_switch(self, node_name, template_id, node_config):
         """
         Create an Ethernet switch with properly configured ports
@@ -717,6 +429,8 @@ class DeploymentManager:
         """
         Create links between nodes according to topology.
         
+        Delegates to LinkManager for actual link creation and port management.
+        
         Returns:
             bool: True if all links were created successfully, False otherwise
         """
@@ -724,424 +438,47 @@ class DeploymentManager:
             logger.error("Cannot create links: Topology not available")
             return False
         
-        # Get the links from topology
-        links = self.topology.get("links", [])
-        if not links:
-            logger.warning("No links found in topology")
-            return True  # Not an error, just no links to create
-
-        # Check for port conflicts before attempting to create links
-        conflicts = self._check_for_port_conflicts(links)
-        if conflicts:
-            logger.warning(f"Port conflicts detected in topology: {conflicts}")
-            if self.auto_fix_conflicts:
-                logger.info("Attempting to auto-fix port conflicts...")
-                links = self._resolve_port_conflicts(links, conflicts)
-            else:
-                logger.error("Resolve port conflicts in topology file before continuing")
-                return False
-        
-        # Log node IDs for debugging
-        logger.debug(f"Available node IDs for linking: {self.node_ids}")
-        if not self.node_ids or len(self.node_ids) == 0:
-            logger.error("No nodes have been created yet! Cannot create links without nodes.")
-            return False
-        
-        # Make sure nodes are created and GNS3 can be queried
-        if not self.gns3_manager or not self.gns3_manager.project_id:
-            logger.error("GNS3 manager or project ID not available")
-            return False
-        
-        # Get detailed information about nodes for better diagnostics
-        try:
-            success, nodes_info = self.gns3_manager.api.get_nodes(self.gns3_manager.project_id)
-            if success:
-                logger.info(f"Found {len(nodes_info)} nodes in GNS3 project")
-                # Build a map of node_id to node details for easier lookup
-                node_details = {node.get('node_id'): node for node in nodes_info}
-                
-                # Create a map of node name to ports for port validation
-                node_ports_map = {}
-                for node in nodes_info:
-                    node_id = node.get('node_id')
-                    node_name = node.get('name')
-                    
-                    # Store in our lookup map
-                    if node_name in self.node_ids:
-                        # Check if this is an Ethernet switch with ports_mapping
-                        ports_mapping = node.get('properties', {}).get('ports_mapping', [])
-                        if ports_mapping:
-                            node_ports_map[node_name] = {
-                                'type': 'ethernet_switch',
-                                'ports': ports_mapping
-                            }
-                        else:
-                            # For other node types, check available ports via ports info
-                            success, ports_info = self.gns3_manager.api._make_request(
-                                'GET', 
-                                f'projects/{self.gns3_manager.project_id}/nodes/{node_id}/ports'
-                            )
-                            if success:
-                                node_ports_map[node_name] = {
-                                    'type': node.get('node_type', 'unknown'),
-                                    'ports': ports_info
-                                }
-                logger.info(f"Collected port information for {len(node_ports_map)} nodes")
-            else:
-                logger.error(f"Failed to get nodes from GNS3: {nodes_info}")
-        except Exception as e:
-            logger.error(f"Error getting node information: {e}")
-            # Continue with limited information - the operation might still succeed
-            node_details = {}
-            node_ports_map = {}
-        
-        # Calculate required adapters to cross-check our configuration
-        required_adapters = self._calculate_required_adapters()
-        logger.debug(f"Required adapters for nodes: {required_adapters}")
-        
-        # Track successfully created links
-        success_count = 0
-        
-        # Process each link
-        for idx, link in enumerate(links):
-            source = link.get("source")
-            target = link.get("target")
-            source_adapter = link.get("source_adapter", 0)
-            target_adapter = link.get("target_adapter", 0)
-            
-            logger.info(f"Processing link #{idx+1}: {source} (adapter {source_adapter}) -> {target} (adapter {target_adapter})")
-            
-            # Check if both source and target exist
-            if source not in self.node_ids:
-                logger.error(f"Source node '{source}' not found for link #{idx+1}")
-                logger.error(f"Available nodes: {list(self.node_ids.keys())}")
-                continue
-                
-            if target not in self.node_ids:
-                logger.error(f"Target node '{target}' not found for link #{idx+1}")
-                logger.error(f"Available nodes: {list(self.node_ids.keys())}")
-                continue
-            
-            # Get the source and target node IDs
-            source_id = self.node_ids[source]
-            target_id = self.node_ids[target]
-            
-            # Verify ports are available
-            source_ports_ok = True
-            target_ports_ok = True
-            
-            # Check source port availability
-            if source in node_ports_map:
-                if node_ports_map[source]['type'] == 'ethernet_switch':
-                    # For Ethernet switch, verify the port exists in ports_mapping
-                    ports = node_ports_map[source]['ports']
-                    source_port_exists = any(p.get('port_number') == source_adapter for p in ports)
-                    if not source_port_exists:
-                        logger.error(f"Source port {source_adapter} not found on Ethernet switch {source}")
-                        logger.error(f"Available ports: {[p.get('port_number') for p in ports]}")
-                        source_ports_ok = False
-                else:
-                    # For regular nodes, check in ports list
-                    ports = node_ports_map[source]['ports']
-                    source_port_exists = any(
-                        p.get('adapter_number') == source_adapter or 
-                        p.get('port_number') == source_adapter for p in ports
-                    )
-                    if not source_port_exists:
-                        logger.error(f"Source port {source_adapter} not found on node {source}")
-                        available_ports = []
-                        for p in ports:
-                            adapter = p.get('adapter_number', -1)
-                            port = p.get('port_number', -1)
-                            available_ports.append(f'adapter {adapter}/port {port}')
-                        logger.error(f"Available ports: {available_ports}")
-                        source_ports_ok = False
-            
-            # Check target port availability
-            if target in node_ports_map:
-                if node_ports_map[target]['type'] == 'ethernet_switch':
-                    # For Ethernet switch, verify the port exists in ports_mapping
-                    ports = node_ports_map[target]['ports']
-                    target_port_exists = any(p.get('port_number') == target_adapter for p in ports)
-                    if not target_port_exists:
-                        logger.error(f"Target port {target_adapter} not found on Ethernet switch {target}")
-                        logger.error(f"Available ports: {[p.get('port_number') for p in ports]}")
-                        target_ports_ok = False
-                else:
-                    # For regular nodes, check in ports list
-                    ports = node_ports_map[target]['ports']
-                    target_port_exists = any(
-                        p.get('adapter_number') == target_adapter or 
-                        p.get('port_number') == target_adapter for p in ports
-                    )
-                    if not target_port_exists:
-                        logger.error(f"Target port {target_adapter} not found on node {target}")
-                        available_ports = []
-                        for p in ports:
-                            adapter = p.get('adapter_number', -1)
-                            port = p.get('port_number', -1)
-                            available_ports.append(f'adapter {adapter}/port {port}')
-                        logger.error(f"Available ports: {available_ports}")
-                        target_ports_ok = False
-            
-            # Skip this link if ports are not available
-            if not (source_ports_ok and target_ports_ok):
-                logger.error(f"Cannot create link due to port validation failure: {source} -> {target}")
-                
-                # Try to fix the ports for Ethernet switches
-                if (source in node_ports_map and node_ports_map[source]['type'] == 'ethernet_switch' and not source_ports_ok) or \
-                   (target in node_ports_map and node_ports_map[target]['type'] == 'ethernet_switch' and not target_ports_ok):
-                    logger.info("Attempting to fix Ethernet switch ports...")
-                    
-                    # Fix source if it's an Ethernet switch
-                    if source in node_ports_map and node_ports_map[source]['type'] == 'ethernet_switch' and not source_ports_ok:
-                        self._ensure_switch_ports(source_id, source_adapter + 2)
-                    
-                    # Fix target if it's an Ethernet switch
-                    if target in node_ports_map and node_ports_map[target]['type'] == 'ethernet_switch' and not target_ports_ok:
-                        self._ensure_switch_ports(target_id, target_adapter + 2)
-                    
-                    # Refresh node ports map for the affected nodes
-                    for node_name in [source, target]:
-                        if node_name in self.node_ids and node_name in node_ports_map and node_ports_map[node_name]['type'] == 'ethernet_switch':
-                            node_id = self.node_ids[node_name]
-                            success, node_info = self.gns3_manager.api.get_node(self.gns3_manager.project_id, node_id)
-                            if success:
-                                ports_mapping = node_info.get('properties', {}).get('ports_mapping', [])
-                                if ports_mapping:
-                                    node_ports_map[node_name]['ports'] = ports_mapping
-                    
-                    logger.info("Ethernet switch ports updated, will try creating link again")
-                else:
-                    # Skip this link if we can't fix it
-                    continue
-
-            # Log the link we're attempting to create
-            logger.info(f"Creating link #{idx+1}: {source} (adapter {source_adapter}) -> {target} (adapter {target_adapter})")
-            
-            # Add retries for link creation with exponential backoff
-            max_retries = 2
-            retry_count = 0
-            link_created = False
-            
-            while retry_count < max_retries and not link_created:
-                retry_count += 1
-                wait_time = 2 ** retry_count  # Exponential backoff
-                
-                try:
-                    # Get node info to determine type
-                    success_src, src_node = self.gns3_manager.api.get_node(self.gns3_manager.project_id, source_id)
-                    success_tgt, tgt_node = self.gns3_manager.api.get_node(self.gns3_manager.project_id, target_id)
-                    
-                    if not success_src or not success_tgt:
-                        logger.error(f"Failed to get node info for link {source} -> {target}. Skipping.")
-                        continue
-                        
-                    src_node_type = src_node.get('node_type', '')
-                    tgt_node_type = tgt_node.get('node_type', '')
-                    
-                    # Configure source node
-                    src_config = {}
-                    if src_node_type == 'ethernet_switch':
-                        # For Ethernet switch, use port_number for the port number field
-                        src_config = {
-                            "node_id": source_id, 
-                            "port_number": source_adapter,  # Use adapter as port_number
-                            "adapter_number": 0             # Use fixed adapter_number=0
-                        }
-                    else:
-                        # For Docker containers, use adapter_number for the adapter field
-                        src_config = {
-                            "node_id": source_id, 
-                            "adapter_number": source_adapter,  # Use adapter as adapter_number 
-                            "port_number": 0                   # Use fixed port_number=0
-                        }
-                    
-                    # Configure target node
-                    tgt_config = {}
-                    if tgt_node_type == 'ethernet_switch':
-                        # For Ethernet switch, use port_number for the port number field
-                        tgt_config = {
-                            "node_id": target_id, 
-                            "port_number": target_adapter,  # Use adapter as port_number
-                            "adapter_number": 0             # Use fixed adapter_number=0
-                        }
-                    else:
-                        # For Docker containers, use adapter_number for the adapter field
-                        tgt_config = {
-                            "node_id": target_id, 
-                            "adapter_number": target_adapter,  # Use adapter as adapter_number
-                            "port_number": 0                   # Use fixed port_number=0
-                        }
-                    
-                    nodes_list = [src_config, tgt_config]
-                                        
-                    logger.debug(f"Link request data: {nodes_list}")
-                    
-                    # Create link
-                    success, link_data = self.gns3_manager.api.create_link(
-                        project_id=self.gns3_manager.project_id,
-                        nodes=nodes_list
-                    )
-                    
-                    if success:
-                        logger.info(f"Link created successfully: {source} -> {target} (attempt {retry_count}/{max_retries})")
-                        link_created = True
-                        success_count += 1
-                        
-                        # Store link ID if available
-                        if link_data and 'link_id' in link_data:
-                            link_name = f"{source}_{source_adapter}_to_{target}_{target_adapter}"
-                            self.link_map[link_name] = link_data['link_id']
-                            logger.info(f"Stored link ID: {link_name} -> {link_data['link_id']}")
-                    else:
-                        error_msg = link_data.get('message', 'Unknown error') if isinstance(link_data, dict) else str(link_data)
-                        
-                        # Check for specific error types and log detailed information
-                        if "Port not found" in error_msg:
-                            logger.error(f"Port not found error when creating link between {source} and {target}: {error_msg}")
-                            
-                            # Try to log the available ports for both nodes for debugging
-                            self._log_node_ports(source_id, source)
-                            self._log_node_ports(target_id, target)
-                            
-                            # If this is the first attempt, try to fix ports if possible
-                            if retry_count == 1:
-                                logger.info(f"Attempting to fix port configuration for {source} and {target}")
-                                if "switch" in source.lower() or "ethernet" in source.lower():
-                                    self._ensure_switch_ports(source_id, source_adapter + 2)
-                                if "switch" in target.lower() or "ethernet" in target.lower():
-                                    self._ensure_switch_ports(target_id, target_adapter + 2)
-                        else:
-                            logger.error(f"Failed to create link between {source} and {target} (attempt {retry_count}/{max_retries}): {error_msg}")
-                        
-                        # Try creating link with alternate configuration (less relevant now but keep)
-                        # Reconstruct alt_nodes_list based on node types as well
-                        alt_nodes_list = [src_config, tgt_config] # Use the same logic as above for the fallback
-                        
-                        logger.debug(f"Trying alternate link configuration: {alt_nodes_list}")
-                        
-                        alt_success, alt_result = self.gns3_manager.api.create_link(
-                            project_id=self.gns3_manager.project_id,
-                            nodes=alt_nodes_list
-                        )
-                        
-                        if alt_success:
-                            logger.info(f"Link created successfully with alternate configuration: {source} -> {target}")
-                            link_created = True
-                            success_count += 1
-                            
-                            # Store link ID
-                            if alt_result and 'link_id' in alt_result:
-                                link_name = f"{source}_{source_adapter}_to_{target}_{target_adapter}"
-                                self.link_map[link_name] = alt_result['link_id']
-                        else:
-                            alt_error = alt_result.get('message', 'Unknown error') if isinstance(alt_result, dict) else str(alt_result)
-                            logger.error(f"Alternate link creation also failed: {alt_error}")
-                        
-                        # Wait before retrying, with exponential backoff
-                        logger.info(f"Waiting {wait_time} seconds before retry...")
-                        time.sleep(wait_time)
-                        
-                except Exception as e:
-                    logger.error(f"Exception creating link between {source} and {target}: {e}")
-                    # Wait before retrying
-                    logger.info(f"Waiting {wait_time} seconds before retry...")
-                    time.sleep(wait_time)
-            
-            if not link_created:
-                logger.error(f"Failed to create link between {source} and {target} after {max_retries} attempts")
-            else:
-                logger.info(f"Successfully created link #{idx+1}: {source} -> {target}")
-        
-        # Report results
-        logger.info(f"Created {success_count} out of {len(links)} links")
-        if success_count == 0:
-            logger.error("CRITICAL: No links were created successfully!")
-        elif success_count < len(links):
-            logger.warning(f"Only created {success_count} out of {len(links)} links")
+        # Initialize or update link manager with current node IDs
+        if not self.link_manager:
+            self.link_manager = LinkManager(
+                gns3_manager=self.gns3_manager,
+                project_id=self.gns3_manager.project_id,
+                node_ids=self.node_ids,
+                auto_fix_conflicts=self.auto_fix_conflicts
+            )
         else:
-            logger.info("All links created successfully")
-            
-        return success_count > 0  # Consider partial success as success
+            # Update node_ids in case they've changed
+            self.link_manager.node_ids = self.node_ids
+        
+        # Delegate link creation to LinkManager
+        result = self.link_manager.create_links(self.topology)
+        
+        # Sync link_map back from LinkManager
+        self.link_map = self.link_manager.link_map
+        
+        return result
     
     def _log_node_ports(self, node_id, node_name):
-        """Log the available ports for a node to help with debugging"""
-        try:
-            success, node_info = self.gns3_manager.api._make_request(
-                'GET',
-                f'projects/{self.gns3_manager.project_id}/nodes/{node_id}'
-            )
-            
-            if success and node_info:
-                logger.debug(f"Node {node_name} info: {node_info}")
-                
-                # Check for ports_mapping in properties
-                ports_mapping = node_info.get('properties', {}).get('ports_mapping', [])
-                if ports_mapping:
-                    logger.info(f"Available ports for {node_name}:")
-                    for port in ports_mapping:
-                        logger.info(f"  - Port {port.get('port_number')}: {port.get('name')}")
-                
-        except Exception as e:
-            logger.error(f"Error getting port information for {node_name}: {e}")
+        """
+        Log the available ports for a node to help with debugging.
+        
+        Delegates to LinkManager.
+        """
+        if self.link_manager:
+            self.link_manager.log_node_ports(node_id, node_name)
+        else:
+            logger.warning("LinkManager not initialized, cannot log node ports")
     
     def _ensure_switch_ports(self, switch_id, min_ports):
-        """Ensure an Ethernet switch has at least the required number of ports"""
-        try:
-            # Get current switch configuration
-            success, switch_info = self.gns3_manager.api._make_request(
-                'GET',
-                f'projects/{self.gns3_manager.project_id}/nodes/{switch_id}'
-            )
-            
-            if not success or not switch_info:
-                logger.error(f"Failed to get switch info for ID {switch_id}")
-                return False
-                
-            # Get current ports mapping
-            properties = switch_info.get('properties', {})
-            ports_mapping = properties.get('ports_mapping', [])
-            
-            # Check if we already have enough ports
-            current_port_count = len(ports_mapping)
-            if current_port_count >= min_ports:
-                logger.info(f"Switch has {current_port_count} ports, which is enough (needed {min_ports})")
-                return True
-                
-            # Add more ports if needed
-            logger.info(f"Adding ports to switch {switch_info.get('name')}: {current_port_count} -> {min_ports}")
-            
-            # Create new ports mapping with additional ports
-            new_ports_mapping = list(ports_mapping)  # Make a copy
-            
-            for i in range(current_port_count, min_ports):
-                new_ports_mapping.append({
-                    'name': f'Ethernet{i}',
-                    'port_number': i,
-                    'type': 'access',
-                    'vlan': 1
-                })
-                
-            # Update switch with new port configuration
-            new_properties = dict(properties)
-            new_properties['ports_mapping'] = new_ports_mapping
-            
-            success, update_result = self.gns3_manager.api._make_request(
-                'PUT',
-                f'projects/{self.gns3_manager.project_id}/nodes/{switch_id}',
-                data={'properties': new_properties}
-            )
-            
-            if success:
-                logger.info(f"Successfully updated switch ports: {current_port_count} -> {min_ports}")
-                return True
-            else:
-                logger.error(f"Failed to update switch ports: {update_result}")
-                return False
-                
-        except Exception as e:
-            logger.error(f"Error updating switch ports: {e}")
+        """
+        Ensure an Ethernet switch has at least the required number of ports.
+        
+        Delegates to LinkManager.
+        """
+        if self.link_manager:
+            return self.link_manager.ensure_switch_ports(switch_id, min_ports)
+        else:
+            logger.warning("LinkManager not initialized, cannot ensure switch ports")
             return False
     
     def _start_nodes(self) -> bool:
@@ -1496,198 +833,46 @@ class DeploymentManager:
         """
         Calculate how many adapters each node needs based on links in the topology.
         
-        Returns:
-            Dict mapping node names to the number of adapters required
+        Delegates to LinkManager.
         """
-        if not self.topology:
-            logger.warning("No topology available for calculating required adapters")
+        if self.link_manager:
+            return self.link_manager.calculate_required_adapters()
+        else:
+            logger.warning("LinkManager not initialized, cannot calculate required adapters")
             return {}
-        
-        adapter_count = {}
-        
-        # Process all links to count adapters
-        links = self.topology.get("links", [])
-        for link in links:
-            source = link.get("source")
-            target = link.get("target")
-            source_adapter = link.get("source_adapter", 0)
-            target_adapter = link.get("target_adapter", 0)
-            
-            if not source or not target:
-                continue
-                
-            # Update maximum adapter index for source
-            if source not in adapter_count:
-                adapter_count[source] = source_adapter + 1
-            else:
-                adapter_count[source] = max(adapter_count[source], source_adapter + 1)
-                
-            # Update maximum adapter index for target
-            if target not in adapter_count:
-                adapter_count[target] = target_adapter + 1
-            else:
-                adapter_count[target] = max(adapter_count[target], target_adapter + 1)
-        
-        # Log the results
-        logger.debug(f"Calculated adapter requirements: {adapter_count}")
-        
-        # Also check for nodes with adapters explicitly defined in the node config
-        for node in self.topology.get("nodes", []):
-            name = node.get("name")
-            if not name:
-                continue
-                
-            # If adapters explicitly specified in node config, ensure it's considered
-            if "adapters" in node:
-                explicit_adapters = node["adapters"]
-                if name in adapter_count:
-                    # Take the maximum of explicit config and calculated from links
-                    adapter_count[name] = max(adapter_count[name], explicit_adapters)
-                    logger.debug(f"Node {name} has {explicit_adapters} adapters specified in config (using max of {adapter_count[name]})")
-                else:
-                    adapter_count[name] = explicit_adapters
-                    logger.debug(f"Node {name} has {explicit_adapters} adapters specified in config")
-        
-        return adapter_count
 
     def _check_for_port_conflicts(self, links):
         """
         Check for port conflicts in the topology links.
         
-        Args:
-            links: List of link definitions from topology
-            
-        Returns:
-            Dictionary mapping conflicting ports to list of conflicting links
+        Delegates to LinkManager.
         """
-        # Track port usage for each node
-        port_usage = {}  # {node_name: {adapter_num: [link_indexes]}}
-        conflicts = {}   # {node_name: {adapter_num: [link_indexes]}}
-        
-        for idx, link in enumerate(links):
-            source = link.get("source")
-            target = link.get("target")
-            source_adapter = link.get("source_adapter", 0)
-            target_adapter = link.get("target_adapter", 0)
-            
-            # Track source port usage
-            if source not in port_usage:
-                port_usage[source] = {}
-            
-            if source_adapter not in port_usage[source]:
-                port_usage[source][source_adapter] = []
-            
-            port_usage[source][source_adapter].append(idx)
-            
-            # If this port is used more than once, record conflict
-            if len(port_usage[source][source_adapter]) > 1:
-                if source not in conflicts:
-                    conflicts[source] = {}
-                
-                conflicts[source][source_adapter] = port_usage[source][source_adapter]
-            
-            # Track target port usage
-            if target not in port_usage:
-                port_usage[target] = {}
-            
-            if target_adapter not in port_usage[target]:
-                port_usage[target][target_adapter] = []
-            
-            port_usage[target][target_adapter].append(idx)
-            
-            # If this port is used more than once, record conflict
-            if len(port_usage[target][target_adapter]) > 1:
-                if target not in conflicts:
-                    conflicts[target] = {}
-                
-                conflicts[target][target_adapter] = port_usage[target][target_adapter]
-        
-        # Log detailed conflict information
-        if conflicts:
-            for node, adapters in conflicts.items():
-                for adapter, link_indexes in adapters.items():
-                    conflict_links = [f"Link #{i+1}: {links[i]['source']} -> {links[i]['target']}" for i in link_indexes]
-                    logger.warning(f"Conflict on {node} adapter {adapter}: {', '.join(conflict_links)}")
-        
-        return conflicts
+        if self.link_manager:
+            return self.link_manager.check_for_port_conflicts(links)
+        else:
+            logger.warning("LinkManager not initialized, cannot check for port conflicts")
+            return {}
 
     def _resolve_port_conflicts(self, links, conflicts):
         """
         Attempt to automatically resolve port conflicts by reassigning ports.
         
-        Args:
-            links: Original list of link definitions
-            conflicts: Dictionary of detected conflicts
-            
-        Returns:
-            Modified list of links with conflicts resolved if possible
+        Delegates to LinkManager.
         """
-        # Create a deep copy of links to modify
-        resolved_links = copy.deepcopy(links)
-        
-        # Keep track of already used adapters for each node
-        used_adapters = {}
-        
-        # First, build the initial adapter usage map
-        for link in links:
-            source = link.get("source")
-            target = link.get("target")
-            source_adapter = link.get("source_adapter", 0)
-            target_adapter = link.get("target_adapter", 0)
-            
-            if source not in used_adapters:
-                used_adapters[source] = set()
-            used_adapters[source].add(source_adapter)
-            
-            if target not in used_adapters:
-                used_adapters[target] = set()
-            used_adapters[target].add(target_adapter)
-        
-        # Now process each conflicted node
-        for node, adapters in conflicts.items():
-            for adapter, link_indexes in adapters.items():
-                # Keep the first occurrence, reassign others
-                for i, link_idx in enumerate(link_indexes):
-                    if i == 0:
-                        # Keep the first one as is
-                        continue
-                    
-                    # Find the conflicting link
-                    link = resolved_links[link_idx]
-                    
-                    # Determine if this node is the source or target
-                    is_source = (link["source"] == node)
-                    
-                    # Find the next available adapter
-                    next_adapter = self._find_next_available_adapter(node, used_adapters)
-                    
-                    # Update the link
-                    if is_source:
-                        logger.info(f"Reassigning Link #{link_idx+1}: {node}[{adapter}] -> {link['target']}[{link['target_adapter']}] to use adapter {next_adapter}")
-                        link["source_adapter"] = next_adapter
-                    else:
-                        logger.info(f"Reassigning Link #{link_idx+1}: {link['source']}[{link['source_adapter']}] -> {node}[{adapter}] to use adapter {next_adapter}")
-                        link["target_adapter"] = next_adapter
-                    
-                    # Update used_adapters to include the new assignment
-                    used_adapters[node].add(next_adapter)
-        
-        # Verify we've actually resolved all conflicts
-        remaining_conflicts = self._check_for_port_conflicts(resolved_links)
-        if remaining_conflicts:
-            logger.warning(f"Could not resolve all port conflicts: {remaining_conflicts}")
-            return links  # Return original links if we couldn't resolve everything
-        
-        return resolved_links
+        if self.link_manager:
+            return self.link_manager.resolve_port_conflicts(links, conflicts)
+        else:
+            logger.warning("LinkManager not initialized, cannot resolve port conflicts")
+            return links
 
     def _find_next_available_adapter(self, node, used_adapters):
-        """Find the next available adapter number for a node"""
-        if node not in used_adapters:
-            return 0
+        """
+        Find the next available adapter number for a node.
         
-        # Find the lowest unused number
-        adapter = 0
-        while adapter in used_adapters[node]:
-            adapter += 1
-        
-        return adapter 
+        Delegates to LinkManager.
+        """
+        if self.link_manager:
+            return self.link_manager._find_next_available_adapter(node, used_adapters)
+        else:
+            logger.warning("LinkManager not initialized, cannot find next available adapter")
+            return 0 

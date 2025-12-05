@@ -41,6 +41,14 @@ from ryu.lib import dpid as dpid_lib
 from ryu.controller.dpset import DPSet
 from ryu.lib import hub
 
+from src.networking.sdn.apps.sdn_stats_manager import (
+    CumulativeStats,
+    PerformanceMetricsCalculator,
+    FlowStatisticsCalculator,
+    PortStatsProcessor,
+    FlowStatsProcessor
+)
+
 # Set up logging
 LOG = logging.getLogger('ryu.app.policy_switch')
 
@@ -83,16 +91,16 @@ class PolicySwitchCore(app_manager.RyuApp):
         self.current_policies = {}
         self.policy_engine_available = False
         
-        # Cumulative network statistics for total metrics
-        self.cumulative_stats = {
-            'total_bytes_transferred': 0,
-            'total_packets_transferred': 0,
-            'total_flows_created': 0,
-            'start_time': time.time(),
-            'last_reset': time.time(),
-            'peak_bandwidth': 0,
-            'total_errors': 0
-        }
+        # Cumulative network statistics (using extracted class)
+        self.cumulative_stats = CumulativeStats()
+        
+        # Statistics processors (using extracted classes)
+        self.port_stats_processor = PortStatsProcessor(self.cumulative_stats)
+        self.flow_stats_processor = FlowStatsProcessor(self.cumulative_stats)
+        self.performance_calculator = PerformanceMetricsCalculator(
+            self.cumulative_stats, self.start_time
+        )
+        self.flow_stats_calculator = FlowStatisticsCalculator()
         
         # Statistics collection frequency (seconds)
         self.stats_request_interval = 2  # More frequent for better charts
@@ -512,67 +520,9 @@ class PolicySwitchCore(app_manager.RyuApp):
         
         if dpid not in self.switches:
             return
-            
-        # Initialize port stats if needed
-        if 'port_stats' not in self.switches[dpid]:
-            self.switches[dpid]['port_stats'] = {}
-            
-        current_time = time.time()
         
-        # Update port statistics with bandwidth calculation
-        for stat in body:
-            port_no = stat.port_no
-            if port_no < ofproto_v1_3.OFPP_MAX:
-                old_stats = self.switches[dpid]['port_stats'].get(port_no, {})
-                
-                # Calculate bandwidth rates if we have previous data
-                rx_bps = 0
-                tx_bps = 0
-                if old_stats and 'timestamp' in old_stats:
-                    time_diff = current_time - old_stats['timestamp']
-                    if time_diff > 0:
-                        # Calculate bits per second
-                        rx_byte_diff = stat.rx_bytes - old_stats.get('rx_bytes', 0)
-                        tx_byte_diff = stat.tx_bytes - old_stats.get('tx_bytes', 0)
-                        
-                        rx_bps = max(0, (rx_byte_diff * 8) / time_diff)  # bits per second
-                        tx_bps = max(0, (tx_byte_diff * 8) / time_diff)  # bits per second
-                        
-                        # Update cumulative statistics
-                        self.cumulative_stats['total_bytes_transferred'] += rx_byte_diff + tx_byte_diff
-                        self.cumulative_stats['total_packets_transferred'] += (
-                            (stat.rx_packets - old_stats.get('rx_packets', 0)) +
-                            (stat.tx_packets - old_stats.get('tx_packets', 0))
-                        )
-                        
-                        # Track peak bandwidth
-                        current_bandwidth = rx_bps + tx_bps
-                        if current_bandwidth > self.cumulative_stats['peak_bandwidth']:
-                            self.cumulative_stats['peak_bandwidth'] = current_bandwidth
-                        
-                        # Track errors
-                        error_diff = (
-                            (stat.rx_errors - old_stats.get('rx_errors', 0)) +
-                            (stat.tx_errors - old_stats.get('tx_errors', 0))
-                        )
-                        self.cumulative_stats['total_errors'] += error_diff
-                
-                # Store current statistics with calculated bandwidth
-                self.switches[dpid]['port_stats'][port_no] = {
-                    'port_no': port_no,
-                    'rx_packets': stat.rx_packets,
-                    'tx_packets': stat.tx_packets,
-                    'rx_bytes': stat.rx_bytes,
-                    'tx_bytes': stat.tx_bytes,
-                    'rx_dropped': stat.rx_dropped,
-                    'tx_dropped': stat.tx_dropped,
-                    'rx_errors': stat.rx_errors,                    
-                    'tx_errors': stat.tx_errors,
-                    'timestamp': current_time,
-                    'rx_bps': rx_bps,
-                    'tx_bps': tx_bps,
-                    'total_bps': rx_bps + tx_bps
-                }
+        # Delegate to port stats processor
+        self.port_stats_processor.process(body, dpid, self.switches)
 
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
@@ -580,48 +530,11 @@ class PolicySwitchCore(app_manager.RyuApp):
         body = ev.msg.body
         dpid = ev.msg.datapath.id
         
-        # Update flow statistics
-        for stat in body:
-            flow_key = f"{dpid}_{stat.priority}_{hash(str(stat.match))}"
-            
-            if flow_key in self.flows:
-                # Update existing flow with stats
-                old_flow = self.flows[flow_key]
-                old_packet_count = old_flow.get('packet_count', 0)
-                old_byte_count = old_flow.get('byte_count', 0)
-                
-                # Calculate differences for cumulative stats
-                if stat.packet_count > old_packet_count or stat.byte_count > old_byte_count:
-                    self.cumulative_stats['total_packets_transferred'] += max(0, stat.packet_count - old_packet_count)
-                    self.cumulative_stats['total_bytes_transferred'] += max(0, stat.byte_count - old_byte_count)
-                
-                self.flows[flow_key].update({
-                    'packet_count': stat.packet_count,
-                    'byte_count': stat.byte_count,
-                    'duration_sec': stat.duration_sec,
-                    'duration_nsec': stat.duration_nsec,
-                    'last_updated': time.time()
-                })
-            else:
-                # New flow - count it and add to cumulative stats
-                self.cumulative_stats['total_flows_created'] += 1
-                self.cumulative_stats['total_packets_transferred'] += stat.packet_count
-                self.cumulative_stats['total_bytes_transferred'] += stat.byte_count
-                
-                self.flows[flow_key] = {
-                    'datapath_id': dpid,
-                    'table_id': stat.table_id,
-                    'priority': stat.priority,
-                    'idle_timeout': stat.idle_timeout,
-                    'hard_timeout': stat.hard_timeout,
-                    'packet_count': stat.packet_count,
-                    'byte_count': stat.byte_count,
-                    'match': self._serialize_match(stat.match),
-                    'instructions': self._serialize_actions(stat.instructions) if hasattr(stat, 'instructions') else [],
-                    'duration_sec': stat.duration_sec,
-                    'duration_nsec': stat.duration_nsec,
-                    'created_time': time.time()
-                }
+        # Delegate to flow stats processor
+        self.flow_stats_processor.process(
+            body, dpid, self.flows,
+            self._serialize_match, self._serialize_actions
+        )
 
     # Utility methods for serialization
     def _serialize_match(self, match):
@@ -814,242 +727,15 @@ class PolicySwitchCore(app_manager.RyuApp):
             'policy_engine_available': self.policy_engine_available,
             'policy_engine_url': self.policy_engine_url,
             'timestamp': time.time()
-        }    
+        }
+
     def get_performance_metrics(self):
         """Get real-time performance metrics with smart aggregation and total statistics."""
-        try:
-            # Collect port statistics from all switches
-            total_bandwidth = 0
-            bandwidth_values = []
-            port_counts = {'total': 0, 'up': 0, 'errors': 0}
-            latency_values = []
-            
-            for dpid, switch_data in self.switches.items():
-                port_stats = switch_data.get('port_stats', {})
-                ports_info = switch_data.get('ports', {})
-                
-                for port_no, port_info in ports_info.items():
-                    port_counts['total'] += 1
-                    
-                    # Get port statistics
-                    stats = port_stats.get(port_no, {})
-                    rx_bps = stats.get('rx_bps', 0)
-                    tx_bps = stats.get('tx_bps', 0)
-                    
-                    # Only count non-zero bandwidth values for meaningful averages
-                    if rx_bps > 0 or tx_bps > 0:
-                        port_bandwidth = rx_bps + tx_bps
-                        total_bandwidth += port_bandwidth
-                        bandwidth_values.append(port_bandwidth)
-                        port_counts['up'] += 1
-                    
-                    # Count ports with errors
-                    if stats.get('rx_errors', 0) > 0 or stats.get('tx_errors', 0) > 0:
-                        port_counts['errors'] += 1
-                    
-                    # Simulate latency measurements (in a real deployment, this would use ping probes)
-                    if rx_bps > 0 or tx_bps > 0:  # Only for active ports
-                        # Use simple heuristic: higher bandwidth = lower latency (up to a point)
-                        simulated_latency = max(5, min(100, 50 - (port_bandwidth / 1000000)))
-                        latency_values.append(simulated_latency)
-            
-            # Calculate bandwidth metrics
-            bandwidth_metrics = {
-                'current_total_bps': total_bandwidth,
-                'current_average_bps': sum(bandwidth_values) / len(bandwidth_values) if bandwidth_values else 0,
-                'active_ports': len(bandwidth_values),
-                'peak_bandwidth_bps': self.cumulative_stats['peak_bandwidth']
-            }
-            
-            # Calculate latency metrics
-            if latency_values:
-                latency_metrics = {
-                    'average_ms': sum(latency_values) / len(latency_values),
-                    'min_ms': min(latency_values),
-                    'max_ms': max(latency_values)
-                }
-            else:
-                latency_metrics = {'average_ms': 0, 'min_ms': 0, 'max_ms': 0}
-            
-            # Calculate network health score (0-100)
-            health_score = 100
-            
-            # Reduce score for high latency
-            if latency_metrics['average_ms'] > 50:
-                health_score -= 20
-            elif latency_metrics['average_ms'] > 30:
-                health_score -= 10
-            
-            # Reduce score for port errors
-            if port_counts['errors'] > 0:
-                error_ratio = port_counts['errors'] / max(port_counts['total'], 1)
-                health_score -= int(error_ratio * 30)
-            
-            # Reduce score for low bandwidth utilization (indicates potential issues)
-            if port_counts['up'] < port_counts['total'] * 0.8:
-                health_score -= 15
-            
-            # Ensure health score stays within bounds
-            health_score = max(0, min(100, health_score))
-            
-            # Calculate uptime in seconds
-            uptime_seconds = time.time() - self.start_time
-            
-            # Convert total bytes to more readable units
-            total_mb = self.cumulative_stats['total_bytes_transferred'] / (1024 * 1024)
-            total_gb = total_mb / 1024
-            
-            return {
-                'bandwidth': bandwidth_metrics,
-                'latency': latency_metrics,
-                'packet_loss': 0,  # Would need specific monitoring to calculate
-                'flows': {
-                    'total': len(self.flows),
-                    'active': len([f for f in self.flows.values() if f.get('packet_count', 0) > 0])
-                },
-                'ports': port_counts,
-                'health_score': health_score,
-                'timestamp': time.time(),
-                # Enhanced total statistics
-                'totals': {
-                    'bytes_transferred': self.cumulative_stats['total_bytes_transferred'],
-                    'megabytes_transferred': round(total_mb, 2),
-                    'gigabytes_transferred': round(total_gb, 3),
-                    'packets_transferred': self.cumulative_stats['total_packets_transferred'],
-                    'flows_created': self.cumulative_stats['total_flows_created'],
-                    'total_errors': self.cumulative_stats['total_errors'],
-                    'uptime_seconds': round(uptime_seconds, 1),
-                    'uptime_minutes': round(uptime_seconds / 60, 1),
-                    'uptime_hours': round(uptime_seconds / 3600, 2)
-                },
-                'rates': {
-                    'bytes_per_second': self.cumulative_stats['total_bytes_transferred'] / uptime_seconds if uptime_seconds > 0 else 0,
-                    'packets_per_second': self.cumulative_stats['total_packets_transferred'] / uptime_seconds if uptime_seconds > 0 else 0,
-                    'flows_per_hour': self.cumulative_stats['total_flows_created'] / (uptime_seconds / 3600) if uptime_seconds > 0 else 0
-                }
-            }
-            
-        except Exception as e:
-            LOG.error(f"Error collecting performance metrics: {e}")
-            # Return basic fallback metrics with zeros instead of nulls
-            uptime_seconds = time.time() - self.start_time
-            return {
-                'bandwidth': {
-                    'current_total_bps': 0, 
-                    'current_average_bps': 0, 
-                    'active_ports': 0,
-                    'peak_bandwidth_bps': 0
-                },
-                'latency': {'average_ms': 0, 'min_ms': 0, 'max_ms': 0},
-                'packet_loss': 0,
-                'flows': {'total': len(self.flows), 'active': 0},
-                'ports': {'total': 0, 'up': 0, 'errors': 0},
-                'health_score': 50,  # Neutral score when unable to calculate
-                'timestamp': time.time(),
-                'totals': {
-                    'bytes_transferred': 0,
-                    'megabytes_transferred': 0,
-                    'gigabytes_transferred': 0,
-                    'packets_transferred': 0,
-                    'flows_created': 0,
-                    'total_errors': 0,
-                    'uptime_seconds': round(uptime_seconds, 1),
-                    'uptime_minutes': round(uptime_seconds / 60, 1),
-                    'uptime_hours': round(uptime_seconds / 3600, 2)
-                },
-                'rates': {
-                    'bytes_per_second': 0,
-                    'packets_per_second': 0,
-                    'flows_per_hour': 0
-                }
-            }
+        return self.performance_calculator.calculate(self.switches, self.flows)
 
     def get_flow_statistics(self):
         """Get comprehensive flow statistics with efficiency calculations."""
-        try:
-            flow_count_by_switch = {}
-            total_packet_count = 0
-            total_byte_count = 0
-            active_flows = 0
-            
-            # Analyze flows by switch
-            for flow_key, flow_data in self.flows.items():
-                dpid = flow_data.get('datapath_id', 'unknown')
-                if dpid not in flow_count_by_switch:
-                    flow_count_by_switch[dpid] = {'count': 0, 'active': 0, 'bytes': 0, 'packets': 0}
-                
-                flow_count_by_switch[dpid]['count'] += 1
-                
-                # Check if flow is active (has packet/byte counts)
-                packet_count = flow_data.get('packet_count', 0)
-                byte_count = flow_data.get('byte_count', 0)
-                
-                if packet_count > 0:
-                    active_flows += 1
-                    flow_count_by_switch[dpid]['active'] += 1
-                    flow_count_by_switch[dpid]['packets'] += packet_count
-                    flow_count_by_switch[dpid]['bytes'] += byte_count
-                    total_packet_count += packet_count
-                    total_byte_count += byte_count
-            
-            # Calculate efficiency score
-            total_flows = len(self.flows)
-            if total_flows > 0:
-                # Efficiency based on active flow ratio and average utilization
-                active_ratio = active_flows / total_flows
-                
-                # Better efficiency if most flows are active
-                efficiency_score = int(active_ratio * 70)
-                
-                # Bonus points for reasonable flow counts (not too many idle flows)
-                if total_flows < 100:  # Reasonable number of flows
-                    efficiency_score += 20
-                elif total_flows < 500:
-                    efficiency_score += 10
-                
-                # Bonus for balanced distribution across switches
-                if len(flow_count_by_switch) > 1:
-                    flows_per_switch = [data['count'] for data in flow_count_by_switch.values()]
-                    if max(flows_per_switch) - min(flows_per_switch) < max(flows_per_switch) * 0.5:
-                        efficiency_score += 10  # Well distributed
-                
-                efficiency_score = min(100, max(0, efficiency_score))
-            else:
-                efficiency_score = 0
-            
-            # Calculate utilization (how much of the network capacity is used)
-            # This is a simplified calculation - in practice would need more network info
-            if total_byte_count > 0:
-                # Assume 1Gbps baseline capacity per switch
-                estimated_capacity = len(self.switches) * 1000000000  # 1Gbps in bytes
-                utilization = min(1.0, total_byte_count / estimated_capacity) if estimated_capacity > 0 else 0
-            else:
-                utilization = 0
-            
-            return {
-                'total_flows': total_flows,
-                'active_flows': active_flows,
-                'flows_by_switch': flow_count_by_switch,
-                'total_packets': total_packet_count,
-                'total_bytes': total_byte_count,
-                'efficiency_score': efficiency_score,
-                'utilization': utilization,
-                'timestamp': time.time()
-            }
-            
-        except Exception as e:
-            LOG.error(f"Error collecting flow statistics: {e}")
-            # Return basic fallback statistics
-            return {
-                'total_flows': len(self.flows),
-                'active_flows': 0,
-                'flows_by_switch': {},
-                'total_packets': 0,
-                'total_bytes': 0,
-                'efficiency_score': 50,
-                'utilization': 0,
-                'timestamp': time.time()
-            }    
+        return self.flow_stats_calculator.calculate(self.flows, self.switches)
         
     def _stats_collection_loop(self):
         """Periodically collect statistics from switches with frequent updates for charts."""
