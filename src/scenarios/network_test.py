@@ -248,8 +248,19 @@ def test_network_connectivity(gns3_server, project_id):
 
 def main():
     """Main entry point."""
+    # Try to get default from config
+    default_gns3_server = "192.168.141.128:80"
+    try:
+        import json
+        config_path = os.path.join(os.path.dirname(__file__), '../../config/gns3_connection.json')
+        with open(config_path, 'r') as f:
+            gns3_cfg = json.load(f).get('gns3', {})
+            default_gns3_server = f"{gns3_cfg.get('host', '192.168.141.128')}:{gns3_cfg.get('port', 80)}"
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass  # Use hardcoded default
+    
     parser = argparse.ArgumentParser(description="Network Test for FL")
-    parser.add_argument("--gns3-server", type=str, default="192.168.141.128:80",
+    parser.add_argument("--gns3-server", type=str, default=default_gns3_server,
                        help="GNS3 server (host:port)")
     parser.add_argument("--project-id", type=str, required=True,
                        help="GNS3 project ID")
