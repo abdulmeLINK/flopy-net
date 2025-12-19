@@ -1,7 +1,7 @@
 {
   "gns3": {
     "host": "192.168.141.128",
-    "port": 80,
+    "port": 3080,
     "ssh": {
       "port": 22,
       "username": "gns3",
@@ -10,4 +10,4 @@
     "project_name": "fl_federation",
     "compute_id": "local"
   }
-} 
+}

@@ -7,7 +7,9 @@
       "name": "policy-engine",
       "service_type": "policy-engine",
       "ip_address": "192.168.141.20",
-      "ports": [5000],
+      "ports": [
+        5000
+      ],
       "template_name": "flopynet-PolicyEngine",
       "x": 200,
       "y": 50,
@@ -44,7 +46,9 @@
       "name": "fl-server",
       "service_type": "fl-server",
       "ip_address": "192.168.141.10",
-      "ports": [8080],
+      "ports": [
+        8080
+      ],
       "template_name": "flopynet-FLServer",
       "x": 0,
       "y": 200,
@@ -84,7 +88,10 @@
       "service_type": "sdn-controller",
       "ip_address": "192.168.141.41",
       "adapters": 2,
-      "ports": [6633, 8181],
+      "ports": [
+        6633,
+        8181
+      ],
       "template_name": "flopynet-SDNController",
       "x": 400,
       "y": 50,
@@ -122,7 +129,9 @@
       "name": "collector",
       "service_type": "collector",
       "ip_address": "192.168.141.40",
-      "ports": [8000],
+      "ports": [
+        8000
+      ],
       "template_name": "flopynet-Collector",
       "x": 150,
       "y": 200,
@@ -145,7 +154,7 @@
         "OVS_IP_RANGE": "60-99",
         "NORTHBOUND_IP_RANGE": "50-59",
         "NORTHBOUND_INTERFACE": "eth1",
-        "NORTHBOUND_IP": "192.168.141.52",
+        "NORTHBOUND_IP": "192.168.141.51",
         "COLLECTOR_IP": "40",
         "NODE_IP_FL_SERVER": "192.168.141.10",
         "NODE_IP_POLICY_ENGINE": "192.168.141.20",
@@ -159,7 +168,7 @@
         "NETWORK_INTERVAL_SEC": "5",
         "EVENT_INTERVAL_SEC": "5",
         "NETWORK_MONITOR_ENABLED": "true",
-        "GNS3_URL": "http://192.168.141.128:80",
+        "GNS3_URL": "http://192.168.141.128:3080",
         "GNS3_PROJECT_NAME": "basic_federated_learning",
         "SDN_CONTROLLER_URL": "http://192.168.141.41:8181"
       }
@@ -168,7 +177,11 @@
       "name": "openvswitch",
       "service_type": "openvswitch",
       "ip_address": "192.168.141.60",
-      "ports": [6634, 6640, 9999],
+      "ports": [
+        6634,
+        6640,
+        9999
+      ],
       "template_name": "OpenVSwitch",
       "x": 250,
       "y": 300,
@@ -230,7 +243,9 @@
       "name": "fl-client-1",
       "service_type": "fl-client",
       "ip_address": "192.168.141.101",
-      "ports": [8081],
+      "ports": [
+        8081
+      ],
       "template_name": "flopynet-FLClient",
       "x": 100,
       "y": 380,
@@ -270,7 +285,9 @@
       "name": "fl-client-2",
       "service_type": "fl-client",
       "ip_address": "192.168.141.102",
-      "ports": [8082],
+      "ports": [
+        8082
+      ],
       "template_name": "flopynet-FLClient",
       "x": 400,
       "y": 380,
@@ -314,34 +331,107 @@
     }
   ],
   "links": [
-    {"source": "sdn-controller", "target": "switch2", "source_adapter": 0, "target_adapter": 0},
-    {"source": "sdn-controller", "target": "switch1", "source_adapter": 1, "target_adapter": 2},
-    {"source": "fl-server", "target": "openvswitch", "source_adapter": 0, "target_adapter": 1},
-    {"source": "policy-engine", "target": "switch1", "source_adapter": 0, "target_adapter": 1},
-    {"source": "switch1", "target": "openvswitch", "source_adapter": 0, "target_adapter": 2},
-    {"source": "switch2", "target": "openvswitch", "source_adapter": 1, "target_adapter": 0},
-    {"source": "collector", "target": "openvswitch", "source_adapter": 0, "target_adapter": 3},
-    {"source": "fl-client-1", "target": "openvswitch", "source_adapter": 0, "target_adapter": 4},
-    {"source": "fl-client-2", "target": "openvswitch", "source_adapter": 0, "target_adapter": 5},
-    {"source": "Cloud", "target": "openvswitch", "source_adapter": 0, "target_adapter": 6}
+    {
+      "source": "sdn-controller",
+      "target": "switch2",
+      "source_adapter": 0,
+      "target_adapter": 0
+    },
+    {
+      "source": "sdn-controller",
+      "target": "switch1",
+      "source_adapter": 1,
+      "target_adapter": 2
+    },
+    {
+      "source": "fl-server",
+      "target": "openvswitch",
+      "source_adapter": 0,
+      "target_adapter": 1
+    },
+    {
+      "source": "policy-engine",
+      "target": "switch1",
+      "source_adapter": 0,
+      "target_adapter": 1
+    },
+    {
+      "source": "switch1",
+      "target": "openvswitch",
+      "source_adapter": 0,
+      "target_adapter": 2
+    },
+    {
+      "source": "switch2",
+      "target": "openvswitch",
+      "source_adapter": 1,
+      "target_adapter": 0
+    },
+    {
+      "source": "collector",
+      "target": "openvswitch",
+      "source_adapter": 0,
+      "target_adapter": 3
+    },
+    {
+      "source": "fl-client-1",
+      "target": "openvswitch",
+      "source_adapter": 0,
+      "target_adapter": 4
+    },
+    {
+      "source": "fl-client-2",
+      "target": "openvswitch",
+      "source_adapter": 0,
+      "target_adapter": 5
+    },
+    {
+      "source": "Cloud",
+      "target": "openvswitch",
+      "source_adapter": 0,
+      "target_adapter": 6
+    }
   ],
   "network": {
     "subnet": "192.168.141.0/24",
     "gateway": "192.168.141.1",
-    "dns_servers": ["8.8.8.8", "8.8.4.4"]
+    "dns_servers": [
+      "8.8.8.8",
+      "8.8.4.4"
+    ]
   },
   "network_conditions": {
     "bandwidth_constraints": [
-      {"node": "fl-client-1", "bandwidth_mbps": 30, "priority": "high"},
-      {"node": "fl-client-2", "bandwidth_mbps": 20, "priority": "medium"}
+      {
+        "node": "fl-client-1",
+        "bandwidth_mbps": 30,
+        "priority": "high"
+      },
+      {
+        "node": "fl-client-2",
+        "bandwidth_mbps": 20,
+        "priority": "medium"
+      }
     ],
     "latency_settings": [
-      {"node": "fl-client-1", "latency_ms": 10},
-      {"node": "fl-client-2", "latency_ms": 20}
+      {
+        "node": "fl-client-1",
+        "latency_ms": 10
+      },
+      {
+        "node": "fl-client-2",
+        "latency_ms": 20
+      }
     ],
     "packet_loss": [
-      {"node": "fl-client-1", "loss_percentage": 0.1},
-      {"node": "fl-client-2", "loss_percentage": 1.0}
+      {
+        "node": "fl-client-1",
+        "loss_percentage": 0.1
+      },
+      {
+        "node": "fl-client-2",
+        "loss_percentage": 1.0
+      }
     ]
   },
   "gns3_configuration": {
