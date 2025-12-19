@@ -2,52 +2,65 @@
   "scenario_type": "basic",
   "scenario_name": "Basic Federated Learning",
   "description": "Basic federated learning setup with minimal configuration",
-  
   "gns3": {
-    "server_url": "http://192.168.141.128:80",
+    "server_url": "http://192.168.141.128:3080",
     "project_name": "basic_federated_learning",
     "reset_project": true,
     "cleanup_action": "stop"
   },
-  
   "network": {
     "gns3": {
-        "host": "192.168.141.128", 
-        "port": 80 
+      "host": "192.168.141.128",
+      "port": 80
     },
-    "gns3_ssh": { 
-        "user": "gns3", 
-        "password": "gns3", 
-        "port": 22 
+    "gns3_ssh": {
+      "user": "gns3",
+      "password": "gns3",
+      "port": 22
     },
     "topology_file": "config/topology/basic_topology.json",
     "use_static_ip": true,
     "host_mapping": true,
-    "subnet": "192.168.100.0/24",
+    "subnet": "192.168.141.0/24",
     "gns3_network": true,
     "wait_for_network": true,
     "network_timeout": 120,
     "ip_map": {
-      "policy-engine": "192.168.100.20",
-      "fl-server": "192.168.100.10",
-      "collector": "192.168.100.40",
-      "sdn-controller": "192.168.100.41",
-      "openvswitch": "192.168.100.42",
-      "fl-client-1": "192.168.100.101",
-      "fl-client-2": "192.168.100.102",
-      "fl-client-3": "192.168.100.103"
-    }  },
-
+      "policy-engine": "192.168.141.20",
+      "fl-server": "192.168.141.10",
+      "collector": "192.168.141.40",
+      "sdn-controller": "192.168.141.41",
+      "openvswitch": "192.168.141.60",
+      "fl-client-1": "192.168.141.101",
+      "fl-client-2": "192.168.141.102",
+      "fl-client-3": "192.168.141.103",
+      "fl-client-4": "192.168.141.104",
+      "fl-client-5": "192.168.141.105",
+      "fl-client-6": "192.168.141.106",
+      "fl-client-7": "192.168.141.107",
+      "fl-client-8": "192.168.141.108",
+      "fl-client-9": "192.168.141.109",
+      "fl-client-10": "192.168.141.110",
+      "fl-client-11": "192.168.141.111",
+      "fl-client-12": "192.168.141.112",
+      "fl-client-13": "192.168.141.113",
+      "fl-client-14": "192.168.141.114",
+      "fl-client-15": "192.168.141.115",
+      "fl-client-16": "192.168.141.116",
+      "fl-client-17": "192.168.141.117",
+      "fl-client-18": "192.168.141.118",
+      "fl-client-19": "192.168.141.119"
+    }
+  },
   "_deprecated_collector_forwarding": {
     "_note": "Port forwarding is deprecated - cloud node is used for external access",
     "_old_config": {
       "node_name": "collector",
-      "internal_ip": "192.168.100.40", 
-      "internal_port": 8000, 
-      "external_port": 8001  
+      "internal_ip": "192.168.100.40",
+      "internal_port": 8000,
+      "external_port": 8001
     }
   },
-  
   "federation": {
     "rounds": 5,
     "local_epochs": 2,
@@ -55,42 +68,77 @@
     "learning_rate": 0.01,
     "optimizer": "adam",
     "loss": "categorical_crossentropy",
-    "metrics": ["accuracy"]
-  },
-  
-  "model": {
-    "type": "cnn",
-    "input_shape": [28, 28, 1],
-    "layers": [
-      {"type": "conv2d", "filters": 32, "kernel_size": 3, "activation": "relu"},
-      {"type": "max_pooling2d", "pool_size": 2},
-      {"type": "conv2d", "filters": 64, "kernel_size": 3, "activation": "relu"},
-      {"type": "max_pooling2d", "pool_size": 2},
-      {"type": "flatten"},
-      {"type": "dense", "units": 128, "activation": "relu"},
-      {"type": "dense", "units": 10, "activation": "softmax"}
+    "metrics": [
+      "accuracy"
     ]
   },
-  
+  "model": {
+    "type": "cnn",
+    "input_shape": [
+      28,
+      28,
+      1
+    ],
+    "layers": [
+      {
+        "type": "conv2d",
+        "filters": 32,
+        "kernel_size": 3,
+        "activation": "relu"
+      },
+      {
+        "type": "max_pooling2d",
+        "pool_size": 2
+      },
+      {
+        "type": "conv2d",
+        "filters": 64,
+        "kernel_size": 3,
+        "activation": "relu"
+      },
+      {
+        "type": "max_pooling2d",
+        "pool_size": 2
+      },
+      {
+        "type": "flatten"
+      },
+      {
+        "type": "dense",
+        "units": 128,
+        "activation": "relu"
+      },
+      {
+        "type": "dense",
+        "units": 10,
+        "activation": "softmax"
+      }
+    ]
+  },
   "data": {
     "dataset": "mnist",
     "classes": 10,
     "distribution": "iid",
-    "split": [0.8, 0.2]
+    "split": [
+      0.8,
+      0.2
+    ]
   },
-  
   "monitoring": {
     "log_level": "INFO",
     "metrics_interval": 10,
     "save_model": true,
     "save_history": true
   },
-  
   "results": {
     "output_dir": "results/basic",
     "save_format": "json",
-    "metrics": ["accuracy", "loss", "communication_time", "training_time"]
+    "metrics": [
+      "accuracy",
+      "loss",
+      "communication_time",
+      "training_time"
+    ]
   },
-  
   "training_timeout": 300
-} 
+}
