@@ -254,7 +254,7 @@
           "description": "Allow client-1 to register",
           "match": {
             "client_id": "1",
-            "client_ip": "192.168.100.101"
+            "client_ip": "192.168.141.101"
           }
         },
         {
@@ -262,7 +262,7 @@
           "description": "Allow client-2 to register",
           "match": {
             "client_id": "2",
-            "client_ip": "192.168.100.102"
+            "client_ip": "192.168.141.102"
           }
         },
         {
