@@ -366,15 +366,15 @@
           }
         },
         {
-          "action": "deny",
-          "description": "Deny training during peak network hours",
+          "action": "log",
+          "description": "Log training during peak network hours",
           "match": {
             "operation": "model_training",
             "condition": "current_hour >= peak_start AND current_hour <= peak_end"
           },
           "parameters": {
-            "peak_start": 9,
-            "peak_end": 10
+            "peak_start": 0,
+            "peak_end": 23
           }
         },
         {
@@ -683,15 +683,15 @@
           }
         },
         {
-          "action": "deny",
-          "description": "Deny resource-intensive operations during peak hours",
+          "action": "log",
+          "description": "Log resource-intensive operations during peak hours",
           "match": {
             "resource_type": "computation",
             "condition": "current_hour >= peak_start AND current_hour <= peak_end"
           },
           "parameters": {
-            "peak_start": 9,
-            "peak_end": 17
+            "peak_start": 0,
+            "peak_end": 23
           }
         },
         {

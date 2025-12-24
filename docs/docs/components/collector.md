@@ -62,7 +62,7 @@ sequenceDiagram
     
     Host->>CLI: python -m src.scenarios.run_scenario --scenario config/scenarios/basic_main.json
     CLI->>CLI: Load scenario config (basic_main.json)
-    CLI->>GNS3: Connect to GNS3 Server (192.168.141.128:3080)
+    CLI->>GNS3: Connect to GNS3 Server (192.168.141.128:80)
     GNS3->>GNS3: Create/Reset project
     
     Note over CLI,GNS3: Network Topology Deployment
@@ -179,7 +179,7 @@ graph TB
 
 ## Implementation Details
 
-The Collector service is implemented as a Python application that operates within the FLOPY-NET containerized ecosystem. In GNS3 deployments, the service runs as a Docker container node with image `abdulmelink/flopynet-collector:v1.0.0-alpha.8` and is assigned a static IP address within the experimental network topology.
+The Collector service is implemented as a Python application that operates within the FLOPY-NET containerized ecosystem. In GNS3 deployments, the service runs as a Docker container node with image `abdulmelink/flopynet-collector:v1.0.0-alpha.9` and is assigned a static IP address within the experimental network topology.
 
 The service's architecture is designed to handle the unique challenges of distributed federated learning research, including intermittent network connectivity, variable latency, and the need to maintain data consistency across distributed components. The implementation uses lightweight, file-based storage systems optimized for research data collection and analysis.
 
@@ -197,7 +197,7 @@ The Collector service deployment varies significantly between development and pr
 #### Docker Compose (Development)
 ```yaml
 collector:
-  image: abdulmelink/flopynet-collector:v1.0.0-alpha.8
+  image: abdulmelink/flopynet-collector:v1.0.0-alpha.9
   container_name: collector
   ports:
     - "8083:8000"  # Direct port mapping
@@ -896,7 +896,7 @@ class AnalyticsIntegration:
 
 ```yaml
 collector:
-  image: abdulmelink/flopynet-collector:v1.0.0-alpha.8
+  image: abdulmelink/flopynet-collector:v1.0.0-alpha.9
   container_name: collector
   ports:
     - "8083:8000"

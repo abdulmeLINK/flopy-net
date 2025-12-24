@@ -194,16 +194,18 @@ async def get_fl_status(
         # Final fallback to generic metrics
         fl_data = await collector.get_latest_metrics(type_filter="fl_server")
         
-        if not isinstance(fl_data, dict):
-            # Return default idle state instead of error for better UX
+        if not isinstance(fl_data, dict) or "error" in fl_data:
+            # Return error state to indicate connection issues rather than hiding problems
+            error_msg = fl_data.get("error", "Unable to fetch FL data") if isinstance(fl_data, dict) else "Invalid FL data response"
             return {
                 "round": 0,
                 "clients_connected": 0,
                 "clients_total": 0,
                 "accuracy": 0,
                 "loss": 0,
-                "status": "idle",
-                "max_rounds": None  # Add max_rounds field for consistency
+                "status": "error",
+                "error": error_msg,
+                "max_rounds": None
             }
         
         # Handle direct FL server response format

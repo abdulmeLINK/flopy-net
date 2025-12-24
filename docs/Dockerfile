@@ -4,7 +4,7 @@ FROM node:18-alpine AS builder
 
 # Set build arguments
 ARG NODE_ENV=production
-ARG DOCUSAURUS_VERSION=v1.0.0-alpha.8
+ARG DOCUSAURUS_VERSION=v1.0.0-alpha.9
 ARG BUILD_DATE=2025-06-18
 ARG GIT_COMMIT=latest
 
@@ -33,7 +33,7 @@ RUN npm run build
 FROM nginx:alpine
 
 # Set build arguments for labels
-ARG DOCUSAURUS_VERSION=v1.0.0-alpha.8
+ARG DOCUSAURUS_VERSION=v1.0.0-alpha.9
 ARG BUILD_DATE=2025-06-18
 ARG GIT_COMMIT=latest
 

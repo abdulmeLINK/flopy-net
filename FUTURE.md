@@ -1,12 +1,12 @@
 # FLOPY-NET Future Roadmap
 
-This document outlines the planned future work and potential improvements for the FLOPY-NET platform based on the current v1.0.0-alpha.8 implementation status.
+This document outlines the planned future work and potential improvements for the FLOPY-NET platform based on the current v1.0.0-alpha.9 implementation status.
 
 ---
 
 ## Current State Assessment
 
-FLOPY-NET v1.0.0-alpha.8 provides a solid foundation with:
+FLOPY-NET v1.0.0-alpha.9 provides a solid foundation with:
 - **Flower Framework Integration**: Full Flower-based FL server and client implementation
 - **Container Architecture**: Docker Compose with static IP assignment (192.168.100.0/24)
 - **Core Services**: Policy Engine, Collector, SDN Controller, OpenVSwitch all operational

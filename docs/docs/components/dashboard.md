@@ -128,7 +128,7 @@ graph TB
 # Core application setup - from main.py
 app = FastAPI(
     title="Dashboard Backend API",
-    description="MicroFed Dashboard API v1.0.0-alpha.8", 
+    description="MicroFed Dashboard API v1.0.0-alpha.9", 
     version=settings.APP_VERSION
 )
 
@@ -278,7 +278,7 @@ class AsyncPolicyEngineClient:
 | `RETRY_DELAY` | Retry delay (seconds) | `2` | `2` |
 | `HEALTH_CHECK_INTERVAL` | Health check interval (seconds) | `30` | `30` |
 | `STARTUP_TIMEOUT` | Startup timeout (seconds) | `30` | `60` |
-| `APP_VERSION` | Application version | `1.0.0` | `v1.0.0-alpha.8` |
+| `APP_VERSION` | Application version | `1.0.0` | `v1.0.0-alpha.9` |
 | `BUILD_DATE` | Build date | `unknown` | `2025-06-10` |
 | `ENVIRONMENT` | Environment type | `development` | `development` |
 | `SCENARIOS_DIR` | Scenarios directory path | `/app/src/scenarios` | `/app/src/scenarios` |
@@ -288,7 +288,7 @@ class AsyncPolicyEngineClient:
 ```typescript
 // Build-time environment variables (embedded in Vite build)
 VITE_BACKEND_URL=http://localhost:8001
-VITE_APP_VERSION=v1.0.0-alpha.8
+VITE_APP_VERSION=v1.0.0-alpha.9
 VITE_BUILD_DATE=2025-06-10
 VITE_GIT_COMMIT=latest
 VITE_ENVIRONMENT=development
@@ -299,7 +299,7 @@ VITE_ENVIRONMENT=development
 ```yaml
 services:
   dashboard-backend:
-    image: abdulmelink/flopynet-dashboard-backend:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-dashboard-backend:v1.0.0-alpha.9
     ports:
       - "8001:8001"
     environment:
@@ -311,7 +311,7 @@ services:
       - ../config:/app/config
     
   dashboard-frontend:
-    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.9
     ports:
       - "8085:80"
     depends_on:
@@ -490,7 +490,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: abdulmelink/flopynet-dashboard-backend:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-dashboard-backend:v1.0.0-alpha.9
     container_name: dashboard-backend
     ports:
       - "8001:8001"    
@@ -499,7 +499,7 @@ services:
       - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.141.128:8003}
       - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.141.128:8002}
       - LOG_LEVEL=DEBUG
-      - APP_VERSION=v1.0.0-alpha.8
+      - APP_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-10
       - ENVIRONMENT=development
     healthcheck:
@@ -521,9 +521,9 @@ services:
       context: ./frontend
       args:
         - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8001}
-        - VITE_APP_VERSION=v1.0.0-alpha.8
+        - VITE_APP_VERSION=v1.0.0-alpha.9
         - VITE_BUILD_DATE=2025-06-10
-    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.9
     container_name: dashboard-frontend
     ports:
       - "8085:80"

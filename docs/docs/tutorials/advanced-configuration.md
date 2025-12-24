@@ -8,7 +8,7 @@ This tutorial covers advanced FLOPY-NET configuration techniques for sophisticat
 
 ## Configuration Overview for Research Environments
 
-FLOPY-NET's advanced configuration capabilities enable researchers to create sophisticated experimental environments that extend beyond the base simulation framework. While the current v1.0.0-alpha.8 implementation provides federated learning simulation with synthetic data, the configuration system is designed to support custom implementations that introduce real machine learning training, complex network scenarios, and advanced policy enforcement.
+FLOPY-NET's advanced configuration capabilities enable researchers to create sophisticated experimental environments that extend beyond the base simulation framework. While the current v1.0.0-alpha.9 implementation provides federated learning simulation with synthetic data, the configuration system is designed to support custom implementations that introduce real machine learning training, complex network scenarios, and advanced policy enforcement.
 
 This tutorial demonstrates how to configure FLOPY-NET for various research scenarios including network behavior studies, policy enforcement research, system scalability analysis, and the foundation for implementing actual federated learning algorithms. The configuration approaches shown here provide the framework for transitioning from simulation to production-ready federated learning deployments.
 

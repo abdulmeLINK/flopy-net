@@ -4,7 +4,7 @@ This directory contains policy definitions for the FLOPY-NET Policy Engine (Flas
 
 ## Policy Engine Integration
 
-The Policy Engine operates as a centralized Docker container (`abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8`) that:
+The Policy Engine operates as a centralized Docker container (`abdulmelink/flopynet-policy-engine:v1.0.0-alpha.9`) that:
 - Loads policies from JSON files in this directory
 - Provides REST API endpoints for policy queries and enforcement
 - Maintains real-time event buffers for policy evaluation

@@ -168,7 +168,7 @@
         "NETWORK_INTERVAL_SEC": "5",
         "EVENT_INTERVAL_SEC": "5",
         "NETWORK_MONITOR_ENABLED": "true",
-        "GNS3_URL": "http://192.168.141.128:3080",
+        "GNS3_URL": "http://192.168.141.128:80",
         "GNS3_PROJECT_NAME": "basic_federated_learning",
         "SDN_CONTROLLER_URL": "http://192.168.141.41:8181"
       }

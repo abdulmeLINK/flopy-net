@@ -260,7 +260,7 @@ Host: localhost:8081
 {
   "status": "healthy",
   "server_id": "flopynet-fl-server-default",
-  "version": "v1.0.0-alpha.8",
+  "version": "v1.0.0-alpha.9",
   "uptime": 1234.56,
   "current_round": 3
 }
@@ -392,7 +392,7 @@ FL Clients run in isolated Docker containers with network integration:
 ```yaml
 # docker-compose.yml excerpt
 fl-client-1:
-  image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+  image: abdulmelink/flopynet-client:v1.0.0-alpha.9
   container_name: fl-client-1
   privileged: true
   cap_add:
@@ -1047,7 +1047,7 @@ class FLMetricsCollector:
 version: '3.8'
 services:
   fl-server:
-    image: abdulmelink/flopynet-server:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-server:v1.0.0-alpha.9
     container_name: fl-server
     privileged: true
     cap_add:
@@ -1078,7 +1078,7 @@ services:
       retries: 5
 
   fl-client-1:
-    image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.9
     container_name: fl-client-1
     privileged: true
     cap_add:

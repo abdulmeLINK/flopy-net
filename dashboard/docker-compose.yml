@@ -1,5 +1,5 @@
 # FLOPY-NET: Federated Learning and SDN Observatory Platform  
-# Dashboard Services - System Version: v1.0.0-alpha.8
+# Dashboard Services - System Version: v1.0.0-alpha.9
 # Build Date: 2025-06-10
 
 services:
@@ -11,14 +11,16 @@ services:
     ports:
       - "8001:8001"    
     environment:
-      - GNS3_URL=${GNS3_URL:-http://192.168.141.128:8001}
-      - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.141.40:8000}
-      - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.141.20:5000}
+
+      - GNS3_URL=${GNS3_URL:-http://192.168.141.128:80}
+      # Check docker-compose.yml at the codebase root for internal (non-gns3) runs
+      - COLLECTOR_URL=${COLLECTOR_URL:-http://192.168.141.40:8000} # default -> host.docker.internal:8083 OR 192.168.141.40:8000
+      - POLICY_ENGINE_URL=${POLICY_ENGINE_URL:-http://192.168.141.20:5000} # host.docker.internal:5000
       - GNS3_API_VERSION=v2
       - LOG_LEVEL=DEBUG
       - SCENARIOS_DIR=/app/src/scenarios
-      - APP_VERSION=v1.0.0-alpha.8
-      - BUILD_DATE=2025-06-10
+      - APP_VERSION=v1.0.0-alpha.9
+      - BUILD_DATE=2025-12-19
       - GIT_COMMIT=latest
       - ENVIRONMENT=development
       # Connection settings for improved startup reliability
@@ -51,11 +53,11 @@ services:
       args:
         - NODE_ENV=production
         - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8001}
-        - VITE_APP_VERSION=v1.0.0-alpha.8
-        - VITE_BUILD_DATE=2025-06-10
+        - VITE_APP_VERSION=v1.0.0-alpha.9
+        - VITE_BUILD_DATE=2025-12-19
         - VITE_GIT_COMMIT=latest
         - VITE_ENVIRONMENT=development
-    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.9
     container_name: dashboard-frontend
     ports:
       - "8085:80"

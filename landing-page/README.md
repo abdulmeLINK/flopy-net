@@ -4,7 +4,7 @@ This is the landing page for the FLOPY-NET project - an open-source federated le
 
 ## Project Overview
 
-FLOPY-NET v1.0.0-alpha.8 is a containerized research platform that combines:
+FLOPY-NET v1.0.0-alpha.9 is a containerized research platform that combines:
 - **Flower Framework**: Production-ready federated learning with PyTorch models
 - **GNS3 Integration**: Realistic network topology simulation and control
 - **SDN Controllers**: Ryu-based OpenFlow controllers for programmable networks

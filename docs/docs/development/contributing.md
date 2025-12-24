@@ -8,13 +8,13 @@ Welcome to the FLOPY-NET contributor community! This guide outlines how to contr
 
 ## Getting Started with FLOPY-NET Contributions
 
-FLOPY-NET is an active research platform focused on federated learning system architecture, network simulation, and policy enforcement research. The current v1.0.0-alpha.8 implementation provides a solid foundation for studying distributed systems behavior while simulating federated learning workflows with synthetic data.
+FLOPY-NET is an active research platform focused on federated learning system architecture, network simulation, and policy enforcement research. The current v1.0.0-alpha.9 implementation provides a solid foundation for studying distributed systems behavior while simulating federated learning workflows with synthetic data.
 
 Contributors can engage with FLOPY-NET development in multiple ways, from enhancing the existing simulation framework and network integration capabilities to implementing actual federated learning algorithms and extending the policy enforcement system. Understanding the current architecture helps contributors identify areas where their expertise can make the greatest impact.
 
 ### Current Implementation Context
 
-Before contributing, it's important to understand that FLOPY-NET v1.0.0-alpha.8 currently prioritizes system architecture validation and network behavior research over actual machine learning training. The federated learning components simulate training workflows using synthetic data generation, enabling rapid experimentation with network conditions, policy enforcement, and system scalability without computational overhead.
+Before contributing, it's important to understand that FLOPY-NET v1.0.0-alpha.9 currently prioritizes system architecture validation and network behavior research over actual machine learning training. The federated learning components simulate training workflows using synthetic data generation, enabling rapid experimentation with network conditions, policy enforcement, and system scalability without computational overhead.
 
 This simulation-first approach provides an excellent foundation for contributors interested in distributed systems, network simulation, policy engines, monitoring systems, and the infrastructure required to support federated learning at scale. Contributors looking to implement actual federated learning algorithms can build upon this solid foundation to create production-ready federated learning systems.
 

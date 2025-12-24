@@ -682,14 +682,49 @@ class CollectorApiClient:
         Get live network topology data with real-time updates.
         
         Returns:
-            Live network topology response
+            Live network topology response or error dict if unavailable
         """
         try:
             logger.info("CollectorApiClient: Fetching live network topology")
             return await self._make_request("GET", "/api/network/topology/live")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error getting live network topology: {e.response.status_code}")
+            return {
+                "error": f"Network topology service returned HTTP {e.response.status_code}",
+                "topology": {
+                    "nodes": [],
+                    "switches": [],
+                    "hosts": [],
+                    "links": []
+                },
+                "statistics": {
+                    "total_nodes": 0,
+                    "total_switches": 0,
+                    "total_hosts": 0,
+                    "total_links": 0
+                },
+                "timestamp": None,
+                "source": "unavailable"
+            }
         except Exception as e:
             logger.error(f"Error getting live network topology: {e}")
-            raise
+            return {
+                "error": str(e),
+                "topology": {
+                    "nodes": [],
+                    "switches": [],
+                    "hosts": [],
+                    "links": []
+                },
+                "statistics": {
+                    "total_nodes": 0,
+                    "total_switches": 0,
+                    "total_hosts": 0,
+                    "total_links": 0
+                },
+                "timestamp": None,
+                "source": "unavailable"
+            }
 
     async def get_network_flows(self) -> Dict[str, Any]:
         """

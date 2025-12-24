@@ -1,18 +1,18 @@
 version: '3.8'
 
 # FLOPY-NET: Federated Learning and SDN Observatory Platform  
-# Documentation Services - System Version: v1.0.0-alpha.8
+# Documentation Services - System Version: v1.0.0-alpha.9
 # Build Date: 2025-06-18
 
 services:
   docs:
-    image: abdulmelink/flopynet-docs:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-docs:v1.0.0-alpha.9
     container_name: flopynet-docs
     ports:
       - "3000:80"
     environment:
       - NGINX_PORT=80
-      - DOCS_VERSION=v1.0.0-alpha.8
+      - DOCS_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-18
       - ENVIRONMENT=production
     healthcheck:

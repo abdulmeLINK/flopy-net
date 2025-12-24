@@ -10,7 +10,7 @@ The **Policy Engine** is the heart of FLOPY-NET's security, governance, and comp
 
 As stated in the project architecture: "*Policy Engine is the heart: If anything related to the Policy Engine needs fix first try to match the component architecture with policy engine architecture instead of trying to modify Policy Engine.*"
 
-The Policy Engine operates as a centralized Docker container service (`abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8`) that:
+The Policy Engine operates as a centralized Docker container service (`abdulmelink/flopynet-policy-engine:v1.0.0-alpha.9`) that:
 - Defines and enforces security, privacy, and performance policies
 - Monitors federated learning component compliance in real-time
 - Detects and responds to anomalies and policy violations
@@ -23,7 +23,7 @@ The Policy Engine operates as a centralized Docker container service (`abdulmeli
 ### Docker Service Configuration
 ```yaml
 policy-engine:
-  image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8
+  image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.9
   container_name: policy-engine
   networks:
     flopynet_network:
@@ -230,14 +230,14 @@ policy-engine:
   build:
     context: .
     dockerfile: docker/flopynet_policy_engine.Dockerfile
-  image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8
+  image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.9
   container_name: policy-engine
   privileged: true
   cap_add:
     - NET_ADMIN
   environment:
     - SERVICE_TYPE=policy-engine
-    - SERVICE_VERSION=v1.0.0-alpha.8
+    - SERVICE_VERSION=v1.0.0-alpha.9
     - HOST=0.0.0.0
     - POLICY_PORT=5000
     - LOG_LEVEL=INFO

@@ -372,15 +372,15 @@
           }
         },
         {
-          "action": "deny",
-          "description": "Deny training during peak network hours",
+          "action": "log",
+          "description": "Log training during peak network hours",
           "match": {
             "operation": "model_training",
             "condition": "current_hour >= peak_start AND current_hour <= peak_end"
           },
           "parameters": {
-            "peak_start": 9,
-            "peak_end": 9
+            "peak_start": 0,
+            "peak_end": 23
           }
         },
         {
@@ -410,7 +410,7 @@
           }
         }
       ],
-      "updated_at": 1749325627.8229544,
+      "updated_at": 1749326000.0,
       "version": 2
     },
     "default-server-control-006": {
@@ -440,7 +440,7 @@
         },
         {
           "action": "deny",
-          "description": "Stop training if convergence achieved (only after round 5)",
+          "description": "Stop training if convergence achieved (only after round 30)",
           "match": {
             "operation": "decide_next_round",
             "condition": "current_round > 30 AND accuracy_improvement <= convergence_threshold"
@@ -691,15 +691,15 @@
           }
         },
         {
-          "action": "deny",
-          "description": "Deny resource-intensive operations during peak hours",
+          "action": "log",
+          "description": "Log resource-intensive operations during peak hours",
           "match": {
             "resource_type": "computation",
             "condition": "current_hour >= peak_start AND current_hour <= peak_end"
           },
           "parameters": {
-            "peak_start": 9,
-            "peak_end": 17
+            "peak_start": 0,
+            "peak_end": 23
           }
         },
         {
@@ -977,6 +977,7 @@
       "type": "temporal_control",
       "description": "Time-based access controls with business hours and maintenance windows",
       "priority": 75,
+      "enabled": false,
       "rules": [
         {
           "action": "allow",

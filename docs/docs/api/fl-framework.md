@@ -20,7 +20,7 @@ The FL Server (`src/fl/server/fl_server.py`) combines Flower's gRPC server with 
 ```yaml
 environment:
   - SERVICE_TYPE=fl-server
-  - SERVICE_VERSION=v1.0.0-alpha.8
+  - SERVICE_VERSION=v1.0.0-alpha.9
   - HOST=0.0.0.0
   - FL_SERVER_PORT=8080        # Flower gRPC port
   - METRICS_PORT=9091          # Environment variable (not used by FL server)
@@ -66,7 +66,7 @@ FL Clients (`src/fl/client/fl_client.py`) connect via Flower gRPC and use ModelH
 ```yaml
 environment:
   - SERVICE_TYPE=fl-client
-  - SERVICE_VERSION=v1.0.0-alpha.8
+  - SERVICE_VERSION=v1.0.0-alpha.9
   - CLIENT_ID=client-1
   - SERVER_HOST=fl-server        # FL Server hostname
   - POLICY_ENGINE_HOST=policy-engine
@@ -547,11 +547,11 @@ version: '3.8'
 
 services:
   fl-server:
-    image: abdulmelink/flopynet-server:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-server:v1.0.0-alpha.9
     container_name: fl-server
     environment:
       - SERVICE_TYPE=fl-server
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - HOST=0.0.0.0
       - FL_SERVER_PORT=8080
       - METRICS_PORT=9091
@@ -574,11 +574,11 @@ services:
         condition: service_healthy
 
   fl-client-1:
-    image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.9
     container_name: fl-client-1
     environment:
       - SERVICE_TYPE=fl-client
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - CLIENT_ID=client-1
       - SERVER_HOST=fl-server
       - POLICY_ENGINE_HOST=policy-engine
@@ -594,11 +594,11 @@ services:
         condition: service_healthy
 
   fl-client-2:
-    image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.9
     container_name: fl-client-2
     environment:
       - SERVICE_TYPE=fl-client
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - CLIENT_ID=client-2
       - SERVER_HOST=fl-server
       - POLICY_ENGINE_HOST=policy-engine
@@ -614,7 +614,7 @@ services:
         condition: service_healthy
 
   policy-engine:
-    image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.9
     container_name: policy-engine
     environment:
       - SERVICE_TYPE=policy-engine
@@ -630,7 +630,7 @@ services:
       retries: 5
 
   collector:
-    image: abdulmelink/flopynet-collector:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-collector:v1.0.0-alpha.9
     container_name: collector
     environment:
       - SERVICE_TYPE=collector

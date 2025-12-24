@@ -12,11 +12,12 @@ from .fl_response_builder import (
 )
 
 from .metrics_cache import (
-    FlMetricsCache,
-    MetricsOptimizer,
-    cache_fl_metrics,
-    get_cache_key,
-    invalidate_fl_cache,
+    MetricsCache,
+    fl_metrics_cache,
+    events_cache,
+    network_cache,
+    get_optimization_params,
+    create_cache_key,
 )
 
 __all__ = [
@@ -26,9 +27,10 @@ __all__ = [
     'calculate_fl_statistics',
     'format_round_data',
     # Caching utilities
-    'FlMetricsCache',
-    'MetricsOptimizer',
-    'cache_fl_metrics',
-    'get_cache_key',
-    'invalidate_fl_cache',
+    'MetricsCache',
+    'fl_metrics_cache',
+    'events_cache',
+    'network_cache',
+    'get_optimization_params',
+    'create_cache_key',
 ]

@@ -3,7 +3,7 @@
   "scenario_name": "Basic Federated Learning",
   "description": "Basic federated learning setup with minimal configuration",
   "gns3": {
-    "server_url": "http://192.168.141.128:3080",
+    "server_url": "http://192.168.141.128:80",
     "project_name": "basic_federated_learning",
     "reset_project": true,
     "cleanup_action": "stop"

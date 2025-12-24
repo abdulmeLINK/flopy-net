@@ -10,7 +10,7 @@ The platform's monitoring architecture adapts to different deployment environmen
 
 ## Current Simulation Monitoring
 
-**Important Context**: The base FLOPY-NET components (v1.0.0-alpha.8) simulate federated learning training behavior using synthetic data generation rather than actual machine learning training. The monitoring system captures these simulation metrics to demonstrate system capabilities, network interactions, and policy enforcement patterns without the computational overhead of real ML training.
+**Important Context**: The base FLOPY-NET components (v1.0.0-alpha.9) simulate federated learning training behavior using synthetic data generation rather than actual machine learning training. The monitoring system captures these simulation metrics to demonstrate system capabilities, network interactions, and policy enforcement patterns without the computational overhead of real ML training.
 
 Simulation monitoring focuses on system architecture validation, network behavior analysis, and policy enforcement verification. The metrics collected represent realistic federated learning communication patterns, resource utilization, and performance characteristics that researchers can use to understand how network conditions affect distributed machine learning systems.
 

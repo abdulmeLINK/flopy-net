@@ -10,7 +10,7 @@ http://localhost:8083/api
 
 ## Service Information
 
-**Container**: `abdulmelink/flopynet-collector:v1.0.0-alpha.8`  
+**Container**: `abdulmelink/flopynet-collector:v1.0.0-alpha.9`  
 **Network IP**: `192.168.100.40`  
 **Port**: `8000` (Internal), `8083` (External)  
 **Technology**: Flask REST API with Blueprint  

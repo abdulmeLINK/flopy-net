@@ -915,7 +915,7 @@ init_network_routes(storage, requires_auth)
 # Register blueprints
 app.register_blueprint(api_bp, url_prefix='/api')
 app.register_blueprint(fl_bp, url_prefix='/api')  # FL routes at /api/metrics/fl/*
-app.register_blueprint(network_bp, url_prefix='/api')  # Network routes at /api/network/*
+app.register_blueprint(network_bp, url_prefix='/api/network')  # Network routes at /api/network/*
 
 # Enable CORS if configured when running as standalone
 if ENABLE_CORS:

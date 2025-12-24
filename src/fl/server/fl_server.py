@@ -239,6 +239,8 @@ class FLServer(TrainingControlMixin, PolicyEnforcementMixin):
         
         global fl_round_storage
         fl_round_storage = FLRoundStorage(db_path)
+        # Also store on instance for easy access from routes
+        self.round_storage = fl_round_storage
         logger.info(f"FL round storage initialized at {db_path}")
         
         # Setup metrics routes

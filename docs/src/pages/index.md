@@ -7,11 +7,11 @@ description: Federated Learning Observatory Platform - Network Emulation & Testi
 
 **Federated Learning Observatory Platform - Network Emulation & Testing**
 
-FLOPY-NET v1.0.0-alpha.8 is a comprehensive research platform for evaluating federated learning systems under realistic network conditions. The platform provides a complete scenario-driven testing environment with GNS3 network emulation, SDN control, comprehensive monitoring, and policy enforcement capabilities for federated learning research.
+FLOPY-NET v1.0.0-alpha.9 is a comprehensive research platform for evaluating federated learning systems under realistic network conditions. The platform provides a complete scenario-driven testing environment with GNS3 network emulation, SDN control, comprehensive monitoring, and policy enforcement capabilities for federated learning research.
 
 ## Current Implementation Status
 
-**Research & Simulation Focus**: The current v1.0.0-alpha.8 implementation provides federated learning simulation using synthetic data to demonstrate system behavior, network interaction patterns, and policy enforcement. This simulation approach enables comprehensive study of network effects, policy enforcement, and system scalability without the computational overhead of actual machine learning training.
+**Research & Simulation Focus**: The current v1.0.0-alpha.9 implementation provides federated learning simulation using synthetic data to demonstrate system behavior, network interaction patterns, and policy enforcement. This simulation approach enables comprehensive study of network effects, policy enforcement, and system scalability without the computational overhead of actual machine learning training.
 
 The FL server and client components simulate training rounds, model aggregation, and convergence patterns to provide realistic federated learning behavior for network and system research. For production federated learning research  requiring actual ML training, the base components can be extended with real datasets, models, and training algorithms.
 
@@ -69,12 +69,12 @@ FLOPY-NET is designed for researchers working on:
 
 ## 🛠️ Container Components
 
-- **FL Server**: `abdulmelink/flopynet-server:v1.0.0-alpha.8` (192.168.100.10:8080)
-- **FL Clients**: `abdulmelink/flopynet-client:v1.0.0-alpha.8` (192.168.100.101-102)
-- **Policy Engine**: `abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8` (192.168.100.20:5000)
-- **Collector Service**: `abdulmelink/flopynet-collector:v1.0.0-alpha.8` (192.168.100.40:8000)
-- **SDN Controller**: `abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.8` (192.168.100.41:6633/8181)
-- **OpenVSwitch**: `abdulmelink/flopynet-openvswitch:v1.0.0-alpha.8` (192.168.100.60)
+- **FL Server**: `abdulmelink/flopynet-server:v1.0.0-alpha.9` (192.168.100.10:8080)
+- **FL Clients**: `abdulmelink/flopynet-client:v1.0.0-alpha.9` (192.168.100.101-102)
+- **Policy Engine**: `abdulmelink/flopynet-policy-engine:v1.0.0-alpha.9` (192.168.100.20:5000)
+- **Collector Service**: `abdulmelink/flopynet-collector:v1.0.0-alpha.9` (192.168.100.40:8000)
+- **SDN Controller**: `abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.9` (192.168.100.41:6633/8181)
+- **OpenVSwitch**: `abdulmelink/flopynet-openvswitch:v1.0.0-alpha.9` (192.168.100.60)
 
 ## 📊 Supported Simulation Scenarios
 

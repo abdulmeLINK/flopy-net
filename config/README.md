@@ -1,19 +1,79 @@
 # FLOPY-NET Configuration
 
-This directory contains all configuration files for the FLOPY-NET v1.0.0-alpha.8 system components. With the containerized architecture, most configuration is handled through Docker Compose environment variables, with JSON files providing additional customization options.
+This directory contains all configuration files for the FLOPY-NET v1.0.0-alpha.9 system components. With the containerized architecture, most configuration is handled through Docker Compose environment variables, with JSON files providing additional customization options.
+
+## Quick Start: Changing GNS3 VM IP
+
+**One command to change your GNS3 VM IP everywhere:**
+
+```bash
+python scripts/sync_network_config.py --gns3-ip YOUR_GNS3_VM_IP
+```
+
+For example:
+```bash
+python scripts/sync_network_config.py --gns3-ip 192.168.50.100
+```
+
+This will update ALL configuration files (topology, scenarios, gns3_connection.json, .env).
+
+## Centralized Network Configuration
+
+All network configuration is centralized in **`network_addressing.json`**:
+
+```json
+{
+  "simulator": {
+    "host": "192.168.141.128"  // <- CHANGE THIS FOR YOUR GNS3 VM
+  },
+  "network": {
+    "subnet_prefix": "192.168.100"  // Service subnet
+  }
+}
+```
+
+### Using the Sync Script
+
+```bash
+# Preview changes (no files modified)
+python scripts/sync_network_config.py --dry-run
+
+# Apply changes to all files
+python scripts/sync_network_config.py
+
+# Change GNS3 VM IP (updates everywhere)
+python scripts/sync_network_config.py --gns3-ip 192.168.50.100
+
+# Change entire subnet
+python scripts/sync_network_config.py --subnet 10.0.0
+```
+
+### Using the Python API
+
+```python
+from src.core.config.network_addressing import network_config
+
+# Get service URLs
+policy_url = network_config.get_service_url('policy_engine')
+gns3_url = network_config.get_simulator_url()
+
+# Get client IP
+client_ip = network_config.get_client_ip(1)  # 192.168.100.101
+```
 
 ## Configuration Hierarchy
 
 FLOPY-NET uses a layered configuration approach with the following precedence (highest to lowest):
 
 1. **Command-Line Arguments** (highest priority)
-2. **Docker Environment Variables** (docker-compose.yml, primary method)
-3. **JSON Configuration Files** (this directory, secondary customization)
-4. **Hardcoded Defaults** (in source code)
+2. **Environment Variables** (GNS3_VM_IP, SUBNET_PREFIX override config file)
+3. **Docker Environment Variables** (docker-compose.yml, primary method)
+4. **JSON Configuration Files** (this directory, secondary customization)
+5. **Hardcoded Defaults** (in source code)
 
 ## Primary Configuration: Docker Compose
 
-The main configuration for FLOPY-NET v1.0.0-alpha.8 is through `docker-compose.yml` environment variables:
+The main configuration for FLOPY-NET v1.0.0-alpha.9 is through `docker-compose.yml` environment variables:
 
 ### Network Configuration (All Services)
 ```yaml

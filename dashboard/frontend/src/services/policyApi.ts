@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-/**
 import api from './api';
 
 export interface Policy {

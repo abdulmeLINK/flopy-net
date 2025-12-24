@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-/**
 import api from './api';
 import axios from 'axios';
 

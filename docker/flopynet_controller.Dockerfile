@@ -7,6 +7,11 @@ WORKDIR /app
 
 # Copy requirements first for better caching
 COPY docker/requirements/controller-requirements.txt /app/requirements.txt
+
+# Install setuptools first (required for ryu which uses legacy setup.py)
+RUN pip install --no-cache-dir "setuptools<58" wheel
+
+# Install remaining requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code

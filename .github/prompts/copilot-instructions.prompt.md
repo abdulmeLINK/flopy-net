@@ -86,7 +86,7 @@ sys.path.insert(0, os.path.abspath(...))
 2. **Credentials in config** — `config/gns3_connection.json` has default passwords
 3. **Dual logging setups** — `main.py` vs `logging_utils.py`
 4. **No pyproject.toml** — Causes `sys.path` hacks everywhere
-5. **Version sprawl** — `v1.0.0-alpha.8` hardcoded in 50+ places
+5. **Version sprawl** — `v1.0.0-alpha.9` hardcoded in 50+ places
 
 
 ## 🔗 Key GitHub Issues

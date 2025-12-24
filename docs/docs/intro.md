@@ -141,7 +141,7 @@ sequenceDiagram
     
     Host->>CLI: python -m src.scenarios.run_scenario --scenario config/scenarios/basic_main.json
     CLI->>CLI: Load scenario config<br/>(config/scenarios/basic_main.json)
-    CLI->>GNS3: Connect to GNS3 Server<br/>(192.168.141.128:3080)
+    CLI->>GNS3: Connect to GNS3 Server<br/>(192.168.141.128:80)
     GNS3->>GNS3: Create/Reset project<br/>(basic_federated_learning)
     
     Note over CLI,NET: Network Topology Deployment

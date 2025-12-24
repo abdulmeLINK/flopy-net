@@ -302,9 +302,10 @@ class Collector:
         """Set up the collector API."""
         logger.info(f"Setting up collector API on {self.api_host}:{self.api_port}...")
         
-        # Import and use the existing API server from server.py instead of creating a new Flask app
+        # Import and use the existing API server from server.py
+        # This app already has all routes registered (api_bp, fl_bp, network_bp)
         try:
-            from src.collector.api.server import api_bp, storage as api_storage
+            from src.collector.api.server import app, storage as api_storage
             
             # Update the API storage to use our configured storage
             api_storage.output_dir = self.metrics_output_dir
@@ -314,18 +315,9 @@ class Collector:
                 api_storage.network_monitor = self.network_monitor
                 logger.info("Network monitor reference passed to API server")
             
-            logger.info("Successfully imported API blueprint from server.py")
+            logger.info("Successfully imported API app from server.py with all routes")
             
-            # Create minimal Flask app to run the imported blueprint
-            app = Flask(__name__)
-            
-            # Add CORS support if needed
-            CORS(app, origins="*")
-            
-            # Register the comprehensive API blueprint
-            app.register_blueprint(api_bp, url_prefix='/api')
-            
-            # Add a few collector-specific endpoints
+            # Add collector-specific endpoints to the imported app
             @app.route('/health', methods=['GET'])
             def health_check():
                 """Health check endpoint."""

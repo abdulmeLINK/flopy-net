@@ -156,26 +156,24 @@ async def get_live_network_topology(
         # Get live topology data from collector
         topology_data = await collector.get_live_network_topology()
         
-        # Check for errors in the response
+        # Check for errors in the response - return graceful response instead of 500
         if "error" in topology_data:
-            if "not available" in topology_data["error"]:
-                raise HTTPException(
-                    status_code=503,
-                    detail={
-                        "message": "Live network monitoring service is not available",
-                        "error": topology_data["error"],
-                        "error_type": "ServiceUnavailable"
-                    }
-                )
-            else:
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "message": "Failed to retrieve live network topology",
-                        "error": topology_data["error"],
-                        "error_type": "LiveTopologyError"
-                    }
-                )
+            return {
+                "nodes": [],
+                "links": [],
+                "switches": [],
+                "hosts": [],
+                "statistics": {
+                    "total_nodes": 0,
+                    "total_switches": 0,
+                    "total_hosts": 0,
+                    "total_links": 0
+                },
+                "timestamp": None,
+                "source": "unavailable",
+                "service_available": False,
+                "error": topology_data.get("error")
+            }
         
         # Transform the collector response
         topology = topology_data.get("topology", {})
@@ -186,28 +184,32 @@ async def get_live_network_topology(
             "hosts": topology.get("hosts", []),
             "statistics": topology_data.get("statistics", {}),
             "timestamp": topology_data.get("timestamp"),
-            "source": "live_query"
+            "source": "live_query",
+            "service_available": True
         }
         
         return response
         
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions
     except Exception as e:
         logger.exception("Error retrieving live network topology from collector")
         
-        error_detail = {
-            "message": "Failed to retrieve live network topology",
-            "error": str(e),
-            "error_type": type(e).__name__
+        # Return graceful error response instead of 500
+        return {
+            "nodes": [],
+            "links": [],
+            "switches": [],
+            "hosts": [],
+            "statistics": {
+                "total_nodes": 0,
+                "total_switches": 0,
+                "total_hosts": 0,
+                "total_links": 0
+            },
+            "timestamp": None,
+            "source": "error",
+            "service_available": False,
+            "error": str(e)
         }
-        
-        logger.error(f"Live network topology error details: {error_detail}")
-        
-        raise HTTPException(
-            status_code=500,
-            detail=error_detail
-        )
 
 
 
@@ -577,6 +579,17 @@ async def get_network_hosts(collector: CollectorApiClient = Depends(get_collecto
     """Get detailed information about network hosts."""
     try:
         topology_data = await collector.get_live_network_topology()
+        
+        # Check for errors - return empty response with service unavailable indicator
+        if "error" in topology_data:
+            return {
+                "hosts": [],
+                "total_count": 0,
+                "timestamp": None,
+                "service_available": False,
+                "error": topology_data.get("error")
+            }
+        
         hosts = topology_data.get("topology", {}).get("hosts", [])
         
         # Enhance host data with additional statistics
@@ -598,17 +611,35 @@ async def get_network_hosts(collector: CollectorApiClient = Depends(get_collecto
         return {
             "hosts": enhanced_hosts,
             "total_count": len(enhanced_hosts),
-            "timestamp": topology_data.get("timestamp")
+            "timestamp": topology_data.get("timestamp"),
+            "service_available": True
         }
     except Exception as e:
         logger.error(f"Error getting network hosts: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "hosts": [],
+            "total_count": 0,
+            "timestamp": None,
+            "service_available": False,
+            "error": str(e)
+        }
 
 @router.get("/switches")
 async def get_network_switches(collector: CollectorApiClient = Depends(get_collector_client)):
     """Get detailed information about network switches."""
     try:
         topology_data = await collector.get_live_network_topology()
+        
+        # Check for errors - return empty response with service unavailable indicator
+        if "error" in topology_data:
+            return {
+                "switches": [],
+                "total_count": 0,
+                "timestamp": None,
+                "service_available": False,
+                "error": topology_data.get("error")
+            }
+        
         switches = topology_data.get("topology", {}).get("switches", [])
         
         # Enhance switch data with additional statistics
@@ -641,17 +672,35 @@ async def get_network_switches(collector: CollectorApiClient = Depends(get_colle
         return {
             "switches": enhanced_switches,
             "total_count": len(enhanced_switches),
-            "timestamp": topology_data.get("timestamp")
+            "timestamp": topology_data.get("timestamp"),
+            "service_available": True
         }
     except Exception as e:
         logger.error(f"Error getting network switches: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "switches": [],
+            "total_count": 0,
+            "timestamp": None,
+            "service_available": False,
+            "error": str(e)
+        }
 
 @router.get("/links")
 async def get_network_links(collector: CollectorApiClient = Depends(get_collector_client)):
     """Get detailed information about network links."""
     try:
         topology_data = await collector.get_live_network_topology()
+        
+        # Check for errors - return empty response with service unavailable indicator
+        if "error" in topology_data:
+            return {
+                "links": [],
+                "total_count": 0,
+                "timestamp": None,
+                "service_available": False,
+                "error": topology_data.get("error")
+            }
+        
         links = topology_data.get("topology", {}).get("links", [])
         
         # Enhance link data with additional statistics
@@ -670,17 +719,52 @@ async def get_network_links(collector: CollectorApiClient = Depends(get_collecto
         return {
             "links": enhanced_links,
             "total_count": len(enhanced_links),
-            "timestamp": topology_data.get("timestamp")
+            "timestamp": topology_data.get("timestamp"),
+            "service_available": True
         }
     except Exception as e:
         logger.error(f"Error getting network links: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "links": [],
+            "total_count": 0,
+            "timestamp": None,
+            "service_available": False,
+            "error": str(e)
+        }
 
 @router.get("/statistics")
 async def get_network_statistics(collector: CollectorApiClient = Depends(get_collector_client)):
     """Get comprehensive network statistics."""
     try:
         topology_data = await collector.get_live_network_topology()
+        
+        # Check for errors - return empty statistics with service unavailable indicator
+        if "error" in topology_data:
+            return {
+                "topology": {
+                    "total_nodes": 0,
+                    "total_hosts": 0,
+                    "total_switches": 0,
+                    "total_links": 0,
+                    "total_ports": 0,
+                    "active_ports": 0
+                },
+                "health": {
+                    "overall_status": "unavailable",
+                    "switch_connectivity": False,
+                    "host_connectivity": False,
+                    "link_redundancy": False
+                },
+                "performance": {
+                    "average_latency": 0.0,
+                    "total_bandwidth": "unknown",
+                    "utilization": 0.0
+                },
+                "timestamp": None,
+                "source": "unavailable",
+                "service_available": False,
+                "error": topology_data.get("error")
+            }
         
         # Get basic counts
         topology = topology_data.get("topology", {})
@@ -717,13 +801,38 @@ async def get_network_statistics(collector: CollectorApiClient = Depends(get_col
                 "utilization": 0.0
             },
             "timestamp": topology_data.get("timestamp"),
-            "source": topology_data.get("source", "unknown")
+            "source": topology_data.get("source", "unknown"),
+            "service_available": True
         }
         
         return statistics
     except Exception as e:
         logger.error(f"Error getting network statistics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "topology": {
+                "total_nodes": 0,
+                "total_hosts": 0,
+                "total_switches": 0,
+                "total_links": 0,
+                "total_ports": 0,
+                "active_ports": 0
+            },
+            "health": {
+                "overall_status": "error",
+                "switch_connectivity": False,
+                "host_connectivity": False,
+                "link_redundancy": False
+            },
+            "performance": {
+                "average_latency": 0.0,
+                "total_bandwidth": "unknown",
+                "utilization": 0.0
+            },
+            "timestamp": None,
+            "source": "error",
+            "service_available": False,
+            "error": str(e)
+        }
 
 @router.get("/flows")
 async def get_network_flows(collector: CollectorApiClient = Depends(get_collector_client)):
@@ -732,16 +841,11 @@ async def get_network_flows(collector: CollectorApiClient = Depends(get_collecto
         # Get topology data first to get switch information
         topology_data = await collector.get_live_network_topology()
         
-        if "error" in topology_data:            raise HTTPException(
-                status_code=503,
-                detail={
-                    "message": "Network monitoring service is not available",
-                    "error": topology_data["error"],
-                    "error_type": "ServiceUnavailable"
-                }
-            )
-        
-        switches = topology_data.get("topology", {}).get("switches", [])
+        # Handle topology service unavailable gracefully
+        if "error" in topology_data:
+            switches = []
+        else:
+            switches = topology_data.get("topology", {}).get("switches", [])
         
         # Get flows from collector service
         flows_data = await collector.get_network_flows()
@@ -789,12 +893,25 @@ async def get_network_flows(collector: CollectorApiClient = Depends(get_collecto
             "flows": all_flows,
             "summary": flow_summary,
             "timestamp": datetime.datetime.utcnow().isoformat(),
-            "source": "collector_service"
+            "source": "collector_service",
+            "service_available": True
         }
         
     except Exception as e:
         logger.error(f"Error getting network flows: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "flows": [],
+            "summary": {
+                "total_flows": 0,
+                "switches_with_flows": 0,
+                "table_stats": {},
+                "policy_flows": []
+            },
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "source": "error",
+            "service_available": False,
+            "error": str(e)
+        }
 
 @router.get("/performance/metrics")
 async def get_network_performance_metrics(

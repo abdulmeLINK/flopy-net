@@ -1,7 +1,7 @@
 version: '3.8'
 
 # FLOPY-NET: Federated Learning and SDN Observatory Platform
-# System Version: v1.0.0-alpha.9
+# System Version: v1.0.0-alpha.9-dev
 # Registry: abdulmelink (Docker Hub)
 #
 # Network addressing is centralized in:
@@ -41,7 +41,7 @@ x-node-ips: &node-ips
   NODE_IP_FL_CLIENT_2: ${NODE_IP_FL_CLIENT_2}
 
 x-version-info: &version-info
-  SERVICE_VERSION: v1.0.0-alpha.9
+  SERVICE_VERSION: v1.0.0-alpha.9-dev
   BUILD_DATE: "2025-11-26"
 
 x-privileged-service: &privileged-service
@@ -61,7 +61,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_policy_engine.Dockerfile
-    image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.9
+    image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.9-dev
     container_name: policy-engine
     <<: *privileged-service
     environment:
@@ -91,7 +91,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_fl_server.Dockerfile
-    image: abdulmelink/flopynet-server:v1.0.0-alpha.9
+    image: abdulmelink/flopynet-server:v1.0.0-alpha.9-dev
     container_name: fl-server
     <<: *privileged-service
     depends_on:
@@ -123,7 +123,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_fl_client.Dockerfile
-    image: abdulmelink/flopynet-client:v1.0.0-alpha.9
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.9-dev
     container_name: fl-client-1
     <<: *privileged-service
     depends_on:
@@ -152,7 +152,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_fl_client.Dockerfile
-    image: abdulmelink/flopynet-client:v1.0.0-alpha.9
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.9-dev
     container_name: fl-client-2
     <<: *privileged-service
     depends_on:
@@ -181,7 +181,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_collector.Dockerfile
-    image: abdulmelink/flopynet-collector:v1.0.0-alpha.9
+    image: abdulmelink/flopynet-collector:v1.0.0-alpha.9-dev
     container_name: collector
     <<: *privileged-service
     depends_on:
@@ -215,7 +215,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_controller.Dockerfile
-    image: abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.9
+    image: abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.9-dev
     container_name: sdn-controller
     <<: *privileged-service
     depends_on:
@@ -241,7 +241,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_openvswitch.Dockerfile
-    image: abdulmelink/openvswitch:v1.0.0-alpha.9
+    image: abdulmelink/openvswitch:v1.0.0-alpha.9-dev
     container_name: openvswitch
     <<: *privileged-service
     depends_on:
@@ -273,5 +273,5 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 192.168.100.0/24
-          gateway: 192.168.100.1
+        - subnet: 192.168.141.0/24
+          gateway: 192.168.141.1

@@ -25,7 +25,7 @@ assignees: ''
 
 ## Environment (if applicable)
 
-- **FLOPY-NET Version**: [e.g., v1.0.0-alpha.8]
+- **FLOPY-NET Version**: [e.g., v1.0.0-alpha.9]
 - **OS**: [e.g., Ubuntu 22.04, Windows 11, macOS 14]
 - **Python Version**: [e.g., 3.10.5]
 - **Docker Version**: [e.g., 24.0.5]

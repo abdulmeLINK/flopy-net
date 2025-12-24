@@ -158,7 +158,8 @@ class FLMetricsRouteSetup:
     
     def _setup_rounds_routes(self, app):
         """Set up the /rounds and /rounds/latest routes."""
-        from src.fl.server.fl_server import fl_round_storage
+        # Store reference to fl_server for access to round_storage
+        fl_server = self.fl_server
         
         @app.route('/rounds', methods=['GET'])
         def get_rounds():
@@ -183,11 +184,15 @@ class FLMetricsRouteSetup:
                 min_accuracy = request.args.get('min_accuracy', type=float)
                 max_accuracy = request.args.get('max_accuracy', type=float)
                 
-                if not fl_round_storage:
+                # Access fl_round_storage via fl_server instance
+                storage = getattr(fl_server, 'round_storage', None)
+                
+                if not storage:
+                    logger.warning("round_storage not available on fl_server instance")
                     return jsonify({"error": "Round storage not initialized", "rounds": []}), 500
                 
                 # Get rounds from persistent storage
-                rounds = fl_round_storage.get_rounds(
+                rounds = storage.get_rounds(
                     start_round=start_round,
                     end_round=end_round,
                     limit=limit,
@@ -197,7 +202,7 @@ class FLMetricsRouteSetup:
                 )
                 
                 # Get total count for pagination
-                total_count = fl_round_storage.get_round_count(
+                total_count = storage.get_round_count(
                     start_round=start_round,
                     end_round=end_round,
                     min_accuracy=min_accuracy,
@@ -205,7 +210,7 @@ class FLMetricsRouteSetup:
                 )
                 
                 # Get latest round number
-                latest_round = fl_round_storage.get_latest_round_number()
+                latest_round = storage.get_latest_round_number()
                 
                 return jsonify({
                     "rounds": rounds,
@@ -234,16 +239,20 @@ class FLMetricsRouteSetup:
             try:
                 limit = min(int(request.args.get('limit', 50)), 1000)
                 
-                if not fl_round_storage:
+                # Access fl_round_storage via fl_server instance
+                storage = getattr(fl_server, 'round_storage', None)
+                
+                if not storage:
+                    logger.warning("round_storage not available on fl_server instance in /rounds/latest")
                     return jsonify({"error": "Round storage not initialized", "rounds": []}), 500
                 
-                latest_round_number = fl_round_storage.get_latest_round_number()
+                latest_round_number = storage.get_latest_round_number()
                 if latest_round_number == 0:
                     return jsonify({"rounds": [], "latest_round": 0})
                 
                 # Get the latest rounds
                 start_round = max(1, latest_round_number - limit + 1)
-                rounds = fl_round_storage.get_rounds(
+                rounds = storage.get_rounds(
                     start_round=start_round,
                     end_round=latest_round_number,
                     limit=limit

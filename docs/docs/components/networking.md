@@ -1046,7 +1046,7 @@ class GNS3Integration:
             project_id=project_id,
             name="FL-Server",
             node_type="docker",
-            image="abdulmelink/flopynet-server:v1.0.0-alpha.8",
+            image="abdulmelink/flopynet-server:v1.0.0-alpha.9",
             x=300, y=200
         )
         
@@ -1059,7 +1059,7 @@ class GNS3Integration:
                 project_id=project_id,
                 name=f"FL-Client-{i+1}",
                 node_type="docker",
-                image="abdulmelink/flopynet-client:v1.0.0-alpha.8",
+                image="abdulmelink/flopynet-client:v1.0.0-alpha.9",
                 x=100 + i * 200, y=400
             )
             fl_clients.append(client)
@@ -1208,7 +1208,7 @@ Network components are integrated into the Docker Compose stack:
 ```yaml
 # SDN Controller Service
 sdn-controller:
-  image: abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.8
+  image: abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.9
   container_name: sdn-controller
   privileged: true
   cap_add:
@@ -1228,7 +1228,7 @@ sdn-controller:
 
 # OpenVSwitch Service
 openvswitch:
-  image: abdulmelink/openvswitch:v1.0.0-alpha.8
+  image: abdulmelink/openvswitch:v1.0.0-alpha.9
   container_name: openvswitch
   privileged: true
   cap_add:

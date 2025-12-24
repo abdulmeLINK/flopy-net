@@ -1,7 +1,7 @@
 \section{Performance Evaluation}
 \label{sec:performance-evaluation}
 
-\textbf{Note:} This section outlines the performance evaluation framework and architectural considerations for abdulmelink. As the system is currently in alpha development (v1.0.0-alpha.8), comprehensive performance benchmarks have not yet been conducted. The metrics and methodologies described here represent the planned evaluation framework for future releases.
+\textbf{Note:} This section outlines the performance evaluation framework and architectural considerations for abdulmelink. As the system is currently in alpha development (v1.0.0-alpha.9), comprehensive performance benchmarks have not yet been conducted. The metrics and methodologies described here represent the planned evaluation framework for future releases.
 
 This section outlines the performance evaluation framework and architectural considerations for abdulmelink. Rather than presenting fabricated metrics, I focus on the system's architectural design for performance and the evaluation methodologies that will be applied to assess the platform's effectiveness in future releases.
 
@@ -127,7 +127,7 @@ The evaluation focuses on key performance indicators across different system lay
 
 \subsection{Federated Learning Performance}
 
-Based on my assumptions the model accuracy will be below the traditional ML&DL training done on the machines with a solid dataset but as we are preserving the privacy here the lost accuracy or performance from the model is worth. Especially when you think of the increase on the data as weights coming through due to less concern on privacy. Reduction in the performance is completely dependent the tech under the FL Client and FL Server since they are completely modular in the abdulmelink. The current (v1.0.0-alpha.8) version using the randomized weight due to MVP requirements I planned.
+Based on my assumptions the model accuracy will be below the traditional ML&DL training done on the machines with a solid dataset but as we are preserving the privacy here the lost accuracy or performance from the model is worth. Especially when you think of the increase on the data as weights coming through due to less concern on privacy. Reduction in the performance is completely dependent the tech under the FL Client and FL Server since they are completely modular in the abdulmelink. The current (v1.0.0-alpha.9) version using the randomized weight due to MVP requirements I planned.
 
 \subsubsection{Training Performance Analysis}
 \begin{figure}[htbp]
@@ -243,7 +243,7 @@ Based on the Docker configuration, each component is designed for efficiency:
 \begin{lstlisting}[style=dockercode, caption=Resource-Aware Container Configuration]
 # FL Client resource limits (from docker-compose.yml)
 fl-client:
-  image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+  image: abdulmelink/flopynet-client:v1.0.0-alpha.9
   environment:
     - SERVICE_TYPE=fl-client
     - CLIENT_ID=client-${SERVICE_ID}

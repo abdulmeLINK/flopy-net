@@ -37,7 +37,7 @@ Unlike pure FL frameworks, FLOPY-NET bridges the gap between theoretical federat
 
 ### Current Implementation Status
 
-**v1.0.0-alpha.8** demonstrates the platform architecture with simulated FL training using random data.
+**v1.0.0-alpha.9** demonstrates the platform architecture with simulated FL training using random data.
 
 **Production ML Research**: Extend FL client/server components with real models, datasets, and training algorithms. See [Extending FLOPY-NET](#extending-flopy-net).
 
@@ -1633,7 +1633,7 @@ refactor: Simplify configuration loading
 **Issue Template**:
 ```
 **Environment**:
-- FLOPY-NET version: v1.0.0-alpha.8
+- FLOPY-NET version: v1.0.0-alpha.9
 - OS: Windows 11
 - GNS3 version: 2.2.54
 - Docker version: 20.10.23
@@ -1763,7 +1763,7 @@ If you use FLOPY-NET in your research, please cite:
   author = {[Author Names]},
   year = {2025},
   url = {https://github.com/abdulmelink/flopy-net},
-  version = {v1.0.0-alpha.8}
+  version = {v1.0.0-alpha.9}
 }
 ```
 
@@ -1824,7 +1824,7 @@ This section provides concise answers to common questions about FLOPY-NET.
 | Question | Answer |
 | :--- | :--- |
 | **How scalable is FLOPY-NET?** | The platform is designed for **2-10 FL clients** for network research, not production use. Resource requirements are high due to emulation overhead (**approx. 1GB** RAM per client). It is **not designed for 100+ clients**. |
-| **Can I use FLOPY-NET in production?** | **No.** v1.0.0-alpha.8 is a research platform only and is missing critical features like **Authentication, TLS/SSL encryption, Input Validation, Secret Management, and a security audit** of the experimental Policy Engine. |
+| **Can I use FLOPY-NET in production?** | **No.** v1.0.0-alpha.9 is a research platform only and is missing critical features like **Authentication, TLS/SSL encryption, Input Validation, Secret Management, and a security audit** of the experimental Policy Engine. |
 | **How do I export experiment results?** | You have three methods: 1. **Dashboard Export** (Metrics Explorer $\to$ CSV/JSON). 2. **Direct Database Query** (`sqlite3 src/collector/metrics.db`). 3. **API Access** (e.g., `curl http://localhost:8001/api/fl/rounds`). |
 | **What data storage layers are used?** | **SQLite** for time-series performance data, **JSON** for hierarchical policy definitions, **JSONL** for event logs/audit trails, and **Docker Compose environment variables/JSON files** for configuration. |
 ## Core Components
@@ -2007,7 +2007,7 @@ flopy-net/
 
 ## Version Information
 
-- **Current Version**: v1.0.0-alpha.8
+- **Current Version**: v1.0.0-alpha.9
 - **Stability**: **Alpha - Active development, breaking changes expected**
 - **Testing Status**: **Limited testing - many features are experimental**
 - **Production Readiness**: **NOT suitable for production use**
@@ -2083,7 +2083,7 @@ If you use FLOPY-NET in your research, please cite:
   subtitle={A Modular Policy-Driven Architecture and Platform for Network-Aware Federated Learning Analysis},
   author={Saylan, Abdulmelik},
   year={2025},
-  version={v1.0.0-alpha.8},
+  version={v1.0.0-alpha.9},
   url={https://github.com/abdulmelink/flopy-net},
   doi={10.5281/zenodo.XXXXXXX},
   license={Apache-2.0},
@@ -2097,10 +2097,10 @@ If you use FLOPY-NET in your research, please cite:
 ### Alternative Citation Formats
 
 **IEEE Style:**
-> A. Saylan, "FLOPY-NET: Federated Learning Platform - Network Emulation & Testing," Version v1.0.0-alpha.8, 2025. [Online]. Available: https://github.com/abdulmelink/flopy-net
+> A. Saylan, "FLOPY-NET: Federated Learning Platform - Network Emulation & Testing," Version v1.0.0-alpha.9, 2025. [Online]. Available: https://github.com/abdulmelink/flopy-net
 
 **APA Style:**
-> Saylan, A. (2025). FLOPY-NET: Federated Learning Platform - Network Emulation & Testing (Version v1.0.0-alpha.8) [Computer software]. GitHub. https://github.com/abdulmelink/flopy-net
+> Saylan, A. (2025). FLOPY-NET: Federated Learning Platform - Network Emulation & Testing (Version v1.0.0-alpha.9) [Computer software]. GitHub. https://github.com/abdulmelink/flopy-net
 
 ## Support & Community
 

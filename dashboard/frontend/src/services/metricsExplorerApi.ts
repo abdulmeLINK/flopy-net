@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-/**
 import api from './api'; // Use the shared axios instance
 
 // Base URL from environment variable or default to relative path

@@ -15,7 +15,8 @@ from flask import Blueprint, jsonify, request
 logger = logging.getLogger(__name__)
 
 # Create blueprint for network routes
-network_bp = Blueprint('network', __name__, url_prefix='/network')
+# Note: url_prefix is set during registration in server.py, not here
+network_bp = Blueprint('network', __name__)
 
 
 def init_network_routes(storage, requires_auth):

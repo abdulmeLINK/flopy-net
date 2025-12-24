@@ -1,7 +1,7 @@
 version: '3.8'
 
 # FLOPY-NET: Federated Learning and SDN Observatory Platform
-# System Version: v1.0.0-alpha.8
+# System Version: v1.0.0-alpha.9
 # Build Date: 2025-06-10
 # Registry: abdulmelink (Docker Hub)
 
@@ -19,14 +19,14 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_policy_engine.Dockerfile
-    image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-policy-engine:v1.0.0-alpha.9
     container_name: policy-engine
     privileged: true
     cap_add:
       - NET_ADMIN
     environment:
       - SERVICE_TYPE=policy-engine
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-10
       - HOST=0.0.0.0
       - POLICY_PORT=5000
@@ -65,7 +65,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_fl_server.Dockerfile
-    image: abdulmelink/flopynet-server:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-server:v1.0.0-alpha.9
     container_name: fl-server
     privileged: true
     cap_add:
@@ -75,7 +75,7 @@ services:
         condition: service_healthy
     environment:
       - SERVICE_TYPE=fl-server
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-10
       - HOST=0.0.0.0
       - FL_SERVER_PORT=8080
@@ -118,7 +118,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_fl_client.Dockerfile
-    image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.9
     container_name: fl-client-1
     privileged: true
     cap_add:
@@ -130,7 +130,7 @@ services:
         condition: service_healthy
     environment:
       - SERVICE_TYPE=fl-client
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-10
       - SERVICE_ID=1
       - CLIENT_ID=client-1
@@ -167,7 +167,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_fl_client.Dockerfile
-    image: abdulmelink/flopynet-client:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-client:v1.0.0-alpha.9
     container_name: fl-client-2
     privileged: true
     cap_add:
@@ -179,7 +179,7 @@ services:
         condition: service_healthy
     environment:
       - SERVICE_TYPE=fl-client
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-10
       - SERVICE_ID=2
       - CLIENT_ID=client-2
@@ -216,7 +216,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_collector.Dockerfile
-    image: abdulmelink/flopynet-collector:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-collector:v1.0.0-alpha.9
     container_name: collector
     privileged: true
     cap_add:
@@ -230,7 +230,7 @@ services:
       - "8083:8000"  # Expose collector API port to host
     environment:
       - SERVICE_TYPE=collector
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-10
       - NETWORK_MONITOR_ENABLED=true
       - FL_SERVER_HOST=fl-server
@@ -279,7 +279,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_controller.Dockerfile
-    image: abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-sdn-controller:v1.0.0-alpha.9
     container_name: sdn-controller
     privileged: true
     cap_add:
@@ -289,7 +289,7 @@ services:
         condition: service_healthy
     environment:
       - SERVICE_TYPE=sdn-controller
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-10
       - CONTROLLER_HOST=0.0.0.0
       - CONTROLLER_PORT=6633
@@ -323,7 +323,7 @@ services:
     build:
       context: .
       dockerfile: docker/flopynet_openvswitch.Dockerfile
-    image: abdulmelink/openvswitch:v1.0.0-alpha.8
+    image: abdulmelink/openvswitch:v1.0.0-alpha.9
     container_name: openvswitch
     privileged: true
     cap_add:
@@ -333,7 +333,7 @@ services:
         condition: service_started
     environment:
       - SERVICE_TYPE=openvswitch
-      - SERVICE_VERSION=v1.0.0-alpha.8
+      - SERVICE_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-10
       - OVS_NUM_PORTS=16
       - OVS_USER_MODE=yes

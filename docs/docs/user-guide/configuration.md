@@ -4,11 +4,11 @@ sidebar_position: 1
 
 # Configuration Guide
 
-FLOPY-NET employs a hierarchical configuration system designed to support both development and research environments while maintaining consistency across Docker Compose and GNS3 deployment scenarios. This guide covers configuration management for the v1.0.0-alpha.8 implementation, including simulation parameters, network settings, and component coordination.
+FLOPY-NET employs a hierarchical configuration system designed to support both development and research environments while maintaining consistency across Docker Compose and GNS3 deployment scenarios. This guide covers configuration management for the v1.0.0-alpha.9 implementation, including simulation parameters, network settings, and component coordination.
 
 ## Current Implementation Configuration Context
 
-**Important Note**: The current FLOPY-NET v1.0.0-alpha.8 configuration is optimized for system architecture research and network simulation studies. The federated learning components use simulated training with synthetic data generation rather than actual machine learning training, allowing researchers to focus on network behavior, policy enforcement, and system scalability analysis.
+**Important Note**: The current FLOPY-NET v1.0.0-alpha.9 configuration is optimized for system architecture research and network simulation studies. The federated learning components use simulated training with synthetic data generation rather than actual machine learning training, allowing researchers to focus on network behavior, policy enforcement, and system scalability analysis.
 
 Configuration parameters primarily control simulation behavior, network topology settings, policy enforcement rules, and monitoring data collection rather than actual machine learning hyperparameters. For production federated learning deployments, custom configurations would need to be developed that extend these base settings with real training parameters, dataset specifications, and model architecture definitions.
 
@@ -29,7 +29,7 @@ This layered approach enables flexible deployment across different environments 
 
 ### Docker Compose Environment Variables
 
-The primary configuration method for FLOPY-NET v1.0.0-alpha.8 is through Docker Compose environment variables:
+The primary configuration method for FLOPY-NET v1.0.0-alpha.9 is through Docker Compose environment variables:
 
 #### Network Configuration (All Services)
 ```yaml
@@ -136,16 +136,16 @@ Defines the system version and component information:
 
 ```json
 {
-    "system_version": "v1.0.0-alpha.8",
+    "system_version": "v1.0.0-alpha.9",
     "build_date": "2025-06-10",
     "components": {
         "policy-engine": {
-            "version": "v1.0.0-alpha.8",
+            "version": "v1.0.0-alpha.9",
             "image": "abdulmelink/flopynet-policy-engine",
             "status": "alpha"
         },
         "fl-server": {
-            "version": "v1.0.0-alpha.8",
+            "version": "v1.0.0-alpha.9",
             "image": "abdulmelink/flopynet-server",
             "status": "alpha"
         }
@@ -286,7 +286,7 @@ Key environment variables used in `docker-compose.yml`:
 ```yaml
 environment:
   - SERVICE_TYPE=policy-engine
-  - SERVICE_VERSION=v1.0.0-alpha.8
+  - SERVICE_VERSION=v1.0.0-alpha.9
   - BUILD_DATE=2025-06-10
   - HOST=0.0.0.0
   - POLICY_PORT=5000

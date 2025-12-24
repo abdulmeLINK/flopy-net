@@ -32,7 +32,7 @@ assignees: ''
 
 - **OS**: [e.g., Ubuntu 22.04, Windows 11, macOS 14]
 - **Python Version**: [e.g., 3.10.5]
-- **FLOPY-NET Version**: [e.g., v1.0.0-alpha.8]
+- **FLOPY-NET Version**: [e.g., v1.0.0-alpha.9]
 - **Docker Version**: [e.g., 24.0.5]
 - **GNS3 Version**: [e.g., 2.2.42]
 

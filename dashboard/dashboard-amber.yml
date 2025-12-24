@@ -1,12 +1,12 @@
 version: '3.8'
 
 # FLOPY-NET: Federated Learning and SDN Observatory Platform  
-# Dashboard Services - System Version: v1.0.0-alpha.8
+# Dashboard Services - System Version: v1.0.0-alpha.9
 # Build Date: 2025-06-10
 
 services:
   dashboard-backend:
-    image: abdulmelink/flopynet-dashboard-backend:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-dashboard-backend:v1.0.0-alpha.9
     container_name: dashboard-backend
     ports:
       - "8001:8001"    
@@ -17,7 +17,7 @@ services:
       - GNS3_API_VERSION=v2
       - LOG_LEVEL=DEBUG
       - SCENARIOS_DIR=/app/src/scenarios
-      - APP_VERSION=v1.0.0-alpha.8
+      - APP_VERSION=v1.0.0-alpha.9
       - BUILD_DATE=2025-06-10
       - GIT_COMMIT=latest
       - ENVIRONMENT=development
@@ -37,7 +37,7 @@ services:
     networks:
       - dashboard-network
   dashboard-frontend:
-    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.8
+    image: abdulmelink/flopynet-dashboard-frontend:v1.0.0-alpha.9
     container_name: dashboard-frontend
     ports:
       - "8085:80"
